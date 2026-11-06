@@ -4,14 +4,14 @@ plugins {
 }
 
 android {
-    namespace 'com.jsomi.broadcaster'
+    namespace 'com.jsomi.broadcaster2'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.jsomi.broadcaster"
+        applicationId "com.jsomi.broadcaster2"
         minSdk 24
         targetSdk 34
-        versionCode 1
+        versionCode 2
         versionName "1.0"
     }
 
