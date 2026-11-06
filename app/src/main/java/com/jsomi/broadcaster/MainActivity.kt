@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.pedro.rtmp.RtmpClient
 
 class MainActivity : AppCompatActivity() {
 
