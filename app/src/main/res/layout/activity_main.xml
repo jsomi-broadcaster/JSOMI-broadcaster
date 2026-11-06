@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Jesus Son of Man International - Healing &amp; Deliverance"
-        android:gravity="center"
+        android:gravity="center" />
 
     <androidx.camera.view.PreviewView
         android:id="@+id/previewView"
