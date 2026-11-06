@@ -15,3 +15,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "JSOMI Broadcaster"
 include ':app'
+Android.useAndroidx=true
+android.enablejetifier=true
