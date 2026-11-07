@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.goLiveButton).setOnClickListener { startMultiStream() }
         findViewById<Button>(R.id.stopButton).setOnClickListener { stopMultiStream() }
 
-        genericStream = GenericStream(this, null)
+        genericStream = GenericStream(this)
 
         if (hasPermissions()) {
             startPreviewSafe()
