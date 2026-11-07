@@ -11,8 +11,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pedro.library.generic.GenericStream
 import com.pedro.library.view.OpenGlView
-
-class MainActivity : AppCompatActivity() {
+import com.pedro.common.ConnectChecker
+class MainActivity : AppCompatActivity(), ConnectChecker {
 
     private lateinit var genericStream: GenericStream
     private lateinit var openGlView: OpenGlView
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.goLiveButton).setOnClickListener { startMultiStream() }
         findViewById<Button>(R.id.stopButton).setOnClickListener { stopMultiStream() }
 
-        genericStream = GenericStream(this)
+        genericStream = GenericStream(this, this)
 
         if (hasPermissions()) {
             startPreviewSafe()
@@ -109,7 +109,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
-    }
+        super.onDestroy()    
+    }   
+        override fun onConnectionStarted(url: String) {}
+    override fun onConnectionSuccess() {}
+    override fun onConnectionFailed(reason: String) {}
+    override fun onNewBitrate(bitrate: Long) {}
+    override fun onDisconnect() {}
+    override fun onAuthError() {}
+    override fun onAuthSuccess() {}
     }
 
