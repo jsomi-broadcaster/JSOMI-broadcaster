@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import com.pedro.library.generic.GenericStream
 import com.pedro.library.view.OpenGlView
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ConnectChecker {
 
     private lateinit var genericStream: GenericStream
     private lateinit var openGlView: OpenGlView
@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.goLiveButton).setOnClickListener { startMultiStream() }
         findViewById<Button>(R.id.stopButton).setOnClickListener { stopMultiStream() }
 
-        genericStream = GenericStream(this, null)
+        genericStream = GenericStream(this, this)
 
         if (hasPermissions()) {
             startPreviewSafe()
@@ -111,6 +111,21 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         if (isStreaming) genericStream.stopStream()
-        if (previewStarted) genericStream.stopPreview()
+        if (previewStarted) genericStream.stopPreview()}
+            override fun onConnectionStarted(url: String) {
+        runOnUiThread { Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show() }
     }
-}
+    override fun onConnectionSuccess() {
+        runOnUiThread { Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show() }
+    }
+    override fun onConnectionFailed(reason: String) {
+        runOnUiThread { Toast.makeText(this, "Failed: $reason", Toast.LENGTH_LONG).show() }
+    }
+    override fun onNewBitrate(bitrate: Long) {}
+    override fun onDisconnect() {
+        runOnUiThread { Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show() }
+    }
+    override fun onAuthError() {}
+    override fun onAuthSuccess() {}
+    }
+
