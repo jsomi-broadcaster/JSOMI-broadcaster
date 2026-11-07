@@ -1,11 +1,12 @@
-package com.jsomi.broadcaster
-
 import android.os.Bundle
-import android.view.TextureView
+
+import android.widget.Button
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.pedro.common.ConnectChecker
 import com.pedro.library.generic.GenericStream
+import com.pedro.library.view.OpenGlView
 
 class MainActivity : AppCompatActivity(), ConnectChecker {
 
@@ -27,8 +28,8 @@ class MainActivity : AppCompatActivity(), ConnectChecker {
         // 2.8.1 constructor - just context + checker, no sources needed
         genericStream = GenericStream(this, this)
 
-        val textureView = findViewById<TextureView>(R.id.textureView)
-        genericStream.startPreview(textureView)
+        val openGlView = findViewById<OpenGlView>(R.id.openGlView)
+genericStream.startPreview(openGlView)
 
         genericStream.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 2)
         genericStream.prepareAudio(128 * 1024, true, 44100, false, false)
