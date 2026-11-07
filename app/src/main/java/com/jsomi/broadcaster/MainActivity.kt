@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity(), ConnectChecker {
     override fun onNewBitrate(bitrate: Long) {}
     override fun onDisconnect() {}
     override fun onAuthError() {}
-    override fun onAuthSuccess() {}
+    
 
     override fun onDestroy() {
         super.onDestroy()
