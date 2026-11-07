@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.view.TextureView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.pedro.library.base.ConnectChecker
+import com.pedro.common.ConnectChecker
 import com.pedro.library.generic.GenericStream
 
 class MainActivity : AppCompatActivity(), ConnectChecker {
