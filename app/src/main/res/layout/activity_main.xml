@@ -52,5 +52,22 @@
         android:layout_height="wrap_content"
         android:text="STOP STREAM"
         android:layout_marginTop="8dp" />
+        <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="✦ JEHOVAH SHALOM OUTREACH MINISTRY INTERNATIONAL ✦ JESUS IS LORD ✦ WELCOME TO THE HOUSE OF GOD ✦ "
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#FFD700"
+        android:background="#000000"
+        android:padding="10dp"
+        android:gravity="center"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:selected="true" />
 
 </LinearLayout>
