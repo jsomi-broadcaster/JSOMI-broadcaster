@@ -114,14 +114,6 @@ private fun startPreviewSafe() {
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (hasPermissions()) {
-            startPreviewSafe()
-        } else {
-            Toast.makeText(this, "Camera + Mic permission needed", Toast.LENGTH_LONG).show()
-        }
-    }
 
     override fun onDestroy() {
         super.onDestroy()    
