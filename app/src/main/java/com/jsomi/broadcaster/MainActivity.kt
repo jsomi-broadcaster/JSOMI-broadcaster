@@ -11,7 +11,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pedro.library.generic.GenericStream
 import com.pedro.library.view.OpenGlView
-
+import com.pedro.library.base.ConnectChecker
 class MainActivity : AppCompatActivity(), ConnectChecker {
 
     private lateinit var genericStream: GenericStream
