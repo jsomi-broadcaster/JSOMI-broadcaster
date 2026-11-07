@@ -56,6 +56,20 @@ class MainActivity : AppCompatActivity(), ConnectChecker {
 
     override fun onConnectionFailed(reason: String) {
         runOnUiThread { Toast.makeText(this, "Failed: $reason", Toast.LENGTH_SHORT).show() }
+    }    override fun onConnectionStarted(url: String) {
+    }
+
+    override fun onDisconnect() {
+        runOnUiThread { isStreaming = false }
+    }
+
+    override fun onAuthError() {
+    }
+
+    override fun onAuthSuccess() {
+    }
+
+    override fun onNewBitrate(bitrate: Long) {
     }
 
     
