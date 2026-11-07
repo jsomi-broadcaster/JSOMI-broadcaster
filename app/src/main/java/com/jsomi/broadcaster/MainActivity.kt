@@ -58,9 +58,7 @@ class MainActivity : AppCompatActivity(), ConnectChecker {
         runOnUiThread { Toast.makeText(this, "Failed: $reason", Toast.LENGTH_SHORT).show() }
     }
 
-    override fun onNewBitrate(bitrate: Long) {}
-    override fun onDisconnect() {}
-    override fun onAuthError() {}
+    
     
 
     override fun onDestroy() {
