@@ -19,8 +19,8 @@
         android:text="OUTREACH MINISTRY INTERNATIONAL"
         android:gravity="center" />
 
-    <androidx.camera.view.PreviewView
-        android:id="@+id/previewView"
+    <com.pedro.library.view.OpenGlView
+        android:id="@+id/openGlView"
         android:layout_width="match_parent"
         android:layout_height="320dp"
         android:layout_marginTop="12dp" />
@@ -37,6 +37,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Paste Facebook Stream Key"
+        android:layout_marginTop="8dp" />
+    <EditText
+        android:id="@+id/tiktokKeyInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Paste TikTok RTMP URL + Key (full link)"
+        android:layout_marginTop="8dp" />
+
+   <EditText
+        android:id="@+id/jsomiTvKeyInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Paste JSOMI TV RTMP URL + Key (full link)"
         android:layout_marginTop="8dp" />
 
     <Button
