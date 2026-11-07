@@ -97,13 +97,10 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         // Prepare encoder 1280x720
         if (!genericStream.isOnPreview) genericStream.startPreview()
         genericStream.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 2)
-        genericStream.prepareAudio(128 * 1024, 44100, true, false, false)
+        genericStream.prepareAudio(128 * 1024, true, 44100, false, false)
 
         // Add all destinations - same video goes to all
-        for (url in urls) {
-            genericStream.getStreamClient().addClient(url)
-        }
-        genericStream.startStream(urls[0])
+        genericStream.startStream(urls)
         isStreaming = true
         Toast.makeText(this, "LIVE to ${urls.size} place(s) - JEHOVAH SHALOM!", Toast.LENGTH_LONG).show()
     }
@@ -111,7 +108,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
     private fun stopMultiStream() {
         if (!isStreaming) return
         genericStream.stopStream()
-        genericStream.getStreamClient().removeClients()
+        
         isStreaming = false
         Toast.makeText(this, "Stream Stopped", Toast.LENGTH_SHORT).show()
     }
