@@ -1,3 +1,5 @@
+package com.jsomi.broadcaster
+
 import android.os.Bundle
 
 import android.widget.Button
