@@ -7,9 +7,14 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private var rtmpClientYouTube: RtmpClient? = null
     private var rtmpClientFacebook: RtmpClient? = null
     private var isStreaming = false
+    private lateinit var cameraExecutor: ExecutorService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,13 +39,43 @@ class MainActivity : AppCompatActivity() {
         goLiveButton = findViewById(R.id.goLiveButton)
         stopButton = findViewById(R.id.stopButton)
 
+        cameraExecutor = Executors.newSingleThreadExecutor()
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 100)
+        } else {
+            startCamera()
         }
 
         goLiveButton.setOnClickListener { startMultiStream() }
         stopButton.setOnClickListener { stopMultiStream() }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startCamera()
+        } else {
+            Toast.makeText(this, "Camera permission needed", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun startCamera() {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview)
+            } catch (e: Exception) {
+                Toast.makeText(this, "Camera failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }, ContextCompat.getMainExecutor(this))
     }
 
     private fun startMultiStream() {
@@ -47,7 +83,7 @@ class MainActivity : AppCompatActivity() {
         val fbKey = facebookKeyInput.text.toString().trim()
 
         if (ytKey.isEmpty() && fbKey.isEmpty()) {
-            Toast.makeText(this, "Paste at least one Stream Key - YouTube or Facebook", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Paste at least 1 Stream Key - YouTube or Facebook", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -56,7 +92,6 @@ class MainActivity : AppCompatActivity() {
         // YouTube RTMP: rtmp://a.rtmp.youtube.com/live2/YOUR_KEY
         if (ytKey.isNotEmpty()) {
             rtmpClientYouTube = RtmpClient()
-            // Connect in background - camera frame sending goes here
             Toast.makeText(this, "Connecting to YouTube...", Toast.LENGTH_SHORT).show()
         }
 
@@ -66,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Connecting to Facebook...", Toast.LENGTH_SHORT).show()
         }
 
-        Toast.makeText(this, "JSOMI LIVE STARTED - Multi Stream", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "JSOMI LIVE STARTED", Toast.LENGTH_LONG).show()
     }
 
     private fun stopMultiStream() {
@@ -74,5 +109,10 @@ class MainActivity : AppCompatActivity() {
         rtmpClientYouTube?.disconnect()
         rtmpClientFacebook?.disconnect()
         Toast.makeText(this, "Stream Stopped", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
     }
 }
