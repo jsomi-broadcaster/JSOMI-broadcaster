@@ -21,6 +21,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var previewView: PreviewView
     private lateinit var youtubeKeyInput: EditText
     private lateinit var facebookKeyInput: EditText
+    private lateinit var tiktokKeyInput: EditText
+    private lateinit var jsomiTvKeyInput: EditText
     private lateinit var goLiveButton: Button
     private lateinit var stopButton: Button
 
