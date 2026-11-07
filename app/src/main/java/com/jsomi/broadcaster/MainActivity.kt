@@ -129,7 +129,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
     override fun onAuthErrorRtmp() {
         runOnUiThread { Toast.makeText(this, "Auth Error - Check Stream Key", Toast.LENGTH_LONG).show() }
     }
-    override fun onAuthSuccessRtmp() {}
+    
 
     override fun onDestroy() {
         super.onDestroy()
