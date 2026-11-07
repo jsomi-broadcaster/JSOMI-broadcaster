@@ -69,7 +69,7 @@ private fun startPreviewSafe() {
     if (previewStarted) return
     try {
         genericStream.prepareVideo(1280, 720, 30)
-        genericStream.prepareAudio(128 * 1024, 44100, true)
+        genericStream.prepareAudio(128 * 1024, true, 44100)
         genericStream.startPreview(openGlView)
         previewStarted = true
     } catch (e: Exception) {
