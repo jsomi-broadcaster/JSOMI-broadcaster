@@ -64,30 +64,30 @@ class MainActivity : AppCompatActivity(), ConnectChecker {
         }
     }
 
-    private fun startPreviewSafe() {
-        if (previewStarted) return
-        try {
-            genericStream.startPreview(openGlView)
-            genericStream.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 2)
-            genericStream.prepareAudio(128 * 1024, true, 44100, false, false)
-            previewStarted = true
-        } catch (e: Exception) {
-            Toast.makeText(this, "Preview failed: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+    
+private fun startPreviewSafe() {
+    if (previewStarted) return
+    try {
+        genericStream.prepareVideo(1280, 720, 30)
+        genericStream.prepareAudio(128 * 1024, 44100, true)
+        genericStream.startPreview(openGlView)
+        previewStarted = true
+    } catch (e: Exception) {
+        Toast.makeText(this, "Preview failed: " + e.message, Toast.LENGTH_LONG).show()
     }
-
+}
     private fun getUrls(): List<String> {
-        val list = mutableListOf<String>()
-        val yt = youtubeKeyInput.text.toString().trim()
-        val fb = facebookKeyInput.text.toString().trim()
-        val tk = tiktokKeyInput.text.toString().trim()
-        val tv = jsomiTvKeyInput.text.toString().trim()
-        if (yt.isNotEmpty()) list.add(yt)
-        if (fb.isNotEmpty()) list.add(fb)
-        if (tk.isNotEmpty()) list.add(tk)
-        if (tv.isNotEmpty()) list.add(tv)
-        return list
-    }
+    val list = mutableListOf<String>()
+    val yt = youtubeKeyInput.text.toString().trim()
+    val fb = facebookKeyInput.text.toString().trim()
+    val tk = tiktokKeyInput.text.toString().trim()
+    val tv = jsomiTvKeyInput.text.toString().trim()
+    if (yt.isNotEmpty()) list.add("rtmp://a.rtmp.youtube.com/live2/" + yt)
+    if (fb.isNotEmpty()) list.add("rtmps://live-api-s.facebook.com:443/rtmp/" + fb)
+    if (tk.isNotEmpty()) list.add(tk) // TikTok: paste FULL RTMP URL + Key here
+    if (tv.isNotEmpty()) list.add(tv) // JSOMI TV: paste FULL RTMP URL + Key here
+    return list
+}
 
     private fun startMultiStream() {
         if (isStreaming) return
