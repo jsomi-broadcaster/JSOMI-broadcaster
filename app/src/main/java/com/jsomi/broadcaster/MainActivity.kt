@@ -10,11 +10,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pedro.library.generic.GenericStream
-import com.pedro.library.rtmp.utils.ConnectCheckerRtmp
 import com.pedro.library.view.OpenGlView
 
-
-class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var genericStream: GenericStream
     private lateinit var openGlView: OpenGlView
@@ -39,7 +37,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         findViewById<Button>(R.id.goLiveButton).setOnClickListener { startMultiStream() }
         findViewById<Button>(R.id.stopButton).setOnClickListener { stopMultiStream() }
 
-        genericStream = GenericStream(this, this)
+        genericStream = GenericStream(this, null)
 
         if (hasPermissions()) {
             startPreviewSafe()
@@ -98,10 +96,9 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             Toast.makeText(this, "Paste at least 1 stream key / RTMP URL first", Toast.LENGTH_LONG).show()
             return
         }
-        // 2.8.1 GenericStream only takes ONE url at a time - use first for now
         genericStream.startStream(urls[0])
         isStreaming = true
-        Toast.makeText(this, "LIVE to ${urls.size} place(s) - JEHOVAH SHALOM!", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "LIVE - JEHOVAH SHALOM!", Toast.LENGTH_LONG).show()
     }
 
     private fun stopMultiStream() {
@@ -110,26 +107,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         isStreaming = false
         Toast.makeText(this, "Stream Stopped", Toast.LENGTH_SHORT).show()
     }
-
-    override fun onConnectionSuccess() {
-        runOnUiThread { Toast.makeText(this, "Connected - You are LIVE!", Toast.LENGTH_SHORT).show() }
-    }
-
-    override fun onConnectionFailed(reason: String) {
-        runOnUiThread { Toast.makeText(this, "Connection failed: $reason", Toast.LENGTH_LONG).show() }
-    }
-
-    override fun onConnectionStarted(url: String) {
-        runOnUiThread { Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show() }
-    }
-
-    override fun onDisconnect() {
-        runOnUiThread { isStreaming = false }
-    }
-
-    override fun onAuthError() {}
-    override fun onAuthSuccess() {}
-    override fun onNewBitrate(bitrate: Long) {}
 
     override fun onDestroy() {
         super.onDestroy()
