@@ -9,7 +9,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.pedro.library.base.recording.RecordController
+
 import com.pedro.library.generic.GenericStream
 import com.pedro.library.util.sources.audio.MicrophoneSource
 import com.pedro.library.util.sources.video.Camera2Source
@@ -44,8 +44,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         // Pedro GenericStream = 1 camera + 1 mic -> many RTMP destinations
         genericStream = GenericStream(
             this, openGlView, this,
-            Camera2Source(this), MicrophoneSource(),
-            RecordController()
+                Camera2Source(this), MicrophoneSource()
         )
         genericStream.getStreamClient().setReTries(10)
 
