@@ -43,9 +43,9 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
 
         // Pedro GenericStream = 1 camera + 1 mic -> many RTMP destinations
         genericStream = GenericStream(
-            this, openGlView, this,
-                Camera2Source(this), MicrophoneSource()
-        )
+    this, openGlView, this
+)
+        
         genericStream.getStreamClient().setReTries(10)
 
         goLiveButton.setOnClickListener { startMultiStream() }
