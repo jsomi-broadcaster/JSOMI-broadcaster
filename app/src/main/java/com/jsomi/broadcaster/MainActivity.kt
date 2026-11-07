@@ -26,6 +26,8 @@ class MainActivity : AppCompatActivity() {
 
     private var rtmpClientYouTube: RtmpClient? = null
     private var rtmpClientFacebook: RtmpClient? = null
+    private var rtmpClientTikTok: RtmpClient?
+private var rtmpClientJsomiTv: RtmpClient?
     private var isStreaming = false
     private lateinit var cameraExecutor: ExecutorService
 
@@ -36,6 +38,8 @@ class MainActivity : AppCompatActivity() {
         previewView = findViewById(R.id.previewView)
         youtubeKeyInput = findViewById(R.id.youtubeKeyInput)
         facebookKeyInput = findViewById(R.id.facebookKeyInput)
+        tiktokKeyInput = findViewById(R.id.tiktokKeyInput)
+jsomiTvKeyInput = findViewById(R.id.jsomiTvKeyInput)
         goLiveButton = findViewById(R.id.goLiveButton)
         stopButton = findViewById(R.id.stopButton)
 
@@ -80,9 +84,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun startMultiStream() {
         val ytKey = youtubeKeyInput.text.toString().trim()
-        val fbKey = facebookKeyInput.text.toString().trim()
+val fbKey = facebookKeyInput.text.toString().trim()
+val tiktokKey = tiktokKeyInput.text.toString().trim()
+val jsomiKey = jsomiTvKeyInput.text.toString().trim()
 
-        if (ytKey.isEmpty() && fbKey.isEmpty()) {
+        if (ytKey.isEmpty() && fbKey.isEmpty() && tiktokKey.isEmpty() && jsomiKey.isEmpty()) {
             Toast.makeText(this, "Paste at least 1 Stream Key - YouTube or Facebook", Toast.LENGTH_LONG).show()
             return
         }
@@ -100,6 +106,17 @@ class MainActivity : AppCompatActivity() {
             rtmpClientFacebook = RtmpClient()
             Toast.makeText(this, "Connecting to Facebook...", Toast.LENGTH_SHORT).show()
         }
+        // TikTok RTMP: Paste full RTMP from TikTok Live Studio
+if (tiktokKey.isNotEmpty()) {
+    rtmpClientTikTok = RtmpClient()
+    Toast.makeText(this, "Connecting to TikTok...", Toast.LENGTH_SHORT).show()
+}
+
+// JSOMI TV RTMP: rtmp://your-jsomi-server/live/YOUR_KEY
+if (jsomiKey.isNotEmpty()) {
+    rtmpClientJsomiTv = RtmpClient()
+    Toast.makeText(this, "Connecting to JSOMI TV...", Toast.LENGTH_SHORT).show()
+}
 
         Toast.makeText(this, "JSOMI LIVE STARTED", Toast.LENGTH_LONG).show()
     }
@@ -108,6 +125,8 @@ class MainActivity : AppCompatActivity() {
         isStreaming = false
         rtmpClientYouTube?.disconnect()
         rtmpClientFacebook?.disconnect()
+        rtmpClientTikTok?.disconnect()
+rtmpClientJsomiTv?.disconnect()
         Toast.makeText(this, "Stream Stopped", Toast.LENGTH_SHORT).show()
     }
 
