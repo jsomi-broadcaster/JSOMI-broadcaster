@@ -10,11 +10,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pedro.library.generic.GenericStream
-import com.pedro.library.util.sources.video.Camera1Source
+import com.pedro.library.rtmp.utils.ConnectCheckerRtmp
 import com.pedro.library.view.OpenGlView
-import com.pedro.rtmp.utils.ConnectChecker
 
-class MainActivity : AppCompatActivity(), ConnectChecker {
+
+class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
 
     private lateinit var genericStream: GenericStream
     private lateinit var openGlView: OpenGlView
