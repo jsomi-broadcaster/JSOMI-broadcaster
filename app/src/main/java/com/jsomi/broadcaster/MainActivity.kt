@@ -1,129 +1,118 @@
-package com.jsomi.broadcaster
+package com.jsomi.broadcast
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.widget.Button
-import android.widget.EditText
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.pedro.library.generic.GenericStream
-import com.pedro.library.view.OpenGlView
-import com.pedro.common.ConnectChecker
-class MainActivity : AppCompatActivity(), ConnectChecker {
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
-    private lateinit var genericStream: GenericStream
-    private lateinit var openGlView: OpenGlView
-    private var isStreaming = false
-    private var previewStarted = false
-
-    private lateinit var youtubeKeyInput: EditText
-    private lateinit var facebookKeyInput: EditText
-    private lateinit var tiktokKeyInput: EditText
-    private lateinit var jsomiTvKeyInput: EditText
-
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        openGlView = findViewById(R.id.openGlView)
-        youtubeKeyInput = findViewById(R.id.youtubeKeyInput)
-        facebookKeyInput = findViewById(R.id.facebookKeyInput)
-        tiktokKeyInput = findViewById(R.id.tiktokKeyInput)
-        jsomiTvKeyInput = findViewById(R.id.jsomiTvKeyInput)
-
-        findViewById<Button>(R.id.goLiveButton).setOnClickListener { startMultiStream() }
-        findViewById<Button>(R.id.stopButton).setOnClickListener { stopMultiStream() }
-
-        genericStream = GenericStream(this, this)
-
-        if (hasPermissions()) {
-            startPreviewSafe()
-        } else {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO),
-                1001
-            )
-        }
-    }
-
-    private fun hasPermissions(): Boolean {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001 && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-            startPreviewSafe()
-        } else {
-            Toast.makeText(this, "Camera + Mic permission needed to go live", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    
-private fun startPreviewSafe() {
-    if (previewStarted) return
-    try {
-        genericStream.prepareVideo(1280, 720, 30)
-        genericStream.prepareAudio(128 * 1024, true, 44100)
-        genericStream.startPreview(openGlView)
-        previewStarted = true
-    } catch (e: Exception) {
-        Toast.makeText(this, "Preview failed: " + e.message, Toast.LENGTH_LONG).show()
+        setContent { JSOMIApp92() }
     }
 }
-    private fun getUrls(): List<String> {
-    val list = mutableListOf<String>()
-    val yt = youtubeKeyInput.text.toString().trim()
-    val fb = facebookKeyInput.text.toString().trim()
-    val tk = tiktokKeyInput.text.toString().trim()
-    val tv = jsomiTvKeyInput.text.toString().trim()
-    if (yt.isNotEmpty()) list.add("rtmp://a.rtmp.youtube.com/live2/" + yt)
-    if (fb.isNotEmpty()) list.add("rtmps://live-api-s.facebook.com:443/rtmp/" + fb)
-    if (tk.isNotEmpty()) list.add(tk) // TikTok: paste FULL RTMP URL + Key here
-    if (tv.isNotEmpty()) list.add(tv) // JSOMI TV: paste FULL RTMP URL + Key here
-    return list
+
+@Composable
+fun JSOMIApp92() {
+    var showWelcome by remember { mutableStateOf(true) }
+    var isLive by remember { mutableStateOf(false) }
+    var selectedCam by remember { mutableStateOf("CAM 1 - Main") }
+    var remoteOn by remember { mutableStateOf(false) }
+
+    if (showWelcome) {
+        // --- WELCOME SCREEN ---
+        Column(
+            modifier = Modifier.fillMaxSize().background(Color(0xFF0B0B12)).padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("JS", fontSize = 70.sp, fontWeight = FontWeight.Black, color = Color(0xFFFFD700))
+            Text("JEHOVAH SHALOM", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("JESUS SON OF MAN INTERNATIONAL", color = Color.Gray, fontSize = 12.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Healing & Deliverance • Mombasa", color = Color.Gray, fontSize = 13.sp)
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = { showWelcome = false },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700))
+            ) { Text("ENTER STUDIO →", color = Color.Black, fontWeight = FontWeight.Bold) }
+        }
+    } else {
+        // --- PRISM LAYOUT / STUDIO ---
+        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(12.dp)) {
+
+            // TOP BAR + LIVE INDICATOR
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("JSOMI STUDIO", color = Color.White, fontWeight = FontWeight.Bold)
+                if (isLive) {
+                    Box(modifier = Modifier.background(Color.Red, RoundedCornerShape(20.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        Text("● LIVE", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                } else {
+                    Box(modifier = Modifier.background(Color.DarkGray, RoundedCornerShape(20.dp)).padding(horizontal = 12.dp, vertical = 4.dp)) {
+                        Text("OFFLINE", color = Color.White, fontSize = 13.sp)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // MAIN PREVIEW - PRISM STYLE
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f).background(Color(0xFF1A1A1A), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("📷", fontSize = 50.sp)
+                    Text(selectedCam, color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(if (isLive) "Broadcasting to YouTube + Facebook" else "Preview - Tap GO LIVE to start", color = Color.Gray, fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // MULTI-CAMERA
+            Text("MULTI-CAMERA", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("CAM 1 - Main", "CAM 2 - Choir", "CAM 3 - Crowd").forEach { cam ->
+                    Button(
+                        onClick = { selectedCam = cam },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (selectedCam == cam) Color(0xFFFFD700) else Color.DarkGray)
+                    ) { Text(cam.replace(" - ", "\n"), color = if (selectedCam == cam) Color.Black else Color.White, fontSize = 11.sp) }
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // REMOTE CONTROL
+            Row(modifier = Modifier.fillMaxWidth().background(Color(0xFF1A1A1A), RoundedCornerShape(12.dp)).padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("🎛️ REMOTE CONTROL", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(if (remoteOn) "Phone 2 can control this studio" else "Allow 2nd phone to switch cameras", color = Color.Gray, fontSize = 11.sp)
+                }
+                Switch(checked = remoteOn, onCheckedChange = { remoteOn = it })
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // GO LIVE - ALWAYS LAST / BIGGEST
+            Button(
+                onClick = { isLive = !isLive },
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isLive) Color.Red else Color(0xFFE53935)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(if (isLive) "■ STOP LIVE" else "● GO LIVE TO ALL", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+            }
+        }
+    }
 }
-
-    private fun startMultiStream() {
-        if (isStreaming) return
-        val urls = getUrls()
-        if (urls.isEmpty()) {
-            Toast.makeText(this, "Paste at least 1 stream key / RTMP URL first", Toast.LENGTH_LONG).show()
-            return
-        }
-        genericStream.startStream(urls[0])
-        isStreaming = true
-        Toast.makeText(this, "LIVE - JEHOVAH SHALOM!", Toast.LENGTH_LONG).show()
-    }
-
-    private fun stopMultiStream() {
-        if (!isStreaming) return
-        genericStream.stopStream()
-        isStreaming = false
-        Toast.makeText(this, "Stream Stopped", Toast.LENGTH_SHORT).show()
-    }
-         override fun onResume() {
-        super.onResume()
-        if (hasPermissions()) {
-            startPreviewSafe()
-        }
-    }
-
-
-    override fun onDestroy() {
-        super.onDestroy()    
-    }   
-        override fun onConnectionStarted(url: String) {}
-    override fun onConnectionSuccess() {}
-    override fun onConnectionFailed(reason: String) {}
-    override fun onNewBitrate(bitrate: Long) {}
-    override fun onDisconnect() {}
-    override fun onAuthError() {}
-    override fun onAuthSuccess() {}
-    }
-
