@@ -112,4 +112,4 @@ fun JSTVApp() {
     var showLogoOnVideo by remember { mutableStateOf(true) }
     var brandColor by remember { mutableStateOf("Gold") }
     var phoneNumber by remember { mutableStateOf("+254 700 000 000") }
-    var topic by remember { mutableStateOf("Sunday Service - Jesus Is
+    var topic by remember { mutableStateOf("Sunday Service") }
