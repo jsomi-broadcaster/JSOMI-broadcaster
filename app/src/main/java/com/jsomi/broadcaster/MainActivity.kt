@@ -37,9 +37,9 @@ class MainActivity : ComponentActivity() {
         setContent {
     androidx.compose.material3.MaterialTheme {
         JSOMIApp92()
-    }
+   }
+ }
 }
-
 @Composable
 fun JSOMIApp92() {
     var showWelcome by remember { mutableStateOf(true) }
