@@ -23,14 +23,7 @@ jobs:
             settings.pluginManagement.repositories {
               maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2') }
             }
-          }
-          allprojects {
-            buildscript {
-              repositories {
-                maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2') }
-              }
-            }
-            repositories {
+            settings.dependencyResolutionManagement.repositories {
               maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2') }
             }
           }
