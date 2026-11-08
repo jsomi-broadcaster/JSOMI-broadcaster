@@ -20,28 +20,22 @@ jobs:
           mkdir -p ~/.gradle
           cat > ~/.gradle/init.gradle <<'EOF'
           beforeSettings { settings ->
-            settings.pluginManagement.repositories.clear()
-            settings.pluginManagement.repositories.add(settings.pluginManagement.repositories.maven { url 'https://maven-central.storage-download.googleapis.com/maven2' })
-            settings.pluginManagement.repositories.add(settings.pluginManagement.repositories.gradlePluginPortal())
-            settings.pluginManagement.repositories.add(settings.pluginManagement.repositories.google())
-            settings.dependencyResolutionManagement.repositories.clear()
-            settings.dependencyResolutionManagement.repositories.add(settings.dependencyResolutionManagement.repositories.maven { url 'https://maven-central.storage-download.googleapis.com/maven2' })
-            settings.dependencyResolutionManagement.repositories.add(settings.dependencyResolutionManagement.repositories.google())
+            settings.pluginManagement.repositories {
+              maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2') }
+            }
           }
           allprojects {
             buildscript {
               repositories {
-                maven { url 'https://maven-central.storage-download.googleapis.com/maven2' }
-                google()
-                gradlePluginPortal()
+                maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2') }
               }
             }
             repositories {
-              maven { url 'https://maven-central.storage-download.googleapis.com/maven2' }
-              google()
+              maven { url = uri('https://maven-central.storage-download.googleapis.com/maven2') }
             }
           }
           EOF
+          cat ~/.gradle/init.gradle
       - name: Build Debug APK
         run: gradle assembleDebug --stacktrace || gradle assembleDebug --stacktrace
       - name: Upload APK
