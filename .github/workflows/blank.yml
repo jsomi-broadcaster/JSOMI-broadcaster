@@ -15,8 +15,35 @@ jobs:
           distribution: 'temurin'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+      - name: Use Google Maven Mirror
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/init.gradle <<'EOF'
+          beforeSettings { settings ->
+            settings.pluginManagement.repositories.clear()
+            settings.pluginManagement.repositories.add(settings.pluginManagement.repositories.maven { url 'https://maven-central.storage-download.googleapis.com/maven2' })
+            settings.pluginManagement.repositories.add(settings.pluginManagement.repositories.gradlePluginPortal())
+            settings.pluginManagement.repositories.add(settings.pluginManagement.repositories.google())
+            settings.dependencyResolutionManagement.repositories.clear()
+            settings.dependencyResolutionManagement.repositories.add(settings.dependencyResolutionManagement.repositories.maven { url 'https://maven-central.storage-download.googleapis.com/maven2' })
+            settings.dependencyResolutionManagement.repositories.add(settings.dependencyResolutionManagement.repositories.google())
+          }
+          allprojects {
+            buildscript {
+              repositories {
+                maven { url 'https://maven-central.storage-download.googleapis.com/maven2' }
+                google()
+                gradlePluginPortal()
+              }
+            }
+            repositories {
+              maven { url 'https://maven-central.storage-download.googleapis.com/maven2' }
+              google()
+            }
+          }
+          EOF
       - name: Build Debug APK
-        run: gradle assembleDebug --stacktrace
+        run: gradle assembleDebug --stacktrace || gradle assembleDebug --stacktrace
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
