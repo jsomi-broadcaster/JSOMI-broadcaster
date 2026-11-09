@@ -112,8 +112,18 @@ fun JSTVApp() {
     var showLogoOnVideo by remember { mutableStateOf(true) }
     var brandColor by remember { mutableStateOf("Gold") }
     var phoneNumber by remember { mutableStateOf("+254 700 000 000") }
-        var topic = "Sunday Service"
-        var isLive by remember { mutableStateOf(false) }
+            var topic by remember { mutableStateOf(
+        when (java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK)) {
+            java.util.Calendar.MONDAY -> "Monday Prayer"
+            java.util.Calendar.TUESDAY -> "Tuesday Bible Study"
+            java.util.Calendar.WEDNESDAY -> "Midweek Service"
+            java.util.Calendar.THURSDAY -> "Thursday Fellowship"
+            java.util.Calendar.FRIDAY -> "Friday Prayer Night"
+            java.util.Calendar.SATURDAY -> "Saturday Preparation"
+            else -> "Sunday Service"
+        }
+    ) }
+        
     var isMuted by remember { mutableStateOf(false) }
     var viewerCount by remember { mutableStateOf(0) }
 
