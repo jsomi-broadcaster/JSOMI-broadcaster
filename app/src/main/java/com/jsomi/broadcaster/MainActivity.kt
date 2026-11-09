@@ -113,3 +113,14 @@ fun JSTVApp() {
     var brandColor by remember { mutableStateOf("Gold") }
     var phoneNumber by remember { mutableStateOf("+254 700 000 000") }
         var topic = "Sunday Service"
+    
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "JSOMI Broadcaster\n" + topic,
+            textAlign = TextAlign.Center
+        )
+    }
+}
