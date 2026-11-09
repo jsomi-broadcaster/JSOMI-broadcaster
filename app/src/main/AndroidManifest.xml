@@ -7,12 +7,12 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
-        <application
+    <application
         android:allowBackup="true"
         android:icon="@mipmap/jstv_logo"
         android:label="JSTV"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.JSOMIBroadcaster">
         <activity
             android:name=".MainActivity"
             android:exported="true"
