@@ -28,12 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.jsomi.broadcaster.ui.theme.JSOMIBroadcasterTheme
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { JSOMIBroadcasterTheme { JSTVApp() } }
+        setContent { JSTVApp() }
     }
 }
 
@@ -170,9 +170,14 @@ fun RealCameraPreview(isFront: Boolean) {
 
 @Composable
 fun ScrollingTicker(text: String) {
-    val infinite = rememberInfiniteTransition(label = "ticker")
-    val offset by infinite.animateValue(initialValue = 0f, targetValue = -1000f, typeConverter = FloatConverter,
-        animationSpec = infiniteRepeatable(animation = tween(12000, easing = LinearEasing), repeatMode = RepeatMode.Restart), label = "scroll")
+    var offset by remember { mutableStateOf(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            offset -= 3f
+            if (offset < -1200f) offset = 0f
+            kotlinx.coroutines.delay(16)
+        }
+    }
     Box(Modifier.fillMaxWidth().height(32.dp).background(Color(0xFFD4AF37))) {
         Text(text.repeat(4), color = Color.Black, fontWeight = FontWeight.Bold, modifier = Modifier.offset(x = offset.dp).padding(4.dp), maxLines = 1)
     }
