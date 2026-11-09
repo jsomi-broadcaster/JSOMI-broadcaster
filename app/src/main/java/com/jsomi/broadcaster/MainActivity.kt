@@ -113,14 +113,61 @@ fun JSTVApp() {
     var brandColor by remember { mutableStateOf("Gold") }
     var phoneNumber by remember { mutableStateOf("+254 700 000 000") }
         var topic = "Sunday Service"
-    
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+        var isLive by remember { mutableStateOf(false) }
+    var isMuted by remember { mutableStateOf(false) }
+    var viewerCount by remember { mutableStateOf(0) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().background(Color.Black)
     ) {
-        Text(
-            text = "JSOMI Broadcaster\n" + topic,
-            textAlign = TextAlign.Center
-        )
+        // TOP BAR
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "JSTV", color = Color(0xFFD4AF37), fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            if (isLive) {
+                Text(text = "● LIVE  •  $viewerCount watching", color = Color.Red, fontWeight = FontWeight.Bold)
+            } else {
+                Text(text = "OFFLINE", color = Color.Gray, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        // CAMERA PREVIEW
+        Box(
+            modifier = Modifier.fillMaxWidth().weight(1f).padding(12.dp).background(Color.DarkGray),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "📷", fontSize = 48.sp)
+                Text(text = "Camera Preview", color = Color.White, fontSize = 18.sp)
+                Text(text = topic, color = Color(0xFFD4AF37), fontSize = 16.sp)
+                if (isLive) Text(text = "Streaming...", color = Color.Red)
+            }
+        }
+
+        // GO LIVE BUTTON
+        Button(
+            onClick = {
+                isLive = !isLive
+                if (isLive) viewerCount = 12 else viewerCount = 0
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = if (isLive) Color.Gray else Color.Red),
+            modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp)
+        ) {
+            Text(text = if (isLive) "STOP LIVE" else "GO LIVE", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        // CONTROLS
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Button(onClick = {}) { Text(text = "Switch Camera") }
+            Button(onClick = { isMuted = !isMuted }) { Text(text = if (isMuted) "Unmute" else "Mute") }
+            Button(onClick = {}) { Text(text = "Settings") }
+        }
     }
 }
+    
