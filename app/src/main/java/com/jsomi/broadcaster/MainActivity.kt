@@ -101,6 +101,5 @@ class MainActivity : ComponentActivity(), ConnectChecker {
     override fun onConnectionFailed(reason: String) { runOnUiThread { Toast.makeText(this, "Failed: $reason", Toast.LENGTH_LONG).show() } }
     override fun onNewBitrate(bitrate: Long) {}
     override fun onDisconnect() { runOnUiThread { Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show() } }
-    override fun onAuthError() { runOnUiThread { Toast.makeText(this, "Auth Error - Check Key", Toast.LENGTH_LONG).show() } }
-    override fun onAuthSuccess() {}
+    
 }
