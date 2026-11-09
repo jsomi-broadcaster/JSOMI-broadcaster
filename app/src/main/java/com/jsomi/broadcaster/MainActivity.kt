@@ -54,7 +54,6 @@ fun JSTVApp() {
         statusText = if (hasPermission) "Permissions granted!" else "Permissions needed"
     }
 
-    // Viewer count goes up when LIVE
     LaunchedEffect(isLive) {
         if (isLive) {
             viewers = 1
@@ -70,11 +69,10 @@ fun JSTVApp() {
         Text("JSOMI BROADCASTER", fontSize = 12.sp, color = Color.White, modifier = Modifier.align(Alignment.CenterHorizontally))
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 1. CAMERA PREVIEW
         Box(modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.Black, RoundedCornerShape(16.dp))) {
             if (hasPermission) {
                 AndroidView(factory = { ctx ->
-                    PerviewView(ctx).apply {
+                    PreviewView(ctx).apply {
                         val providerFuture = ProcessCameraProvider.getInstance(ctx)
                         providerFuture.addListener({
                             val provider = providerFuture.get()
@@ -96,12 +94,10 @@ fun JSTVApp() {
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 3. TITLE
         OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Stream Title - e.g. Sunday Service") },
             modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedLabelColor = Color.Gray, unfocusedLabelColor = Color.Gray), singleLine = true)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 2. STREAM KEY
         OutlinedTextField(value = streamKey, onValueChange = { streamKey = it }, label = { Text("YouTube / Facebook Stream Key (optional)") },
             modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedLabelColor = Color.Gray, unfocusedLabelColor = Color.Gray), singleLine = true)
         Spacer(modifier = Modifier.height(8.dp))
@@ -119,15 +115,19 @@ fun JSTVApp() {
                 isLive = !isLive
                 statusText = if (isLive) {
                     if (streamKey.isNotBlank()) "LIVE: $title\nStreaming with key: ${streamKey.take(4)}****" else "LIVE: $title\nNo key - Preview only. Add YouTube key to stream to viewers."
-                } else "Stream ended - $viewers total watched"
+                } else "Stream ended"
             }, modifier = Modifier.fillMaxWidth().height(56.dp), colors = ButtonDefaults.buttonColors(containerColor = if (isLive) Color.Gray else Color.Red)) {
                 Text(if (isLive) "STOP LIVE" else "GO LIVE", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 4. SHARE
         Button(onClick = {
             val text = "Watch JSTV LIVE: ${if (title.isBlank()) "JSOMI Broadcast" else title}\nJoin us now on JSTV!"
             val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
-            context.startActivity(Intent.createChooser(intent,
+            context.startActivity(Intent.createChooser(intent, "Share JSTV Live"))
+        }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))) {
+            Text("SHARE TO WHATSAPP", fontWeight = FontWeight.Bold, color = Color.Black)
+        }
+    }
+}
