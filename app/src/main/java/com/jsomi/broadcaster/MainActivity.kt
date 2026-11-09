@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -23,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.jsomi.broadcaster.ui.theme.Theme_JSOMIBroadcaster
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,7 +57,7 @@ fun BroadcasterScreen() {
         if (!hasPermission) launcher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
     }
 
-    Theme_JSOMIBroadcaster {
+    MaterialTheme {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp)) {
             Text("JSTV - JSOMI BROADCASTER", color = Color.Yellow, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Text(status, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
@@ -78,7 +78,7 @@ fun BroadcasterScreen() {
                         previewView
                     }, modifier = Modifier.fillMaxSize())
                 } else {
-                    Button(onClick = { launcher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, modifier = Modifier.align(androidx.compose.ui.Alignment.Center)) {
+                    Button(onClick = { launcher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, modifier = Modifier.align(Alignment.Center)) {
                         Text("ALLOW CAMERA + MIC")
                     }
                 }
@@ -102,7 +102,7 @@ fun BroadcasterScreen() {
                         status = "Enter Stream Key first!"
                     } else {
                         isLive = !isLive
-                        status = if (isLive) "🔴 LIVE - Streaming..." else "STOPPED"
+                        status = if (isLive) "LIVE - Streaming..." else "STOPPED"
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(55.dp),
