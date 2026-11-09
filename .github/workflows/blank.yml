@@ -17,10 +17,14 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Build APK
+      - name: Install Gradle 8.7
         run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gradle
+          gradle --version
+
+      - name: Build APK
+        run: gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
