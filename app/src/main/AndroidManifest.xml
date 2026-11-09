@@ -12,7 +12,6 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
-            <application
         android:allowBackup="true"
         android:icon="@mipmap/jstv_logo"
         android:roundIcon="@mipmap/jstv_logo"
