@@ -1,8 +1,7 @@
 package com.jsomi.broadcaster
 
-import android.app.Activity
-import android.content.pm.ActivityInfo
-import android.net.Uri
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,167 +12,168 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.delay
-import kotlin.random.Random
+import com.jsomi.broadcaster.ui.theme.JSOMIBroadcasterTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { JSTVApp() } }
+        setContent { JSOMIBroadcasterTheme { JSTVApp() } }
     }
-}
-
-@Composable
-fun RealCamera(camera: String) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    AndroidView(factory = { ctx ->
-        val previewView = PreviewView(ctx)
-        val providerFuture = ProcessCameraProvider.getInstance(ctx)
-        providerFuture.addListener({
-            val provider = providerFuture.get()
-            val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
-            try {
-                provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, if (camera == "FRONT") CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, preview)
-            } catch (e: Exception) {}
-        }, ContextCompat.getMainExecutor(ctx))
-        previewView
-    }, modifier = Modifier.fillMaxSize())
 }
 
 @Composable
 fun JSTVApp() {
-    val context = LocalContext.current
-    val activity = context as? Activity
-
-    var loggedIn by remember { mutableStateOf(false) }
-    var loginEmail by remember { mutableStateOf("") }
-    var loginPass by remember { mutableStateOf("") }
-    var loginError by remember { mutableStateOf("") }
-
-    var screen by remember { mutableStateOf("studio") }
+    var showWelcome by remember { mutableStateOf(true) }
+    var streamerName by remember { mutableStateOf("JSOMI TV") }
+    var topic by remember { mutableStateOf("Sunday Service") }
+    var tickerText by remember { mutableStateOf("Welcome to JSOMI TV • Jesus Saves • Mombasa • ") }
+    var destination by remember { mutableStateOf("YouTube") }
+    var streamKey by remember { mutableStateOf("") }
     var isLive by remember { mutableStateOf(false) }
-    var camera by remember { mutableStateOf("REAR") }
-    var activeCam by remember { mutableStateOf("CAM 1") }
-    var liveSeconds by remember { mutableStateOf(0) }
-    var error by remember { mutableStateOf("") }
-    var isLandscape by remember { mutableStateOf(false) }
-    var showSettings by remember { mutableStateOf(false) }
-    var settingsTab by remember { mutableStateOf(0) }
-
-    // 1. VIDEO & ENCODER
-    var resolution by remember { mutableStateOf("1080p") }
-    var fps by remember { mutableStateOf("30fps") }
-    var bitrate by remember { mutableStateOf("6000 Kbps") }
-    var codec by remember { mutableStateOf("H.264") }
-    var encoderType by remember { mutableStateOf("Hardware") }
-    var aspect by remember { mutableStateOf("16:9 Horizontal") }
-    var layoutMode by remember { mutableStateOf("Full Camera") }
-
-    // 2. AUDIO
-    var micOn by remember { mutableStateOf(true) }
-    var micSource by remember { mutableStateOf("Phone Mic") }
-    var sampleRate by remember { mutableStateOf("48kHz") }
-    var channels by remember { mutableStateOf("Stereo") }
-    var systemAudioOn by remember { mutableStateOf(false) }
-    var noiseSuppression by remember { mutableStateOf(true) }
-    var micGain by remember { mutableStateOf(70f) }
-    var compressorOn by remember { mutableStateOf(false) }
-    var smartMute by remember { mutableStateOf(false) }
-
-    // 3. SCENE
-    var showLogoOnVideo by remember { mutableStateOf(true) }
-    var brandColor by remember { mutableStateOf("Gold") }
-    var phoneNumber by remember { mutableStateOf("+254 700 000 000") }
-            var topic by remember { mutableStateOf("Sunday Service") }
-        
+    var isFrontCamera by remember { mutableStateOf(true) }
     var isMuted by remember { mutableStateOf(false) }
-    var viewerCount by remember { mutableStateOf(0) }
+    var showSettings by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier.fillMaxSize().background(Color.Black)
-    ) {
-        // TOP BAR
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = "JSTV", color = Color(0xFFD4AF37), fontWeight = FontWeight.Bold, fontSize = 22.sp)
-            if (isLive) {
-                Text(text = "● LIVE  •  $viewerCount watching", color = Color.Red, fontWeight = FontWeight.Bold)
-            } else {
-                Text(text = "OFFLINE", color = Color.Gray, fontWeight = FontWeight.Bold)
+    // PERMISSION - asks on open
+    var hasCameraPermission by remember { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasCameraPermission = granted
+    }
+    LaunchedEffect(Unit) {
+        launcher.launch(Manifest.permission.CAMERA)
+    }
+
+    if (showWelcome) {
+        // ===== WELCOME SCREEN =====
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(20.dp).verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally) {
+            Spacer(Modifier.height(30.dp))
+            Text("Welcome to JSTV", color = Color(0xFFD4AF37), fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            Text("JSOMI TV - Live Broadcaster", color = Color.White, fontSize = 16.sp)
+            Spacer(Modifier.height(24.dp))
+            OutlinedTextField(value = streamerName, onValueChange = { streamerName = it }, label = { Text("Your Name / Church") }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(value = topic, onValueChange = { topic = it }, label = { Text("Topic - e.g. Sunday Service") }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Scrolling Text (Ticker)") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
+            Spacer(Modifier.height(16.dp))
+            Text("Where to Stream?", color = Color.White, fontWeight = FontWeight.Bold)
+            Row { listOf("YouTube", "Facebook", "Custom RTMP").forEach { d ->
+                FilterChip(selected = destination == d, onClick = { destination = d }, label = { Text(d) }, modifier = Modifier.padding(4.dp))
+            } }
+            OutlinedTextField(value = streamKey, onValueChange = { streamKey = it }, label = { Text("Stream Key (paste from $destination)") }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
+            Spacer(Modifier.height(8.dp))
+            Text(if (hasCameraPermission) "✅ Camera Permission Granted" else "⏳ Tap Allow on camera popup - if no popup, go to Phone Settings > Apps > JSOMI > Camera > Allow", color = if (hasCameraPermission) Color.Green else Color.Yellow, fontSize = 13.sp)
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = { showWelcome = false }, modifier = Modifier.fillMaxWidth().height(55.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD4AF37))) {
+                Text("START STUDIO →", color = Color.Black, fontWeight = FontWeight.Bold)
             }
         }
-
-        // CAMERA PREVIEW
-        Box(
-            modifier = Modifier.fillMaxWidth().weight(1f).padding(12.dp).background(Color.DarkGray),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "📷", fontSize = 48.sp)
-                Text(text = "Camera Preview", color = Color.White, fontSize = 18.sp)
-                OutlinedTextField(
-    value = topic,
-    onValueChange = { topic = it },
-    label = { Text("Topic - tap to type your service") },
-    singleLine = true,
-    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-)
-                if (isLive) Text(text = "Streaming...", color = Color.Red)
+    } else {
+        // ===== STUDIO SCREEN - CLEAN =====
+        Column(Modifier.fillMaxSize().background(Color.Black)) {
+            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("JSTV", color = Color(0xFFD4AF37), fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(if (isLive) "● LIVE • $destination" else "OFFLINE", color = if (isLive) Color.Red else Color.Gray, fontWeight = FontWeight.Bold)
             }
+            // CAMERA INSIDE - no boxes inside
+            Box(Modifier.weight(1f).fillMaxWidth().padding(8.dp).background(Color.DarkGray)) {
+                if (hasCameraPermission) {
+                    RealCameraPreview(isFront = isFrontCamera)
+                } else {
+                    Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("📷", fontSize = 48.sp); Text("Camera needs permission", color = Color.White)
+                        Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) { Text("Allow Camera") }
+                    }
+                }
+                if (isLive) Text("● LIVE", color = Color.White, modifier = Modifier.align(Alignment.TopStart).padding(8.dp).background(Color.Red).padding(4.dp))
+                Text(topic, color = Color.White, modifier = Modifier.align(Alignment.BottomStart).padding(8.dp).background(Color.Black.copy(0.6f)).padding(6.dp))
+            }
+            // SCROLLING TICKER
+            ScrollingTicker(text = tickerText)
+            // GO LIVE
+            Button(onClick = { isLive = !isLive }, modifier = Modifier.fillMaxWidth().padding(12.dp).height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isLive) Color.Gray else Color.Red)) {
+                Text(if (isLive) "STOP LIVE" else "GO LIVE to $destination", fontWeight = FontWeight.Bold)
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { isFrontCamera = !isFrontCamera }) { Text("Switch Camera") }
+                Button(onClick = { isMuted = !isMuted }) { Text(if (isMuted) "Unmute" else "Mute") }
+                Button(onClick = { showSettings = true }) { Text("Settings") }
+                Button(onClick = { showWelcome = true }) { Text("Back") }
+            }
+            Spacer(Modifier.height(10.dp))
         }
-
-        // GO LIVE BUTTON
-        Button(
-            onClick = {
-                isLive = !isLive
-                if (isLive) viewerCount = 12 else viewerCount = 0
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = if (isLive) Color.Gray else Color.Red),
-            modifier = Modifier.fillMaxWidth().padding(16.dp).height(56.dp)
-        ) {
-            Text(text = if (isLive) "STOP LIVE" else "GO LIVE", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }
-
-        // CONTROLS
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = {}) { Text(text = "Switch Camera") }
-            Button(onClick = { isMuted = !isMuted }) { Text(text = if (isMuted) "Unmute" else "Mute") }
-            Button(onClick = {}) { Text(text = "Settings") }
+        // SETTINGS SHEET
+        if (showSettings) {
+            AlertDialog(onDismissRequest = { showSettings = false }, title = { Text("Settings") },
+                text = {
+                    Column {
+                        Text("Stream Destination: $destination")
+                        Row { listOf("YouTube", "Facebook", "Custom RTMP").forEach { d ->
+                            FilterChip(selected = destination == d, onClick = { destination = d }, label = { Text(d) }, modifier = Modifier.padding(2.dp))
+                        } }
+                        OutlinedTextField(value = streamKey, onValueChange = { streamKey = it }, label = { Text("Stream Key") }, singleLine = true)
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Scrolling Text") })
+                        Spacer(Modifier.height(8.dp))
+                        Text("Camera: ${if (isFrontCamera) "Front" else "Back"} - use Switch Camera to change")
+                        Text("Sources: Camera + Mic (Audio ${if (isMuted) "Muted" else "On"})")
+                        Text("Quality: 720p HD")
+                    }
+                },
+                confirmButton = { Button(onClick = { showSettings = false }) { Text("Done") } })
         }
     }
 }
-    
+
+@Composable
+fun RealCameraPreview(isFront: Boolean) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    AndroidView(factory = { ctx ->
+        PreviewView(ctx).apply {
+            val providerFuture = ProcessCameraProvider.getInstance(ctx)
+            providerFuture.addListener({
+                val provider = providerFuture.get()
+                val preview = Preview.Builder().build().also { it.setSurfaceProvider(surfaceProvider) }
+                val selector = if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+                try { provider.unbindAll(); provider.bindToLifecycle(lifecycleOwner, selector, preview) } catch (e: Exception) {}
+            }, ContextCompat.getMainExecutor(ctx))
+        }
+    }, update = { view ->
+        val providerFuture = ProcessCameraProvider.getInstance(context)
+        providerFuture.addListener({
+            val provider = providerFuture.get()
+            val preview = Preview.Builder().build().also { it.setSurfaceProvider(view.surfaceProvider) }
+            val selector = if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+            try { provider.unbindAll(); provider.bindToLifecycle(lifecycleOwner, selector, preview) } catch (e: Exception) {}
+        }, ContextCompat.getMainExecutor(context))
+    }, modifier = Modifier.fillMaxSize())
+}
+
+@Composable
+fun ScrollingTicker(text: String) {
+    val infinite = rememberInfiniteTransition(label = "ticker")
+    val offset by infinite.animateValue(initialValue = 0f, targetValue = -1000f, typeConverter = FloatConverter,
+        animationSpec = infiniteRepeatable(animation = tween(12000, easing = LinearEasing), repeatMode = RepeatMode.Restart), label = "scroll")
+    Box(Modifier.fillMaxWidth().height(32.dp).background(Color(0xFFD4AF37))) {
+        Text(text.repeat(4), color = Color.Black, fontWeight = FontWeight.Bold, modifier = Modifier.offset(x = offset.dp).padding(4.dp), maxLines = 1)
+    }
+}
