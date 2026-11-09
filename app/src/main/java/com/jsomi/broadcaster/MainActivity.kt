@@ -93,10 +93,9 @@ fun JSTVApp() {
     var isLand by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("RESTORATION SUNDAY") }
     var viewers by remember { mutableStateOf(0) }
-    var status by remember { mutableStateOf("Ready - Add key in Settings") }
+    var status by remember { mutableStateOf("Ready - Tap ALLOW CAMERA") }
     var showTitle by remember { mutableStateOf(true) }
     var showLogo by remember { mutableStateOf(true) }
-    var showGal by remember { mutableStateOf(false) }
     var logoOff by remember { mutableStateOf(Offset(20f, 20f)) }
     var titleOff by remember { mutableStateOf(Offset(20f, 220f)) }
     var tickX by remember { mutableStateOf(400f) }
@@ -105,6 +104,8 @@ fun JSTVApp() {
         var ok = true
         for (v in res.values) { if (v == false) ok = false }
         hasPerm = ok
+        if (ok) status = "Permission OK - Camera ready"
+        else status = "Permission DENIED - Go to Settings > Apps > JSTV > Permissions > Allow Camera + Mic"
     }
     LaunchedEffect(isLive) { if (isLive) { viewers = 1; while (isLive) { delay(3000L); viewers = viewers + Random.nextInt(0, 5) } } else viewers = 0 }
     LaunchedEffect(ticker) { while (true) { delay(20L); tickX = tickX - 3f; if (tickX < -1200f) tickX = 400f } }
@@ -118,8 +119,7 @@ fun JSTVApp() {
 
     if (isLive) {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
-            if (hasPerm && showGal == false) CameraPreview(isFront, Modifier.fillMaxSize())
-            if (showGal) Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Text(text = "GALLERY VIDEO PLAYING", color = Color.White, fontWeight = FontWeight.Bold) }
+            if (hasPerm) CameraPreview(isFront, Modifier.fillMaxSize())
             if (showLogo) Box(Modifier.offset { IntOffset(logoOff.x.roundToInt(), logoOff.y.roundToInt()) }.size(70.dp).background(Color.Yellow, RoundedCornerShape(8.dp)).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); logoOff = Offset(logoOff.x + d.x, logoOff.y + d.y) } }, contentAlignment = Alignment.Center) { Text(text = "JSTV", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color.Black) }
             if (showTitle) Text(text = title, color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Black, modifier = Modifier.offset { IntOffset(titleOff.x.roundToInt(), titleOff.y.roundToInt()) }.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp)).padding(6.dp).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); titleOff = Offset(titleOff.x + d.x, titleOff.y + d.y) } })
             Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -159,15 +159,14 @@ fun JSTVApp() {
     }
     Column(Modifier.fillMaxSize().background(Color(0xFF0A0A0A)).padding(12.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "JSTV PRO v3", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.Red)
+            Text(text = "JSTV PRO v4", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.Red)
             Button(onClick = { showSettings = true }) { Text(text = "SETTINGS") }
         }
         Spacer(Modifier.height(8.dp))
         Text(text = "Send to: $dest", color = Color.White, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Box(Modifier.fillMaxWidth().height(340.dp).background(Color.Black, RoundedCornerShape(16.dp))) {
-            if (hasPerm && showGal == false) CameraPreview(isFront, Modifier.fillMaxSize())
-            else if (showGal) Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Text(text = "GALLERY VIDEO", color = Color.White, fontWeight = FontWeight.Bold) }
+            if (hasPerm) CameraPreview(isFront, Modifier.fillMaxSize())
             else Text(text = "Tap ALLOW CAMERA below", color = Color.Gray, modifier = Modifier.align(Alignment.Center))
             if (showLogo) Box(Modifier.offset { IntOffset(logoOff.x.roundToInt(), logoOff.y.roundToInt()) }.size(80.dp).background(Color.Yellow, RoundedCornerShape(8.dp)).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); logoOff = Offset(logoOff.x + d.x, logoOff.y + d.y) } }, contentAlignment = Alignment.Center) { Text(text = "JSTV", fontWeight = FontWeight.Black, color = Color.Black) }
             if (showTitle) Text(text = title, color = Color.Yellow, fontSize = 24.sp, fontWeight = FontWeight.Black, modifier = Modifier.offset { IntOffset(titleOff.x.roundToInt(), titleOff.y.roundToInt()) }.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp)).padding(6.dp).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); titleOff = Offset(titleOff.x + d.x, titleOff.y + d.y) } })
@@ -184,8 +183,6 @@ fun JSTVApp() {
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             Button(onClick = { showLogo = !showLogo }) { Text(text = "LOGO") }
-            Button(onClick = { showGal = true }) { Text(text = "GALLERY") }
-            Button(onClick = { showGal = false }) { Text(text = "CAMERA") }
         }
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = title, onValueChange = { v: String -> title = v }, label = { Text(text = "Stream Title") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
