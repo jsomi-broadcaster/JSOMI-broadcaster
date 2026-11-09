@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -46,7 +45,11 @@ import kotlin.random.Random
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { JSTVApp() }
+        setContent {
+            MaterialTheme {
+                JSTVApp()
+            }
+        }
     }
 }
 
@@ -56,15 +59,20 @@ fun CameraPreview(isFront: Boolean, modifier: Modifier) {
     key(isFront) {
         AndroidView(factory = { c: Context ->
             val pv = PreviewView(c)
-            val fut = ProcessCameraProvider.getInstance(c)
-            fut.addListener({
-                val provider = fut.get()
-                val preview = Preview.Builder().build()
-                preview.setSurfaceProvider(pv.surfaceProvider)
-                val facing = if (isFront) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
-                val sel = CameraSelector.Builder().requireLensFacing(facing).build()
-                try { provider.unbindAll(); provider.bindToLifecycle(owner, sel, preview) } catch (e: Exception) {}
-            }, ContextCompat.getMainExecutor(c))
+            try {
+                val fut = ProcessCameraProvider.getInstance(c)
+                fut.addListener({
+                    try {
+                        val provider = fut.get()
+                        val preview = Preview.Builder().build()
+                        preview.setSurfaceProvider(pv.surfaceProvider)
+                        val facing = if (isFront) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK
+                        val sel = CameraSelector.Builder().requireLensFacing(facing).build()
+                        provider.unbindAll()
+                        provider.bindToLifecycle(owner, sel, preview)
+                    } catch (e: Exception) {}
+                }, ContextCompat.getMainExecutor(c))
+            } catch (e: Exception) {}
             pv
         }, modifier = modifier)
     }
@@ -87,21 +95,20 @@ fun JSTVApp() {
     var viewers by remember { mutableStateOf(0) }
     var status by remember { mutableStateOf("Ready - Add key in Settings") }
     var showTitle by remember { mutableStateOf(true) }
-    var logoUri by remember { mutableStateOf<Uri?>(null) }
-    var galUri by remember { mutableStateOf<Uri?>(null) }
+    var showLogo by remember { mutableStateOf(true) }
     var showGal by remember { mutableStateOf(false) }
     var logoOff by remember { mutableStateOf(Offset(20f, 20f)) }
     var titleOff by remember { mutableStateOf(Offset(20f, 220f)) }
     var tickX by remember { mutableStateOf(400f) }
+
     val permLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res: Map<String, Boolean> ->
         var ok = true
         for (v in res.values) { if (v == false) ok = false }
         hasPerm = ok
     }
-    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u: Uri? -> if (u != null) logoUri = u }
-    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { u: Uri? -> if (u != null) { galUri = u; showGal = true } }
     LaunchedEffect(isLive) { if (isLive) { viewers = 1; while (isLive) { delay(3000L); viewers = viewers + Random.nextInt(0, 5) } } else viewers = 0 }
     LaunchedEffect(ticker) { while (true) { delay(20L); tickX = tickX - 3f; if (tickX < -1200f) tickX = 400f } }
+
     fun toggleOrientation() {
         isLand = !isLand
         if (act != null) { act.requestedOrientation = if (isLand) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT }
@@ -112,6 +119,8 @@ fun JSTVApp() {
     if (isLive) {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             if (hasPerm && showGal == false) CameraPreview(isFront, Modifier.fillMaxSize())
+            if (showGal) Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Text(text = "GALLERY VIDEO PLAYING", color = Color.White, fontWeight = FontWeight.Bold) }
+            if (showLogo) Box(Modifier.offset { IntOffset(logoOff.x.roundToInt(), logoOff.y.roundToInt()) }.size(70.dp).background(Color.Yellow, RoundedCornerShape(8.dp)).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); logoOff = Offset(logoOff.x + d.x, logoOff.y + d.y) } }, contentAlignment = Alignment.Center) { Text(text = "JSTV", fontWeight = FontWeight.Black, fontSize = 14.sp, color = Color.Black) }
             if (showTitle) Text(text = title, color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Black, modifier = Modifier.offset { IntOffset(titleOff.x.roundToInt(), titleOff.y.roundToInt()) }.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp)).padding(6.dp).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); titleOff = Offset(titleOff.x + d.x, titleOff.y + d.y) } })
             Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = "LIVE - $viewers watching", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.background(Color.Red, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 6.dp))
@@ -150,7 +159,7 @@ fun JSTVApp() {
     }
     Column(Modifier.fillMaxSize().background(Color(0xFF0A0A0A)).padding(12.dp).verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "JSTV PRO v2", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.Red)
+            Text(text = "JSTV PRO v3", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.Red)
             Button(onClick = { showSettings = true }) { Text(text = "SETTINGS") }
         }
         Spacer(Modifier.height(8.dp))
@@ -158,14 +167,9 @@ fun JSTVApp() {
         Spacer(Modifier.height(8.dp))
         Box(Modifier.fillMaxWidth().height(340.dp).background(Color.Black, RoundedCornerShape(16.dp))) {
             if (hasPerm && showGal == false) CameraPreview(isFront, Modifier.fillMaxSize())
-            else if (showGal && galUri != null) {
-                val su2 = galUri
-                if (su2 != null) AndroidView(factory = { c: Context -> val vv = android.widget.VideoView(c); vv.setVideoURI(su2); vv.setOnPreparedListener { mp: android.media.MediaPlayer -> mp.isLooping = true; mp.start() }; vv }, modifier = Modifier.fillMaxSize())
-            } else Text(text = "Camera will show here", color = Color.Gray, modifier = Modifier.align(Alignment.Center))
-            if (logoUri != null) {
-                val sl2 = logoUri
-                if (sl2 != null) AsyncImage(model = sl2, contentDescription = "Logo", modifier = Modifier.offset { IntOffset(logoOff.x.roundToInt(), logoOff.y.roundToInt()) }.size(80.dp).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); logoOff = Offset(logoOff.x + d.x, logoOff.y + d.y) } })
-            }
+            else if (showGal) Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Text(text = "GALLERY VIDEO", color = Color.White, fontWeight = FontWeight.Bold) }
+            else Text(text = "Tap ALLOW CAMERA below", color = Color.Gray, modifier = Modifier.align(Alignment.Center))
+            if (showLogo) Box(Modifier.offset { IntOffset(logoOff.x.roundToInt(), logoOff.y.roundToInt()) }.size(80.dp).background(Color.Yellow, RoundedCornerShape(8.dp)).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); logoOff = Offset(logoOff.x + d.x, logoOff.y + d.y) } }, contentAlignment = Alignment.Center) { Text(text = "JSTV", fontWeight = FontWeight.Black, color = Color.Black) }
             if (showTitle) Text(text = title, color = Color.Yellow, fontSize = 24.sp, fontWeight = FontWeight.Black, modifier = Modifier.offset { IntOffset(titleOff.x.roundToInt(), titleOff.y.roundToInt()) }.background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp)).padding(6.dp).pointerInput(Unit) { detectDragGestures { ch, d: Offset -> ch.consume(); titleOff = Offset(titleOff.x + d.x, titleOff.y + d.y) } })
             Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = 0.75f))) {
                 Text(text = ticker, color = Color.White, fontSize = 13.sp, maxLines = 1, modifier = Modifier.offset { IntOffset(tickX.roundToInt(), 0) }.padding(vertical = 8.dp))
@@ -179,8 +183,8 @@ fun JSTVApp() {
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Button(onClick = { logoPicker.launch("image/*") }) { Text(text = "LOGO") }
-            Button(onClick = { videoPicker.launch("video/*") }) { Text(text = "GALLERY") }
+            Button(onClick = { showLogo = !showLogo }) { Text(text = "LOGO") }
+            Button(onClick = { showGal = true }) { Text(text = "GALLERY") }
             Button(onClick = { showGal = false }) { Text(text = "CAMERA") }
         }
         Spacer(Modifier.height(8.dp))
