@@ -9,11 +9,9 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/jstv_logo"
         android:label="JSTV"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:supportsRtl="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
