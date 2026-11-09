@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.jsomi.jstv'
+    namespace 'com.jsomi.broadcaster'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.jsomi.jstv"
+        applicationId "com.jsomi.broadcaster"
         minSdk 24
         targetSdk 35
         versionCode 7
