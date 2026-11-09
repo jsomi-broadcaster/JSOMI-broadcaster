@@ -16,7 +16,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,23 +52,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// MOVING TICKER - scrolls forever
-@Composable
-fun MovingTicker(text: String, modifier: Modifier = Modifier) {
-    var x by remember { mutableStateOf(800f) }
-    LaunchedEffect(text) {
-        while (true) {
-            delay(30)
-            x -= 4f
-            if (x < -800f) x = 800f
-        }
-    }
-    Box(modifier = modifier.background(Color.Black.copy(alpha = 0.75f)).height(28.dp)) {
-        Text(text, color = Color.White, fontSize = 13.sp, maxLines = 1,
-            modifier = Modifier.offset { IntOffset(x.roundToInt(), 4) }.align(Alignment.CenterStart))
-    }
-}
-
 @Composable
 fun JSTVPro() {
     var tab by remember { mutableStateOf(0) }
@@ -78,25 +60,77 @@ fun JSTVPro() {
     var jsomiKey by remember { mutableStateOf("") }
     var customUrl by remember { mutableStateOf("rtmp://a.rtmp.youtube.com/live2/") }
     var customKey by remember { mutableStateOf("") }
-    var dest by remember { mutableStateOf("YouTube") }
     var roomCode by remember { mutableStateOf("JSTV-1234") }
     var quality by remember { mutableStateOf("720p") }
-    var ticker by remember { mutableStateOf("Welcome to JSTV - Restoration Sunday - God is Good - ") }
+    var ticker by remember { mutableStateOf("Welcome to JSTV - Restoration Sunday - Jesus Saves - ") }
     var loopOn by remember { mutableStateOf(false) }
     var logoOn by remember { mutableStateOf(true) }
+    var dest by remember { mutableStateOf("YouTube") }
 
     if (tab == 0) {
-        StudioScreen(ytKey, fbKey, jsomiKey, customUrl, customKey, dest, { dest = it }, ticker, loopOn, logoOn, { tab = 1 })
+        StudioScreen(
+            ytKey = ytKey, fbKey = fbKey, jsomiKey = jsomiKey, customKey = customKey,
+            ticker = ticker, loopOn = loopOn, logoOn = logoOn, dest = dest,
+            onDest = { v -> dest = v },
+            onSettings = { tab = 1 }
+        )
     } else {
-        SettingsScreen(ytKey, { ytKey = it }, fbKey, { fbKey = it }, jsomiKey, { jsomiKey = it }, customUrl, { customUrl = it }, customKey, { customKey = it }, roomCode, { roomCode = it }, quality, { quality = it }, ticker, { ticker = it }, loopOn, { loopOn = it }, logoOn, { logoOn = it }, { tab = 0 })
+        SettingsScreen(
+            ytKey = ytKey, onYt = { v -> ytKey = v },
+            fbKey = fbKey, onFb = { v -> fbKey = v },
+            jsomiKey = jsomiKey, onJsomi = { v -> jsomiKey = v },
+            customUrl = customUrl, onCustomUrl = { v -> customUrl = v },
+            customKey = customKey, onCustomKey = { v -> customKey = v },
+            roomCode = roomCode, onRoom = { v -> roomCode = v },
+            quality = quality, onQuality = { v -> quality = v },
+            ticker = ticker, onTicker = { v -> ticker = v },
+            loopOn = loopOn, onLoop = { v -> loopOn = v },
+            logoOn = logoOn, onLogo = { v -> logoOn = v },
+            dest = dest, onDest = { v -> dest = v },
+            onBack = { tab = 0 }
+        )
+    }
+}
+
+// MOVING TICKER - real marquee, moves left forever
+@Composable
+fun MovingTicker(text: String) {
+    var offsetX by remember { mutableStateOf(400f) }
+    LaunchedEffect(text) {
+        while (true) {
+            delay(30)
+            offsetX -= 4f
+            if (offsetX < -1200f) offsetX = 400f
+        }
+    }
+    Box(modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.75f)).height(28.dp)) {
+        Text(text, color = Color.White, fontSize = 13.sp, maxLines = 1,
+            modifier = Modifier.offset { IntOffset(offsetX.roundToInt(), 4) }.padding(start = 0.dp))
     }
 }
 
 @Composable
-fun StudioScreen(ytKey: String, fbKey: String, jsomiKey: String, customUrl: String, customKey: String, dest: String, onDest: (String) -> Unit, ticker: String, loopOn: Boolean, logoOn: Boolean, onSettings: () -> Unit) {
+fun StudioScreen(ytKey: String, fbKey: String, jsomiKey: String, customKey: String, ticker: String, loopOn: Boolean, logoOn: Boolean, dest: String, onDest: (String) -> Unit, onSettings: () -> Unit) {
     val context = LocalContext.current
     val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var hasPermission by remember { mutableStateOf(false) }
-   
+    var isLive by remember { mutableStateOf(false) }
+    var isFront by remember { mutableStateOf(false) }
+    var isLandscape by remember { mutableStateOf(false) }
+    var title by remember { mutableStateOf("RESTORATION SUNDAY") }
+    var viewers by remember { mutableStateOf(0) }
+    var statusText by remember { mutableStateOf("Ready - Add key in Settings") }
+    var showTitleOverlay by remember { mutableStateOf(true) }
+    var overlayText by remember { mutableStateOf("RESTORATION") }
+    var overlayColor by remember { mutableStateOf(Color.Yellow) }
+    var logoUri by remember { mutableStateOf<Uri?>(null) }
+    var galleryVideoUri by remember { mutableStateOf<Uri?>(null) }
+    var showGalleryVideo by remember { mutableStateOf(false) }
+    var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
+    var titleOffset by remember { mutableStateOf(Offset(20f, 220f)) }
+
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result -> hasPermission = result.values.all { v -> v } }
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri != null) logoUri = uri }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri
