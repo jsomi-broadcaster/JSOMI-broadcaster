@@ -112,17 +112,7 @@ fun JSTVApp() {
     var showLogoOnVideo by remember { mutableStateOf(true) }
     var brandColor by remember { mutableStateOf("Gold") }
     var phoneNumber by remember { mutableStateOf("+254 700 000 000") }
-            var topic by remember { mutableStateOf(
-        when (java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_WEEK)) {
-            java.util.Calendar.MONDAY -> "Monday Prayer"
-            java.util.Calendar.TUESDAY -> "Tuesday Bible Study"
-            java.util.Calendar.WEDNESDAY -> "Midweek Service"
-            java.util.Calendar.THURSDAY -> "Thursday Fellowship"
-            java.util.Calendar.FRIDAY -> "Friday Prayer Night"
-            java.util.Calendar.SATURDAY -> "Saturday Preparation"
-            else -> "Sunday Service"
-        }
-    ) }
+            var topic by remember { mutableStateOf("Sunday Service") }
         
     var isMuted by remember { mutableStateOf(false) }
     var viewerCount by remember { mutableStateOf(0) }
@@ -152,7 +142,13 @@ fun JSTVApp() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = "📷", fontSize = 48.sp)
                 Text(text = "Camera Preview", color = Color.White, fontSize = 18.sp)
-                Text(text = topic, color = Color(0xFFD4AF37), fontSize = 16.sp)
+                OutlinedTextField(
+    value = topic,
+    onValueChange = { topic = it },
+    label = { Text("Topic - tap to type your service") },
+    singleLine = true,
+    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+)
                 if (isLive) Text(text = "Streaming...", color = Color.Red)
             }
         }
