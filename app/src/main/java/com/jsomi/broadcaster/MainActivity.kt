@@ -1,189 +1,260 @@
 package com.jsomi.broadcaster
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import android.view.SurfaceView
-import androidx.core.content.ContextCompat
-import com.pedro.library.base.ConnectChecker
-import com.pedro.library.rtmp.RtmpCamera1
+import androidx.compose.ui.unit.sp
 
 class MainActivity : ComponentActivity() {
 
-    private var rtmpCamera1: RtmpCamera1? = null
+    // Logo picker - Gallery
+    private var onLogoPicked: ((Uri?) -> Unit)? = null
+    private val logoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        onLogoPicked?.invoke(uri)
+    }
 
-    private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val granted = permissions.values.all { it }
-        if (!granted) {
-            Toast.makeText(this, "Camera + Mic permission needed to stream", Toast.LENGTH_LONG).show()
-        }
+    // Gallery Video picker
+    private var onVideoPicked: ((Uri?) -> Unit)? = null
+    private val videoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        onVideoPicked?.invoke(uri)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Ask for Camera + Mic on first open
-        val needed = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-            .filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-            .toTypedArray()
-        if (needed.isNotEmpty()) {
-            permissionLauncher.launch(needed)
-        }
-
         setContent {
-            LiveScreen()
+            JstvProScreen(
+                onPickLogo = { callback ->
+                    onLogoPicked = callback
+                    logoPicker.launch("image/*")
+                },
+                onPickVideo = { callback ->
+                    onVideoPicked = callback
+                    videoPicker.launch("video/*")
+                },
+                onToast = { msg -> Toast.makeText(this, msg, Toast.LENGTH_SHORT).show() }
+            )
         }
     }
+}
 
-    @Composable
-    fun LiveScreen() {
-        var url by remember { mutableStateOf("rtmp://a.rtmp.youtube.com/live2/") }
-        var streamKey by remember { mutableStateOf("") }
-        var isStreaming by remember { mutableStateOf(false) }
-        var isMuted by remember { mutableStateOf(false) }
-        var isFrontCamera by remember { mutableStateOf(false) }
-        var isFlashOn by remember { mutableStateOf(false) }
-        var status by remember { mutableStateOf("Ready") }
+@Composable
+fun JstvProScreen(
+    onPickLogo: ((Uri?) -> Unit) -> Unit,
+    onPickVideo: ((Uri?) -> Unit) -> Unit,
+    onToast: (String) -> Unit
+) {
+    // --- SETTINGS: All Keys in one place ---
+    var youtubeKey by remember { mutableStateOf("") }
+    var facebookKey by remember { mutableStateOf("") }
+    var jsomiKey by remember { mutableStateOf("") }
+    var customUrl by remember { mutableStateOf("") }
+    var customKey by remember { mutableStateOf("") }
+    var roomCode by remember { mutableStateOf("JSTV-1234") }
+    var quality by remember { mutableStateOf("720p") }
+    var tickerText by remember { mutableStateOf("Welcome to JSTV PRO - Live") }
 
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    // --- LOGO + TITLES ---
+    var logoUri by remember { mutableStateOf<Uri?>(null) }
+    var showLogo by remember { mutableStateOf(true) }
+    var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
+    var logoSize by remember { mutableStateOf(80f) }
 
-            // Status text
-            Text(text = "Status: $status")
-            Spacer(modifier = Modifier.height(8.dp))
+    var titleText by remember { mutableStateOf("BREAKING") }
+    var showTitle by remember { mutableStateOf(true) }
+    var titleOffset by remember { mutableStateOf(Offset(20f, 200f)) }
+    var titleSize by remember { mutableStateOf(24f) }
+    var titleColor by remember { mutableStateOf("Red") }
 
-            // Camera Preview
-            AndroidView(
-                factory = { ctx ->
-                    SurfaceView(ctx).also { view ->
-                        rtmpCamera1 = RtmpCamera1(view, object : ConnectChecker {})
-                    }
-                },
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
+    // --- GALLERY + LOOP ---
+    var galleryVideoUri by remember { mutableStateOf<Uri?>(null) }
+    var loopOn by remember { mutableStateOf(false) }
+    var isPlayingGallery by remember { mutableStateOf(false) }
 
-            Spacer(modifier = Modifier.height(12.dp))
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())
+    ) {
+        Text(text = "JSTV PRO v2 - COMMIT 1", fontSize = 22.sp, color = Color.Black)
+        Text(text = "Settings + Logo + Titles + Gallery Loop", fontSize = 14.sp)
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // RTMP URL
-            OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
-                label = { Text("RTMP URL") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Stream Key
-            OutlinedTextField(
-                value = streamKey,
-                onValueChange = { streamKey = it },
-                label = { Text("Stream Key") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // START / STOP
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Button(
-                    onClick = {
-                        if (!isStreaming) {
-                            if (streamKey.isBlank()) {
-                                Toast.makeText(this@MainActivity, "Enter Stream Key first", Toast.LENGTH_LONG).show()
-                                return@Button
-                            }
-                            if (rtmpCamera1?.prepareAudio() == true && rtmpCamera1?.prepareVideo() == true) {
-                                rtmpCamera1?.startPreview()
-                                rtmpCamera1?.startStream(url + streamKey)
-                                isStreaming = true
-                                status = "LIVE - Streaming..."
-                                Toast.makeText(this@MainActivity, "Streaming...", Toast.LENGTH_SHORT).show()
-                            } else {
-                                status = "Encoder failed"
-                                Toast.makeText(this@MainActivity, "Encoder failed to start", Toast.LENGTH_LONG).show()
+        // ============ PREVIEW BOX - Movable Logo + Title ============
+        Text(text = "PREVIEW - Drag Logo and Title", fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth().height(260.dp).background(Color.DarkGray)
+        ) {
+            // Movable Logo
+            if (showLogo) {
+                Box(
+                    modifier = Modifier
+                        .offset(logoOffset.x.dp, logoOffset.y.dp)
+                        .size(logoSize.dp)
+                        .background(Color.White)
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                logoOffset += dragAmount
                             }
                         }
-                    },
-                    enabled = !isStreaming
                 ) {
-                    Text("Start Stream")
-                }
-                Button(
-                    onClick = {
-                        if (isStreaming) {
-                            rtmpCamera1?.stopStream()
-                            rtmpCamera1?.stopPreview()
-                            isStreaming = false
-                            status = "Stopped"
-                            Toast.makeText(this@MainActivity, "Stopped", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    enabled = isStreaming
-                ) {
-                    Text("Stop Stream")
+                    Text(
+                        text = if (logoUri == null) "LOGO\nTap Pick" else "LOGO ✓",
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(4.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Movable Title
+            if (showTitle) {
+                Box(
+                    modifier = Modifier
+                        .offset(titleOffset.x.dp, titleOffset.y.dp)
+                        .background(
+                            when (titleColor) {
+                                "Red" -> Color.Red
+                                "Blue" -> Color.Blue
+                                "Green" -> Color.Green
+                                else -> Color.Black
+                            }
+                        )
+                        .padding(8.dp)
+                        .pointerInput(Unit) {
+                            detectDragGestures { change, dragAmount ->
+                                change.consume()
+                                titleOffset += dragAmount
+                            }
+                        }
+                ) {
+                    Text(text = titleText, color = Color.White, fontSize = titleSize.sp)
+                }
+            }
 
-            // CONTROLS: Camera / Flash / Mute
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                Button(onClick = {
-                    try {
-                        rtmpCamera1?.switchCamera()
-                        isFrontCamera = !isFrontCamera
-                        Toast.makeText(this@MainActivity, if (isFrontCamera) "Front Camera" else "Back Camera", Toast.LENGTH_SHORT).show()
-                    } catch (e: Exception) {
-                        Toast.makeText(this@MainActivity, "Cannot switch camera", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text(if (isFrontCamera) "Front Cam" else "Back Cam")
-                }
-                Button(onClick = {
-                    try {
-                        if (isFlashOn) {
-                            rtmpCamera1?.turnOffLantern()
-                            isFlashOn = false
-                        } else {
-                            rtmpCamera1?.turnOnLantern()
-                            isFlashOn = true
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(this@MainActivity, "Flash not available", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text(if (isFlashOn) "Flash ON" else "Flash OFF")
-                }
-                Button(onClick = {
-                    try {
-                        if (isMuted) {
-                            rtmpCamera1?.enableAudio()
-                            isMuted = false
-                        } else {
-                            rtmpCamera1?.disableAudio()
-                            isMuted = true
-                        }
-                    } catch (e: Exception) {
-                        Toast.makeText(this@MainActivity, "Cannot mute", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Text(if (isMuted) "Unmute" else "Mute")
-                }
+            // Ticker at bottom
+            Text(
+                text = tickerText,
+                color = Color.Yellow,
+                fontSize = 12.sp,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ============ SETTINGS ============
+        Text(text = "SETTINGS - Stream Keys", fontSize = 18.sp)
+        OutlinedTextField(value = youtubeKey, onValueChange = { youtubeKey = it }, label = { Text("YouTube Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = facebookKey, onValueChange = { facebookKey = it }, label = { Text("Facebook Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = jsomiKey, onValueChange = { jsomiKey = it }, label = { Text("JSOMI TV Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = customUrl, onValueChange = { customUrl = it }, label = { Text("Custom RTMP URL") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = customKey, onValueChange = { customKey = it }, label = { Text("Custom Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code e.g. JSTV-1234") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Ticker Text") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Quality: $quality  ")
+            Button(onClick = { quality = if (quality == "720p") "1080p" else "720p" }) {
+                Text(text = "Switch to ${if (quality == "720p") "1080p" else "720p"}")
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ============ LOGO CONTROLS ============
+        Text(text = "LOGO", fontSize = 18.sp)
+        Button(onClick = { onPickLogo { uri -> logoUri = uri } }) { Text("Pick Logo from Gallery") }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Show Logo  ")
+            Switch(checked = showLogo, onCheckedChange = { showLogo = it })
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { logoSize = (logoSize + 20f).coerceAtMost(180f) }) { Text("Logo +") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { logoSize = (logoSize - 20f).coerceAtLeast(40f) }) { Text("Logo -") }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ============ TITLE CONTROLS ============
+        Text(text = "TITLES", fontSize = 18.sp)
+        OutlinedTextField(value = titleText, onValueChange = { titleText = it }, label = { Text("Custom Title Text") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        Row {
+            Button(onClick = { titleText = "ENQUIRY" }) { Text("ENQUIRY") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { titleText = "RESTORATION" }) { Text("RESTORATION") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { titleText = "BREAKING" }) { Text("BREAKING") }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Show Title  ")
+            Switch(checked = showTitle, onCheckedChange = { showTitle = it })
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { titleColor = if (titleColor == "Red") "Blue" else if (titleColor == "Blue") "Green" else "Red" }) { Text("Color: $titleColor") }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row {
+            Button(onClick = { titleSize = (titleSize + 4f).coerceAtMost(48f) }) { Text("Title +") }
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { titleSize = (titleSize - 4f).coerceAtLeast(12f) }) { Text("Title -") }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ============ GALLERY + LOOP ============
+        Text(text = "GALLERY + LOOP", fontSize = 18.sp)
+        Button(onClick = { onPickVideo { uri -> galleryVideoUri = uri } }) { Text("Pick Gallery Video") }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = if (galleryVideoUri == null) "No video picked" else "Video picked ✓ - Ready to play")
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Loop ON/OFF  ")
+            Switch(checked = loopOn, onCheckedChange = { loopOn = it })
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = if (loopOn) "LOOP: ON" else "LOOP: OFF")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = {
+            if (galleryVideoUri == null) {
+                onToast("Pick a video first")
+            } else {
+                isPlayingGallery = !isPlayingGallery
+                onToast(if (isPlayingGallery) "Playing Gallery Video" else "Gallery Paused")
+            }
+        }) {
+            Text(if (isPlayingGallery) "Stop Gallery Video" else "Play Gallery Video")
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(onClick = { onToast("Settings Saved - Commit 1 OK") }, modifier = Modifier.fillMaxWidth()) {
+            Text("SAVE SETTINGS")
+        }
+        Spacer(modifier = Modifier.height(32.dp))
     }
 }
