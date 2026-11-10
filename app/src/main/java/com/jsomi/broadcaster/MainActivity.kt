@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                 onToast = { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() },
                 onSetCam = { cam = makeCam(it) },
                 onPreview = { try { if (cam?.isOnPreview == false) cam?.startPreview() } catch (e: Exception) {} },
-                onStart = { url -> val a = cam?.prepareAudio() == true && cam?.prepareVideo() == true; if (a) cam?.startStream(url) else false },
+                onStart = { url -> val a = cam?.prepareAudio() == true && cam?.prepareVideo() == true; if (a) { cam?.startStream(url); true } else false },
                 onStop = { try { cam?.stopStream() } catch (e: Exception) {} },
                 onSwitchCam = { try { cam?.switchCamera() } catch (e: Exception) {} },
                 onMute = { if (it) cam?.disableAudio() else cam?.enableAudio() }
