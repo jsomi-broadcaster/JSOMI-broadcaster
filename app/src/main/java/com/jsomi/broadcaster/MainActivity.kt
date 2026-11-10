@@ -203,8 +203,7 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
                     titles.forEach { Text(it.text, color = tBg(), fontSize = titleSize.sp, fontWeight = if (titleBold) FontWeight.Bold else FontWeight.Normal, fontFamily = if (titleFont == "Serif") FontFamily.Serif else if (titleFont == "Mono") FontFamily.Monospace else FontFamily.Default) }
                 }
             }
-            // TICKER - NOW HIGHER, SO YOU CAN SEE IT - 170dp
-            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 170.dp + tickerOff.dp)) {
+            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 200.dp + tickerOff.dp)) {
                 if (tickerBgOn) {
                     Box(Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.7f)).padding(6.dp)) {
                         if (tickerMoving) Text(tickerText, color = kBg(), fontSize = tickerSize.sp, modifier = Modifier.offset(x = tx.dp))
@@ -218,7 +217,6 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             if (showIntro && introVis) {
                 Box(Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = 0.8f)).padding(16.dp)) { Text(introText, color = Color.Yellow, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
             }
-            // BOTTOM - NOW 2 SMALL ROWS, NOT 1 BIG ROW - NOTHING CUT OFF
             Column(Modifier.align(Alignment.BottomCenter).padding(8.dp).background(Color.Black.copy(alpha = 0.6f))) {
                 Text(status + " | " + now, color = Color.White, fontSize = 12.sp)
                 Text("ON: " + onList().joinToString(", ") { it.platform }, color = Color.Yellow, fontSize = 12.sp)
@@ -233,7 +231,9 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
                     Button(onClick = { onRotate() }, modifier = Modifier.weight(1f)) { Text(if (isLand) "PORTRAIT" else "LANDSCAPE") }
                     Button(onClick = { muted = !muted; onMute(muted) }, modifier = Modifier.weight(1f)) { Text(if (muted) "UNMUTE" else "MUTE") }
                 }
-                if (showSave) { Spacer(Modifier.height(6.dp)); Row { Button(onClick = { endLive() }) { Text("END LIVE") }; Spacer(Modifier.width(6.dp)); Button(onClick = { tab = "SETUP" }) { Text("SETUP") } } }
+                Spacer(Modifier.height(6.dp))
+                Button(onClick = { tab = "SETUP" }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)) { Text("⚙️ SETUP - ALL SETTINGS", color = Color.Black, fontWeight = FontWeight.Bold) }
+                if (showSave) { Spacer(Modifier.height(6.dp)); Button(onClick = { endLive() }, modifier = Modifier.fillMaxWidth()) { Text("END LIVE") } }
             }
         }
     } else {
