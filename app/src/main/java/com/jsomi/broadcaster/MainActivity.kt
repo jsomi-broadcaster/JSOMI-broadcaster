@@ -148,8 +148,6 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     var now by remember { mutableStateOf("") }
     var liveLabel by remember { mutableStateOf("LIVE") }
     var titles by remember { mutableStateOf(listOf(TitleItem(1, "Jehovah Shalom"), TitleItem(2, "Welcome"), TitleItem(3, "God Bless You"))) }
-
-    // === ADDED - PREMIUM STATE - DO NOT DELETE ABOVE ===
     var isPremium by remember { mutableStateOf(false) }
     var premiumCode by remember { mutableStateOf("") }
     var premiumMessage by remember { mutableStateOf("") }
@@ -193,7 +191,6 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     if (tab == "BROADCAST") {
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             AndroidView(factory = { v -> SurfaceView(v).also { onSetCam(it) } }, modifier = Modifier.fillMaxSize())
-            // Logo - Drag still allowed for LOGO only, Ticker drag REMOVED
             if (showLogo) {
                 Box(Modifier.offset(x = logoOff.x.dp, y = logoOff.y.dp).pointerInput(Unit) {
                     detectDragGestures { _, d -> logoOff = Offset((logoOff.x + d.x).coerceIn(0f, 300f), (logoOff.y + d.y).coerceIn(0f, 500f)) }
@@ -206,8 +203,8 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
                     titles.forEach { Text(it.text, color = tBg(), fontSize = titleSize.sp, fontWeight = if (titleBold) FontWeight.Bold else FontWeight.Normal, fontFamily = if (titleFont == "Serif") FontFamily.Serif else if (titleFont == "Mono") FontFamily.Monospace else FontFamily.Default) }
                 }
             }
-            // TICKER - DRAG REMOVED - Only buttons move it now, no finger drag
-            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp + tickerOff.dp)) {
+            // TICKER - NOW HIGHER, SO YOU CAN SEE IT - 170dp
+            Column(Modifier.align(Alignment.BottomCenter).padding(bottom = 170.dp + tickerOff.dp)) {
                 if (tickerBgOn) {
                     Box(Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.7f)).padding(6.dp)) {
                         if (tickerMoving) Text(tickerText, color = kBg(), fontSize = tickerSize.sp, modifier = Modifier.offset(x = tx.dp))
@@ -221,16 +218,20 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             if (showIntro && introVis) {
                 Box(Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = 0.8f)).padding(16.dp)) { Text(introText, color = Color.Yellow, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
             }
-            Column(Modifier.align(Alignment.BottomCenter).padding(8.dp)) {
+            // BOTTOM - NOW 2 SMALL ROWS, NOT 1 BIG ROW - NOTHING CUT OFF
+            Column(Modifier.align(Alignment.BottomCenter).padding(8.dp).background(Color.Black.copy(alpha = 0.6f))) {
                 Text(status + " | " + now, color = Color.White, fontSize = 12.sp)
                 Text("ON: " + onList().joinToString(", ") { it.platform }, color = Color.Yellow, fontSize = 12.sp)
                 if (isPremium) Text("⭐ PREMIUM ACTIVE - $selectedPlan", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(6.dp)) {
-                    Button(onClick = { goLive() }) { Text(if (streaming) "LIVE..." else "GO LIVE") }
-                    Button(onClick = { onSwitchCam(); camName = if (camName == "BACK") "FRONT" else "BACK" }) { Text("CAM: $camName") }
-                    Button(onClick = { onRotate() }) { Text(if (isLand) "PORTRAIT" else "LANDSCAPE") }
-                    Button(onClick = { muted = !muted; onMute(muted) }) { Text(if (muted) "UNMUTE" else "MUTE") }
+                    Button(onClick = { goLive() }, modifier = Modifier.weight(1f)) { Text(if (streaming) "LIVE..." else "GO LIVE") }
+                    Button(onClick = { onSwitchCam(); camName = if (camName == "BACK") "FRONT" else "BACK" }, modifier = Modifier.weight(1f)) { Text("CAM: $camName") }
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(6.dp)) {
+                    Button(onClick = { onRotate() }, modifier = Modifier.weight(1f)) { Text(if (isLand) "PORTRAIT" else "LANDSCAPE") }
+                    Button(onClick = { muted = !muted; onMute(muted) }, modifier = Modifier.weight(1f)) { Text(if (muted) "UNMUTE" else "MUTE") }
                 }
                 if (showSave) { Spacer(Modifier.height(6.dp)); Row { Button(onClick = { endLive() }) { Text("END LIVE") }; Spacer(Modifier.width(6.dp)); Button(onClick = { tab = "SETUP" }) { Text("SETUP") } } }
             }
@@ -245,7 +246,7 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             Text("ON = Will go LIVE. OFF = Skip.", color = Color.White.copy(alpha = 0.7f))
             Spacer(Modifier.height(6.dp))
             channels.forEach { ch -> val one = ch; Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = one.enabled, onCheckedChange = { isChecked -> channels = channels.map { ch -> if (ch.id == one.id) ch.copy(enabled = isChecked) else ch } })
+                Checkbox(checked = one.enabled, onCheckedChange = { isChecked -> channels = channels.map { ch2 -> if (ch2.id == one.id) ch2.copy(enabled = isChecked) else ch2 } })
                 Text("${one.platform}: ${if (one.key.isBlank()) "NO KEY" else "KEY SET"}", color = Color.White, modifier = Modifier.weight(1f))
                 Button(onClick = { channels = channels.filter { it.id != one.id } }) { Text("DEL") }
             } }
@@ -291,7 +292,6 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             Spacer(Modifier.height(6.dp))
             Row { Button(onClick = { titleSize = (titleSize - 2).coerceAtLeast(12f) }) { Text("-") }; Button(onClick = { titleSize = (titleSize + 2).coerceAtMost(40f) }) { Text("+") }; Button(onClick = { titleBold = !titleBold }) { Text(if (titleBold) "BOLD ON" else "BOLD OFF") } }
             Spacer(Modifier.height(12.dp))
-            // === 7) MOVING TEXT - DRAG REMOVED ===
             Text("7) MOVING TEXT - Buttons Only (Drag Removed)", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
             Text("Drag Up / Down REMOVED. Use buttons below to move ticker.", color = Color.White.copy(alpha = 0.7f))
             Spacer(Modifier.height(6.dp))
@@ -333,7 +333,6 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             Spacer(Modifier.height(12.dp))
             Button(onClick = { share() }) { Text("🔗 SHARE LINK") }
             Spacer(Modifier.height(20.dp))
-            // === 10) ADDED - PREMIUM ===
             Text("10) JSTV PREMIUM", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
             Text("Daily 50 | Monthly 1000 | 3 Months 2500 | Year 8000", color = Color.White)
             Text("Paybill 516600 Acc 5600935001 | WhatsApp 0763052911", color = Color.White, fontSize = 11.sp)
