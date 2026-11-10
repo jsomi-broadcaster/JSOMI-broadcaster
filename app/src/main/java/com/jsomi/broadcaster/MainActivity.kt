@@ -95,6 +95,9 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() { try { rtmpCamera1?.stopStream(); rtmpCamera1?.stopPreview() } catch (e: Exception) { }; super.onDestroy() }
 }
 
+// COMMIT 8: Each title has its own id + text + position, so it moves alone
+data class TitleItem(val id: Int, val text: String, val offset: Offset)
+
 @Composable
 fun JstvProScreen(
     hasPermissions: Boolean, isLandscape: Boolean, onRequestPermissions: () -> Unit, onToggleRotate: () -> Unit,
@@ -115,7 +118,6 @@ fun JstvProScreen(
     var camIndex by remember { mutableStateOf(1) }
     var remoteCommand by remember { mutableStateOf("Waiting for Director...") }
     var directorJoined by remember { mutableStateOf(false) }
-    // COMMIT 7: Pick ONE live target - phone streams to 1 at a time, then you SWITCH
     var liveTarget by remember { mutableStateOf("Facebook") }
     var useYoutube by remember { mutableStateOf(true) }
     var useFacebook by remember { mutableStateOf(true) }
@@ -133,20 +135,23 @@ fun JstvProScreen(
     var showLogo by remember { mutableStateOf(true) }
     var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
     var logoSize by remember { mutableStateOf(80f) }
-    // COMMIT 7: Many titles, not just 1
-    var titlesList by remember { mutableStateOf(listOf("BREAKING", "ENQUIRY")) }
+    // COMMIT 8: Titles move separately - each has own offset
+    var titlesList by remember { mutableStateOf(listOf(TitleItem(1, "BREAKING", Offset(20f, 200f)), TitleItem(2, "ENQUIRY", Offset(20f, 260f)), TitleItem(3, "RESTORATION", Offset(20f, 320f)))) }
+    var nextTitleId by remember { mutableStateOf(4) }
     var newTitleText by remember { mutableStateOf("") }
     var showTitle by remember { mutableStateOf(true) }
-    var titleOffset by remember { mutableStateOf(Offset(20f, 200f)) }
     var titleSize by remember { mutableStateOf(24f) }
     var titleColor by remember { mutableStateOf("Red") }
+    // COMMIT 8: Moving text + Loop
+    var tickerMoving by remember { mutableStateOf(true) }
+    var tickerLoop by remember { mutableStateOf(true) }
     var galleryVideoUri by remember { mutableStateOf<Uri?>(null) }
     var loopOn by remember { mutableStateOf(false) }
     var isPlayingGallery by remember { mutableStateOf(false) }
 
     LaunchedEffect(hasPermissions) { if (hasPermissions) { onStartPreview() } }
 
-    // COMMIT 7: Scrolling ticker animation
+    // Scrolling ticker - loops forever
     val infinite = rememberInfiniteTransition(label = "ticker")
     val tickerX by infinite.animateFloat(initialValue = 400f, targetValue = -800f, animationSpec = infiniteRepeatable(animation = tween(12000, easing = LinearEasing), repeatMode = RepeatMode.Restart), label = "tickerX")
 
@@ -192,175 +197,4 @@ fun JstvProScreen(
         onStopStream(); isStreaming = false; currentDestIndex = -1; liveStatus = "ENDED - Saved to $endedTo ✅"; statusYoutube = "OFF"; statusFacebook = "OFF"; statusJsomi = "OFF"; statusCustom = "OFF"
         onToast("ENDED - Saved to $endedTo. Open $endedTo app > Your Videos to see it.")
     }
-    fun directorAction(action: String) {
-        remoteCommand = action; directorJoined = true
-        when (action) {
-            "CAM 1" -> camIndex = 1; "CAM 2" -> camIndex = 2; "CAM 3" -> camIndex = 3
-            "MUTE" -> { isMuted = true; onMute(true) }; "UNMUTE" -> { isMuted = false; onMute(false) }
-            "SHOW LOGO" -> showLogo = true; "HIDE LOGO" -> showLogo = false
-            "SHOW TITLE" -> showTitle = true; "HIDE TITLE" -> showTitle = false
-            "PLAY GALLERY" -> isPlayingGallery = true; "STOP GALLERY" -> isPlayingGallery = false
-        }
-        onToast("Director: $action - Room $roomCode")
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(modifier = Modifier.fillMaxWidth().background(Color.Black).padding(6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Button(onClick = { currentTab = "BROADCAST" }, content = { Text(text = if (currentTab == "BROADCAST") "● 📺 BROADCAST" else "📺 BROADCAST") })
-            Button(onClick = { currentTab = "SETUP" }, content = { Text(text = if (currentTab == "SETUP") "● ⚙️ SETUP" else "⚙️ SETUP") })
-        }
-        if (!hasPermissions) {
-            Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(12.dp)) {
-                Column { Text(text = "⚠️ Camera + Mic Needed", color = Color.White, fontSize = 16.sp); Button(onClick = { onRequestPermissions() }, content = { Text(text = "GRANT CAMERA + MIC") }) }
-            }
-        }
-        if (currentTab == "BROADCAST") {
-            // ===== BROADCAST: FULL SCREEN, ONLY ADDED TEXT + 4 BUTTONS =====
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-                if (hasPermissions) { AndroidView(factory = { ctx -> SurfaceView(ctx).also { view -> onSetCamera(view) } }, modifier = Modifier.fillMaxSize()) } else { Text(text = "Camera blocked - Grant permission above", color = Color.White, modifier = Modifier.align(androidx.compose.ui.Alignment.Center).padding(16.dp)) }
-                if (isStreaming) { Box(modifier = Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(12.dp).background(Color.Red).padding(horizontal = 10.dp, vertical = 4.dp)) { Text(text = "● LIVE to $liveTarget", color = Color.White, fontSize = 16.sp) } }
-                // ONLY ADDED TEXT ON LIVE: Logo + Many Titles + Scrolling Ticker
-                if (showLogo) {
-                    Box(modifier = Modifier.offset(logoOffset.x.dp, logoOffset.y.dp).size(logoSize.dp).background(Color.White).pointerInput(Unit) { detectDragGestures { change, dragAmount -> change.consume(); logoOffset += dragAmount } }) { Text(text = if (logoUri == null) "LOGO" else "LOGO ✓", fontSize = 12.sp, modifier = Modifier.padding(4.dp)) }
-                }
-                if (showTitle) {
-                    Column(modifier = Modifier.offset(titleOffset.x.dp, titleOffset.y.dp).pointerInput(Unit) { detectDragGestures { change, dragAmount -> change.consume(); titleOffset += dragAmount } }) {
-                        titlesList.forEach { t ->
-                            Box(modifier = Modifier.background(when (titleColor) { "Red" -> Color.Red; "Blue" -> Color.Blue; "Green" -> Color.Green; else -> Color.Black }).padding(horizontal = 8.dp, vertical = 4.dp)) { Text(text = t, color = Color.White, fontSize = titleSize.sp) }
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-                    }
-                }
-                // Scrolling ticker - bottom, above buttons
-                Box(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().padding(bottom = 78.dp).background(Color.Black)) {
-                    Text(text = tickerText, color = Color.Yellow, fontSize = 15.sp, modifier = Modifier.offset(tickerX.dp, 0.dp).padding(6.dp))
-                }
-                // Minimal controls - floating on video, no settings here
-                Column(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = 0.6f)).padding(8.dp)) {
-                    Text(text = if (isStreaming) "LIVE to $liveTarget" else if (liveStatus.startsWith("ENDED")) liveStatus else "READY - Target: $liveTarget | $roomCode", color = if (isStreaming) Color.Green else Color.White, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = { if (isStreaming) endLive() else startLive() }, content = { Text(text = if (isStreaming) "⏹ END LIVE" else "🔴 GO LIVE") })
-                        Button(onClick = { onSwitchCamera() }, content = { Text(text = "Switch Cam") })
-                        Button(onClick = { onToggleRotate() }, content = { Text(text = if (isLandscape) "↻ Portrait" else "↻ Landscape") })
-                        Button(onClick = { isMuted = !isMuted; onMute(isMuted) }, content = { Text(text = if (isMuted) "Unmute" else "Mute") })
-                    }
-                }
-            }
-        } else {
-            // ===== SETUP: ALL SETTINGS HERE, NOT ON LIVE SCREEN =====
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
-                Text(text = "⚙️ SETUP - All settings here", fontSize = 20.sp)
-                Text(text = "Live Status: $liveStatus", fontSize = 14.sp, color = if (liveStatus.startsWith("LIVE")) Color.Green else if (liveStatus.startsWith("FAILED")) Color.Red else Color.Black)
-                Text(text = "Director says: $remoteCommand", fontSize = 14.sp, color = Color.Blue)
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "1) WHERE TO STREAM? Pick ONE LIVE TARGET", fontSize = 18.sp)
-                Text(text = "Phone streams to 1 place at a time. Pick Facebook, GO LIVE, then END, pick YouTube, GO LIVE again. Or use SWITCH below while live.", fontSize = 13.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Button(onClick = { liveTarget = "YouTube" }, content = { Text(text = if (liveTarget == "YouTube") "● YouTube" else "YouTube") })
-                    Button(onClick = { liveTarget = "Facebook" }, content = { Text(text = if (liveTarget == "Facebook") "● Facebook" else "Facebook") })
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Button(onClick = { liveTarget = "JSOMI" }, content = { Text(text = if (liveTarget == "JSOMI") "● JSOMI" else "JSOMI") })
-                    Button(onClick = { liveTarget = "Custom" }, content = { Text(text = if (liveTarget == "Custom") "● Custom" else "Custom") })
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(text = "Live Target now: $liveTarget - Status: ${when (liveTarget) { "YouTube" -> statusYoutube; "Facebook" -> statusFacebook; "JSOMI" -> statusJsomi; else -> statusCustom }}", fontSize = 14.sp, color = statusColor(when (liveTarget) { "YouTube" -> statusYoutube; "Facebook" -> statusFacebook; "JSOMI" -> statusJsomi; else -> statusCustom }))
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = {
-                    val dests = selectedDests()
-                    if (!isStreaming || dests.size < 2) { onToast("GO LIVE first, tick 2+ destinations to switch") } else {
-                        val nextIndex = (currentDestIndex + 1) % dests.size; val next = dests[nextIndex]
-                        if (next.third.isBlank()) { setStatus(next.first, "FAILED - Enter Key"); onToast("Enter key for ${next.first}") } else {
-                            val ok = onSwitchUrl(next.second)
-                            if (ok) { dests.forEach { d -> if (d.first != next.first) { setStatus(d.first, "READY") } }; setStatus(next.first, "LIVE ✅"); currentDestIndex = nextIndex; liveTarget = next.first; liveStatus = "LIVE to ${next.first}"; onToast("Switched to ${next.first} - Previous stream ENDED and saved there") } else { setStatus(next.first, "FAILED - Check Key") }
-                        }
-                    }
-                }, enabled = isStreaming, modifier = Modifier.fillMaxWidth(), content = { Text(text = "SWITCH LIVE TARGET (while live)") })
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "2) TICK DESTINATIONS + KEYS", fontSize = 18.sp)
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useYoutube, onCheckedChange = { useYoutube = it }); Text(text = "YouTube  "); Text(text = statusYoutube, color = statusColor(statusYoutube)) }
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useFacebook, onCheckedChange = { useFacebook = it }); Text(text = "Facebook  "); Text(text = statusFacebook, color = statusColor(statusFacebook)) }
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useJsomi, onCheckedChange = { useJsomi = it }); Text(text = "JSOMI TV  "); Text(text = statusJsomi, color = statusColor(statusJsomi)) }
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useCustom, onCheckedChange = { useCustom = it }); Text(text = "Custom RTMP  "); Text(text = statusCustom, color = statusColor(statusCustom)) }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = youtubeKey, onValueChange = { youtubeKey = it }, label = { Text("YouTube Key - from YouTube Studio > Go Live > Stream Key") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = facebookKey, onValueChange = { facebookKey = it }, label = { Text("Facebook Key - from Facebook > Live Producer > Stream Key") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Facebook tip: In Facebook app > + > Live > Get Stream Key, copy ONLY the key, not the URL. Key changes every live - get a fresh one each time.", fontSize = 12.sp, color = Color.Blue)
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = jsomiKey, onValueChange = { jsomiKey = it }, label = { Text("JSOMI TV Key") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = customUrl, onValueChange = { customUrl = it }, label = { Text("Custom RTMP URL e.g. rtmp://server/live") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(value = customKey, onValueChange = { customKey = it }, label = { Text("Custom Key") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "3) REMOTE - Presenter / Director", fontSize = 18.sp)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    Button(onClick = { appMode = "Presenter" }, content = { Text(text = if (appMode == "Presenter") "● PRESENTER" else "Presenter") })
-                    Button(onClick = { appMode = "Director" }, content = { Text(text = if (appMode == "Director") "● DIRECTOR" else "Director") })
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                if (appMode == "Director") {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = { directorAction("CAM 1") }, content = { Text(text = "CAM 1") }); Button(onClick = { directorAction("CAM 2") }, content = { Text(text = "CAM 2") }); Button(onClick = { directorAction("CAM 3") }, content = { Text(text = "CAM 3") })
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = { directorAction(if (showTitle) "HIDE TITLE" else "SHOW TITLE") }, content = { Text(text = if (showTitle) "Hide Title" else "Show Title") }); Button(onClick = { directorAction(if (isPlayingGallery) "STOP GALLERY" else "PLAY GALLERY") }, content = { Text(text = if (isPlayingGallery) "Stop Gallery" else "Play Gallery") }); Button(onClick = { onToggleRotate() }, content = { Text(text = "Rotate") })
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-                Text(text = "4) LOGO - Shows on Live", fontSize = 18.sp)
-                Button(onClick = { onPickLogo { uri -> logoUri = uri } }, content = { Text(text = "Pick Logo from Gallery") })
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text(text = "Show Logo  "); Switch(checked = showLogo, onCheckedChange = { showLogo = it }); Spacer(modifier = Modifier.width(16.dp))
-                    Button(onClick = { logoSize = (logoSize + 20f).coerceAtMost(180f) }, content = { Text(text = "Logo +") }); Spacer(modifier = Modifier.width(8.dp)); Button(onClick = { logoSize = (logoSize - 20f).coerceAtLeast(40f) }, content = { Text(text = "Logo -") })
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "5) TITLES - Add as many as you want", fontSize = 18.sp)
-                Text(text = "All titles below show together on Live, stacked.", fontSize = 13.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                titlesList.forEach { t ->
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        Text(text = t, modifier = Modifier.weight(1f)); Button(onClick = { titlesList = titlesList.filter { it != t } }, content = { Text(text = "Delete") })
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(value = newTitleText, onValueChange = { newTitleText = it }, label = { Text("New Title - e.g. RESTORATION, HEALING, PRAYER") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(6.dp))
-                Row { Button(onClick = { if (newTitleText.isNotBlank()) { titlesList = titlesList + newTitleText; newTitleText = "" } }, content = { Text(text = "+ ADD TITLE") }); Spacer(modifier = Modifier.width(8.dp)); Button(onClick = { titlesList = listOf("BREAKING", "ENQUIRY", "RESTORATION") }, content = { Text(text = "Reset to 3") }) }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Text(text = "Show Titles  "); Switch(checked = showTitle, onCheckedChange = { showTitle = it }); Spacer(modifier = Modifier.width(16.dp)); Button(onClick = { titleColor = if (titleColor == "Red") "Blue" else if (titleColor == "Blue") "Green" else "Red" }, content = { Text(text = "Color: $titleColor") })
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row { Button(onClick = { titleSize = (titleSize + 4f).coerceAtMost(48f) }, content = { Text(text = "Title +") }); Spacer(modifier = Modifier.width(8.dp)); Button(onClick = { titleSize = (titleSize - 4f).coerceAtLeast(12f) }, content = { Text(text = "Title -") }) }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "6) SCROLLING TICKER", fontSize = 18.sp)
-                OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Ticker Text - Scrolls on Live") }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Text(text = "Quality: $quality  "); Button(onClick = { quality = if (quality == "720p") "1080p" else "720p" }, content = { Text(text = "Switch to ${if (quality == "720p") "1080p" else "720p"}") }) }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "7) GALLERY + LOOP", fontSize = 18.sp)
-                Button(onClick = { onPickVideo { uri -> galleryVideoUri = uri } }, content = { Text(text = "Pick Gallery Video") })
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = if (galleryVideoUri == null) "No video picked" else "Video picked ✓")
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Text(text = "Loop ON/OFF  "); Switch(checked = loopOn, onCheckedChange = { loopOn = it }); Spacer(modifier = Modifier.width(16.dp)); Text(text = if (loopOn) "LOOP: ON" else "LOOP: OFF") }
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { if (galleryVideoUri == null) onToast("Pick a video first") else { isPlayingGallery = !isPlayingGallery } }, content = { Text(text = if (isPlayingGallery) "Stop Gallery Video" else "Play Gallery Video") })
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = { currentTab = "BROADCAST"; onToast("Back to Broadcast - Target: $liveTarget - Tap GO LIVE") }, modifier = Modifier.fillMaxWidth(), content = { Text(text = "✅ DONE - GO TO BROADCAST") })
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-        }
-    }
-}
+    fun directorAction(action
