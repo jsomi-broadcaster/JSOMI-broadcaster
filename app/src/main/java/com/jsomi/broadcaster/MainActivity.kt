@@ -245,7 +245,7 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             Text("ON = Will go LIVE. OFF = Skip.", color = Color.White.copy(alpha = 0.7f))
             Spacer(Modifier.height(6.dp))
             channels.forEach { ch -> val one = ch; Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = one.enabled, onCheckedChange = { channels = channels.map { if (it.id == one.id) it.copy(enabled = it) else it } })
+                Checkbox(checked = one.enabled, onCheckedChange = { isChecked -> channels = channels.map { ch -> if (ch.id == one.id) ch.copy(enabled = isChecked) else ch } })
                 Text("${one.platform}: ${if (one.key.isBlank()) "NO KEY" else "KEY SET"}", color = Color.White, modifier = Modifier.weight(1f))
                 Button(onClick = { channels = channels.filter { it.id != one.id } }) { Text("DEL") }
             } }
