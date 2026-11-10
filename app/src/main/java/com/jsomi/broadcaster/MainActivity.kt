@@ -180,7 +180,7 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     if (showTitle) { titles.forEach { item -> val one = item; Box(Modifier.offset(one.offset.x.dp, one.offset.y.dp).background(tBg()).padding(8.dp, 4.dp).pointerInput(one.id) { detectDragGestures { ch, d -> ch.consume(); titles = titles.map { if (it.id == one.id) it.copy(offset = it.offset + d) else it } } }) { Text(one.text, color = Color.White, fontSize = titleSize.sp, fontFamily = fFor(), fontWeight = if (titleBold) FontWeight.Bold else FontWeight.Normal) } } }
     Box(Modifier.offset(tickerOff.x.dp, tickerOff.y.dp).fillMaxWidth().background(if (tickerBgOn) Color.Black else Color.Transparent).pointerInput(Unit) { detectDragGestures { ch, d -> ch.consume(); tickerOff += d } }) {
      Column(Modifier.fillMaxWidth().padding(6.dp)) {
-      Text("↕ DRAG ME UP / DOWN", color = Color.Gray, fontSize = 10.sp)
+      
       if (tickerMoving) Text(tickerText + " • " + tickerText, color = kBg(), fontSize = tickerSize.sp, maxLines = 1, textAlign = aVal(), modifier = Modifier.fillMaxWidth().offset(if (tickerLoop) tx.dp else 0.dp)) else Text(tickerText, color = kBg(), fontSize = tickerSize.sp, maxLines = 1, textAlign = aVal(), modifier = Modifier.fillMaxWidth())
      }
     }
