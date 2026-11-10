@@ -95,7 +95,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() { try { rtmpCamera1?.stopStream(); rtmpCamera1?.stopPreview() } catch (e: Exception) { }; super.onDestroy() }
 }
 
-// COMMIT 8: Each title has its own id + text + position, so it moves alone
 data class TitleItem(val id: Int, val text: String, val offset: Offset)
 
 @Composable
@@ -135,14 +134,12 @@ fun JstvProScreen(
     var showLogo by remember { mutableStateOf(true) }
     var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
     var logoSize by remember { mutableStateOf(80f) }
-    // COMMIT 8: Titles move separately - each has own offset
     var titlesList by remember { mutableStateOf(listOf(TitleItem(1, "BREAKING", Offset(20f, 200f)), TitleItem(2, "ENQUIRY", Offset(20f, 260f)), TitleItem(3, "RESTORATION", Offset(20f, 320f)))) }
     var nextTitleId by remember { mutableStateOf(4) }
     var newTitleText by remember { mutableStateOf("") }
     var showTitle by remember { mutableStateOf(true) }
     var titleSize by remember { mutableStateOf(24f) }
     var titleColor by remember { mutableStateOf("Red") }
-    // COMMIT 8: Moving text + Loop
     var tickerMoving by remember { mutableStateOf(true) }
     var tickerLoop by remember { mutableStateOf(true) }
     var galleryVideoUri by remember { mutableStateOf<Uri?>(null) }
@@ -151,7 +148,6 @@ fun JstvProScreen(
 
     LaunchedEffect(hasPermissions) { if (hasPermissions) { onStartPreview() } }
 
-    // Scrolling ticker - loops forever
     val infinite = rememberInfiniteTransition(label = "ticker")
     val tickerX by infinite.animateFloat(initialValue = 400f, targetValue = -800f, animationSpec = infiniteRepeatable(animation = tween(12000, easing = LinearEasing), repeatMode = RepeatMode.Restart), label = "tickerX")
 
@@ -172,29 +168,155 @@ fun JstvProScreen(
         return list
     }
     fun setStatus(name: String, status: String) {
-        when (name) { "YouTube" -> statusYoutube = status; "Facebook" -> statusFacebook = status; "JSOMI" -> statusJsomi = status; "Custom" -> statusCustom = status }
+        if (name == "YouTube") { statusYoutube = status }
+        if (name == "Facebook") { statusFacebook = status }
+        if (name == "JSOMI") { statusJsomi = status }
+        if (name == "Custom") { statusCustom = status }
     }
-    fun statusColor(s: String): Color { return when { s.startsWith("LIVE") -> Color.Green; s.startsWith("FAILED") -> Color.Red; else -> Color.Black } }
-
+    fun statusColor(s: String): Color {
+        if (s.startsWith("LIVE")) { return Color.Green }
+        if (s.startsWith("FAILED")) { return Color.Red }
+        return Color.Black
+    }
     fun startLive() {
         if (!hasPermissions) { onToast("Grant Camera + Mic first"); onRequestPermissions() } else {
             val dest = destFor(liveTarget)
             if (dest.third.isBlank()) {
-                setStatus(dest.first, "FAILED - Enter Key"); liveStatus = "FAILED - Enter Key for ${dest.first}"; onToast("Enter ${dest.first} key in SETUP first"); currentTab = "SETUP"
+                setStatus(dest.first, "FAILED - Enter Key"); liveStatus = "FAILED - Enter Key for " + dest.first; onToast("Enter " + dest.first + " key in SETUP first"); currentTab = "SETUP"
             } else {
-                liveStatus = "CONNECTING to ${dest.first}..."
+                liveStatus = "CONNECTING to " + dest.first + "..."
                 val started = onStartStream(dest.second)
                 if (started) {
                     val dests = selectedDests()
                     currentDestIndex = dests.indexOfFirst { it.first == dest.first }.coerceAtLeast(0)
-                    isStreaming = true; setStatus(dest.first, "LIVE ✅"); liveStatus = "LIVE to ${dest.first}"; onToast("LIVE to ${dest.first} - Check ${dest.first} app")
-                } else { setStatus(dest.first, "FAILED - Check Key"); liveStatus = "FAILED - Check Key for ${dest.first}"; onToast("FAILED - Check key for ${dest.first}. Facebook: use Stream Key from Facebook > Live Producer, not Page password.") }
+                    isStreaming = true; setStatus(dest.first, "LIVE ✅"); liveStatus = "LIVE to " + dest.first; onToast("LIVE to " + dest.first + " - Check " + dest.first + " app")
+                } else { setStatus(dest.first, "FAILED - Check Key"); liveStatus = "FAILED - Check Key for " + dest.first; onToast("FAILED - Check key for " + dest.first) }
             }
         }
     }
     fun endLive() {
         val endedTo = liveTarget
-        onStopStream(); isStreaming = false; currentDestIndex = -1; liveStatus = "ENDED - Saved to $endedTo ✅"; statusYoutube = "OFF"; statusFacebook = "OFF"; statusJsomi = "OFF"; statusCustom = "OFF"
-        onToast("ENDED - Saved to $endedTo. Open $endedTo app > Your Videos to see it.")
+        onStopStream(); isStreaming = false; currentDestIndex = -1; liveStatus = "ENDED - Saved to " + endedTo + " ✅"; statusYoutube = "OFF"; statusFacebook = "OFF"; statusJsomi = "OFF"; statusCustom = "OFF"
+        onToast("ENDED - Saved to " + endedTo)
     }
-    fun directorAction(action
+    // FIXED LINE 200: simple if/else, explicit String type, clear body
+    fun directorAction(action: String) {
+        remoteCommand = action
+        directorJoined = true
+        if (action == "CAM 1") { camIndex = 1 }
+        if (action == "CAM 2") { camIndex = 2 }
+        if (action == "CAM 3") { camIndex = 3 }
+        if (action == "MUTE") { isMuted = true; onMute(true) }
+        if (action == "UNMUTE") { isMuted = false; onMute(false) }
+        if (action == "SHOW LOGO") { showLogo = true }
+        if (action == "HIDE LOGO") { showLogo = false }
+        if (action == "SHOW TITLE") { showTitle = true }
+        if (action == "HIDE TITLE") { showTitle = false }
+        if (action == "PLAY GALLERY") { isPlayingGallery = true }
+        if (action == "STOP GALLERY") { isPlayingGallery = false }
+        onToast("Director: " + action + " - Room " + roomCode)
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(modifier = Modifier.fillMaxWidth().background(Color.Black).padding(6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Button(onClick = { currentTab = "BROADCAST" }, content = { Text(text = if (currentTab == "BROADCAST") "● 📺 BROADCAST" else "📺 BROADCAST") })
+            Button(onClick = { currentTab = "SETUP" }, content = { Text(text = if (currentTab == "SETUP") "● ⚙️ SETUP" else "⚙️ SETUP") })
+        }
+        if (!hasPermissions) {
+            Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(12.dp)) {
+                Column { Text(text = "⚠️ Camera + Mic Needed", color = Color.White, fontSize = 16.sp); Button(onClick = { onRequestPermissions() }, content = { Text(text = "GRANT CAMERA + MIC") }) }
+            }
+        }
+        if (currentTab == "BROADCAST") {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+                if (hasPermissions) { AndroidView(factory = { ctx -> SurfaceView(ctx).also { view -> onSetCamera(view) } }, modifier = Modifier.fillMaxSize()) } else { Text(text = "Camera blocked - Grant permission above", color = Color.White, modifier = Modifier.align(androidx.compose.ui.Alignment.Center).padding(16.dp)) }
+                if (isStreaming) { Box(modifier = Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(12.dp).background(Color.Red).padding(horizontal = 10.dp, vertical = 4.dp)) { Text(text = "● LIVE to $liveTarget", color = Color.White, fontSize = 16.sp) } }
+                if (showLogo) {
+                    Box(modifier = Modifier.offset(logoOffset.x.dp, logoOffset.y.dp).size(logoSize.dp).background(Color.White).pointerInput(Unit) { detectDragGestures { change, dragAmount -> change.consume(); logoOffset += dragAmount } }) { Text(text = if (logoUri == null) "LOGO" else "LOGO ✓", fontSize = 12.sp, modifier = Modifier.padding(4.dp)) }
+                }
+                if (showTitle) {
+                    titlesList.forEach { t ->
+                        val myTitle = t
+                        Box(modifier = Modifier.offset(myTitle.offset.x.dp, myTitle.offset.y.dp).background(when (titleColor) { "Red" -> Color.Red; "Blue" -> Color.Blue; "Green" -> Color.Green; else -> Color.Black }).padding(horizontal = 8.dp, vertical = 4.dp).pointerInput(myTitle.id) { detectDragGestures { change, dragAmount -> change.consume(); titlesList = titlesList.map { if (it.id == myTitle.id) it.copy(offset = it.offset + dragAmount) else it } } }) { Text(text = myTitle.text, color = Color.White, fontSize = titleSize.sp) }
+                    }
+                }
+                Box(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().padding(bottom = 105.dp).background(Color.Black)) {
+                    if (tickerMoving) { Text(text = tickerText + "  •  " + tickerText, color = Color.Yellow, fontSize = 15.sp, modifier = Modifier.offset(if (tickerLoop) tickerX.dp else 0.dp).padding(6.dp)) } else { Text(text = tickerText, color = Color.Yellow, fontSize = 15.sp, modifier = Modifier.padding(6.dp)) }
+                }
+                if (isPlayingGallery) { Text(text = "▶ Gallery Video Playing - Loop: " + if (loopOn) "ON" else "OFF", color = Color.White, fontSize = 12.sp, modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(12.dp).background(Color.Blue).padding(4.dp)) }
+                Column(modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().background(Color.Black.copy(alpha = 0.6f)).padding(8.dp)) {
+                    Text(text = if (isStreaming) "LIVE to $liveTarget" else if (liveStatus.startsWith("ENDED")) liveStatus else "READY - Target: $liveTarget | $roomCode", color = if (isStreaming) Color.Green else Color.White, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Button(onClick = { if (isStreaming) endLive() else startLive() }, content = { Text(text = if (isStreaming) "⏹ END LIVE" else "🔴 GO LIVE") })
+                        Button(onClick = { onSwitchCamera() }, content = { Text(text = "Switch Cam") })
+                        Button(onClick = { onToggleRotate() }, content = { Text(text = if (isLandscape) "↻ Portrait" else "↻ Landscape") })
+                        Button(onClick = { isMuted = !isMuted; onMute(isMuted) }, content = { Text(text = if (isMuted) "Unmute" else "Mute") })
+                    }
+                }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
+                Text(text = "⚙️ SETUP - All settings here", fontSize = 20.sp)
+                Text(text = "Live Status: $liveStatus", fontSize = 14.sp, color = if (liveStatus.startsWith("LIVE")) Color.Green else if (liveStatus.startsWith("FAILED")) Color.Red else Color.Black)
+                Text(text = "Director says: $remoteCommand", fontSize = 14.sp, color = Color.Blue)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "1) WHERE TO STREAM? Pick ONE LIVE TARGET", fontSize = 18.sp)
+                Text(text = "Phone streams to 1 place at a time. Pick Facebook, GO LIVE, then END, pick YouTube, GO LIVE again. Or use SWITCH below while live.", fontSize = 13.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { liveTarget = "YouTube" }, content = { Text(text = if (liveTarget == "YouTube") "● YouTube" else "YouTube") })
+                    Button(onClick = { liveTarget = "Facebook" }, content = { Text(text = if (liveTarget == "Facebook") "● Facebook" else "Facebook") })
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { liveTarget = "JSOMI" }, content = { Text(text = if (liveTarget == "JSOMI") "● JSOMI" else "JSOMI") })
+                    Button(onClick = { liveTarget = "Custom" }, content = { Text(text = if (liveTarget == "Custom") "● Custom" else "Custom") })
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "Live Target now: $liveTarget", fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = {
+                    val dests = selectedDests()
+                    if (!isStreaming || dests.size < 2) { onToast("GO LIVE first, tick 2+ destinations to switch") } else {
+                        val nextIndex = (currentDestIndex + 1) % dests.size; val next = dests[nextIndex]
+                        if (next.third.isBlank()) { setStatus(next.first, "FAILED - Enter Key"); onToast("Enter key for " + next.first) } else {
+                            val ok = onSwitchUrl(next.second)
+                            if (ok) { dests.forEach { d -> if (d.first != next.first) { setStatus(d.first, "READY") } }; setStatus(next.first, "LIVE ✅"); currentDestIndex = nextIndex; liveTarget = next.first; liveStatus = "LIVE to " + next.first; onToast("Switched to " + next.first) } else { setStatus(next.first, "FAILED - Check Key") }
+                        }
+                    }
+                }, enabled = isStreaming, modifier = Modifier.fillMaxWidth(), content = { Text(text = "SWITCH LIVE TARGET (while live)") })
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "2) TICK DESTINATIONS + KEYS", fontSize = 18.sp)
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useYoutube, onCheckedChange = { useYoutube = it }); Text(text = "YouTube  "); Text(text = statusYoutube, color = statusColor(statusYoutube)) }
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useFacebook, onCheckedChange = { useFacebook = it }); Text(text = "Facebook  "); Text(text = statusFacebook, color = statusColor(statusFacebook)) }
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useJsomi, onCheckedChange = { useJsomi = it }); Text(text = "JSOMI TV  "); Text(text = statusJsomi, color = statusColor(statusJsomi)) }
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) { Checkbox(checked = useCustom, onCheckedChange = { useCustom = it }); Text(text = "Custom RTMP  "); Text(text = statusCustom, color = statusColor(statusCustom)) }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = youtubeKey, onValueChange = { youtubeKey = it }, label = { Text("YouTube Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = facebookKey, onValueChange = { facebookKey = it }, label = { Text("Facebook Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "Facebook tip: In Facebook app > + > Live > Get Stream Key, copy ONLY the key, not the URL. Key changes every live.", fontSize = 12.sp, color = Color.Blue)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = jsomiKey, onValueChange = { jsomiKey = it }, label = { Text("JSOMI TV Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = customUrl, onValueChange = { customUrl = it }, label = { Text("Custom RTMP URL") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(value = customKey, onValueChange = { customKey = it }, label = { Text("Custom Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "3) REMOTE - Presenter / Director", fontSize = 18.sp)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Button(onClick = { appMode = "Presenter" }, content = { Text(text = if (appMode == "Presenter") "● PRESENTER" else "Presenter") })
+                    Button(onClick = { appMode = "Director" }, content = { Text(text = if (appMode == "Director") "● DIRECTOR" else "Director") })
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(8.dp))
+                if (appMode == "Director") {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Button(onClick = { directorAction("CAM 1") }, content = { Text(text = "CAM 1") }); Button(onClick = { directorAction("CAM 2") }, content = { Text(text = "CAM 2") }); Button(onClick = { directorAction("CAM 3") }, content = { Text(text = "CAM 3") })
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Button(onClick = { directorAction(if (showTitle) "HIDE TITLE" else "SHOW TITLE") }, content = { Text(text = if (showTitle) "Hide Title" else "Show Title") }); Button(onClick = { directorAction(if (isPlayingGallery) "STOP GALLERY" else "PLAY GALLERY") }, content = { Text(text = if (isPlayingGallery) "Stop Gallery" else "Play Gallery") }); Button(onClick = {
