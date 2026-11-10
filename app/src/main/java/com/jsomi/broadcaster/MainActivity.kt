@@ -1,5 +1,7 @@
 package com.jsomi.broadcaster
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.view.SurfaceView
@@ -25,12 +27,39 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import com.pedro.library.rtmp.RtmpCamera1
 import java.lang.reflect.Proxy
 
 class MainActivity : ComponentActivity() {
 
     private var rtmpCamera1: RtmpCamera1? = null
+    private var hasPermissions by mutableStateOf(false)
+
+    // COMMIT 5: Ask for Camera + Mic at runtime
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        val cameraOk = results[Manifest.permission.CAMERA] == true
+        val micOk = results[Manifest.permission.RECORD_AUDIO] == true
+        hasPermissions = cameraOk && micOk
+        if (!hasPermissions) {
+            Toast.makeText(this, "Camera + Mic needed to go LIVE. Tap Grant Permissions.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun checkAndRequestPermissions() {
+        val cameraOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (cameraOk && micOk) {
+            hasPermissions = true
+        } else {
+            hasPermissions = false
+            permissionLauncher.launch(
+                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+            )
+        }
+    }
 
     private fun makeRtmpCamera(view: SurfaceView): RtmpCamera1 {
         val ctor = RtmpCamera1::class.java.constructors.first { it.parameterCount == 2 && it.parameterTypes[0] == SurfaceView::class.java }
@@ -54,8 +83,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        checkAndRequestPermissions()
         setContent {
             JstvProScreen(
+                hasPermissions = hasPermissions,
+                onRequestPermissions = { checkAndRequestPermissions() },
                 onPickLogo = { callback ->
                     onLogoPicked = callback
                     logoPicker.launch("image/*")
@@ -99,6 +131,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun JstvProScreen(
+    hasPermissions: Boolean,
+    onRequestPermissions: () -> Unit,
     onPickLogo: ((Uri?) -> Unit) -> Unit,
     onPickVideo: ((Uri?) -> Unit) -> Unit,
     onToast: (String) -> Unit,
@@ -118,7 +152,6 @@ fun JstvProScreen(
     var quality by remember { mutableStateOf("720p") }
     var tickerText by remember { mutableStateOf("Welcome to JSTV PRO - Live") }
 
-    // --- COMMIT 4: REMOTE / MULTI-CAM ---
     var appMode by remember { mutableStateOf("Presenter") }
     var camIndex by remember { mutableStateOf(1) }
     var remoteCommand by remember { mutableStateOf("Waiting for Director...") }
@@ -215,30 +248,35 @@ fun JstvProScreen(
     }
 
     fun startLiveFromDirector() {
-        val dests = selectedDests()
-        if (dests.isEmpty()) {
-            liveStatus = "FAILED - Check Key"
-            onToast("Tick at least 1 destination")
+        if (!hasPermissions) {
+            onToast("Grant Camera + Mic first")
+            onRequestPermissions()
         } else {
-            val first = dests[0]
-            if (first.third.isBlank() || first.second.isBlank()) {
-                setStatus(first.first, "FAILED - Check Key")
+            val dests = selectedDests()
+            if (dests.isEmpty()) {
                 liveStatus = "FAILED - Check Key"
-                onToast("Enter key for ${first.first} first")
+                onToast("Tick at least 1 destination")
             } else {
-                val started = onStartStream(first.second)
-                if (started) {
-                    currentDestIndex = 0
-                    isStreaming = true
-                    setStatus(first.first, "LIVE ✅")
-                    dests.drop(1).forEach { d -> setStatus(d.first, "READY - Tap Switch") }
-                    liveStatus = "LIVE to ${first.first}"
-                    remoteCommand = "Director STARTED LIVE to ${first.first}"
-                    onToast("LIVE to ${first.first}")
-                } else {
+                val first = dests[0]
+                if (first.third.isBlank() || first.second.isBlank()) {
                     setStatus(first.first, "FAILED - Check Key")
                     liveStatus = "FAILED - Check Key"
-                    onToast("FAILED - Check key")
+                    onToast("Enter key for ${first.first} first")
+                } else {
+                    val started = onStartStream(first.second)
+                    if (started) {
+                        currentDestIndex = 0
+                        isStreaming = true
+                        setStatus(first.first, "LIVE ✅")
+                        dests.drop(1).forEach { d -> setStatus(d.first, "READY - Tap Switch") }
+                        liveStatus = "LIVE to ${first.first}"
+                        remoteCommand = "Director STARTED LIVE to ${first.first}"
+                        onToast("LIVE to ${first.first}")
+                    } else {
+                        setStatus(first.first, "FAILED - Check Key")
+                        liveStatus = "FAILED - Check Key"
+                        onToast("FAILED - Check key")
+                    }
                 }
             }
         }
@@ -260,8 +298,9 @@ fun JstvProScreen(
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())
     ) {
-        Text(text = "JSTV PRO v2 - COMMIT 4", fontSize = 22.sp)
+        Text(text = "JSTV PRO v2 - COMMIT 5 PERMISSIONS", fontSize = 22.sp)
         Text(text = "Mode: $appMode | Room: $roomCode | CAM $camIndex", fontSize = 16.sp)
+        Text(text = "Permissions: ${if (hasPermissions) "GRANTED ✅" else "NOT GRANTED ❌"}", fontSize = 16.sp, color = if (hasPermissions) Color.Green else Color.Red)
         Text(text = "Status: $liveStatus", fontSize = 18.sp, color = when {
             liveStatus.startsWith("LIVE") -> Color.Green
             liveStatus.startsWith("FAILED") -> Color.Red
@@ -269,7 +308,22 @@ fun JstvProScreen(
         })
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ============ COMMIT 4: MODE SWITCH ============
+        // COMMIT 5: Permission gate - shown if not granted
+        if (!hasPermissions) {
+            Box(modifier = Modifier.fillMaxWidth().background(Color.Red).padding(16.dp)) {
+                Column {
+                    Text(text = "⚠️ Camera + Mic Permission Needed", color = Color.White, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "JSTV needs Camera to show you and Mic to hear you. Tap below, then tap Allow.", color = Color.White, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { onRequestPermissions() }, content = { Text(text = "GRANT CAMERA + MIC") })
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "If you tapped Deny before: Go to Phone Settings > Apps > JSTV PRO > Permissions > Allow Camera + Mic, then reopen app.", color = Color.White, fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
         Text(text = "REMOTE CONTROL - Choose Mode", fontSize = 18.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -288,14 +342,17 @@ fun JstvProScreen(
         Text(text = "Director says: $remoteCommand", fontSize = 14.sp, color = Color.Blue)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ============ CAMERA PREVIEW + OVERLAY ============
         Box(
             modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.DarkGray)
         ) {
-            AndroidView(
-                factory = { ctx -> SurfaceView(ctx).also { view -> onSetCamera(view) } },
-                modifier = Modifier.fillMaxSize()
-            )
+            if (hasPermissions) {
+                AndroidView(
+                    factory = { ctx -> SurfaceView(ctx).also { view -> onSetCamera(view) } },
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Text(text = "Camera blocked - Grant permission above", color = Color.White, fontSize = 14.sp, modifier = Modifier.align(androidx.compose.ui.Alignment.Center).padding(16.dp))
+            }
             Text(
                 text = "CAM $camIndex - $appMode",
                 color = Color.White,
@@ -350,7 +407,6 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ============ COMMIT 4: DIRECTOR PANEL ============
         if (appMode == "Director") {
             Text(text = "DIRECTOR PANEL - Controls Presenter", fontSize = 18.sp)
             Spacer(modifier = Modifier.height(4.dp))
@@ -386,7 +442,6 @@ fun JstvProScreen(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // ============ MULTISTREAM ============
         Text(text = "MULTISTREAM - Tick destinations", fontSize = 18.sp)
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -551,7 +606,7 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
         Button(
-            onClick = { onToast("Settings Saved - Commit 4 OK - JSTV PRO v2 DONE") },
+            onClick = { onToast("Settings Saved - Commit 5 OK") },
             modifier = Modifier.fillMaxWidth(),
             content = { Text(text = "SAVE SETTINGS") }
         )
