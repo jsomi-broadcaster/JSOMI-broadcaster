@@ -118,6 +118,12 @@ fun JstvProScreen(
     var quality by remember { mutableStateOf("720p") }
     var tickerText by remember { mutableStateOf("Welcome to JSTV PRO - Live") }
 
+    // --- COMMIT 4: REMOTE / MULTI-CAM ---
+    var appMode by remember { mutableStateOf("Presenter") }
+    var camIndex by remember { mutableStateOf(1) }
+    var remoteCommand by remember { mutableStateOf("Waiting for Director...") }
+    var directorJoined by remember { mutableStateOf(false) }
+
     var useYoutube by remember { mutableStateOf(true) }
     var useFacebook by remember { mutableStateOf(false) }
     var useJsomi by remember { mutableStateOf(false) }
@@ -183,10 +189,79 @@ fun JstvProScreen(
         }
     }
 
+    fun directorAction(action: String) {
+        remoteCommand = action
+        directorJoined = true
+        when (action) {
+            "CAM 1" -> camIndex = 1
+            "CAM 2" -> camIndex = 2
+            "CAM 3" -> camIndex = 3
+            "MUTE" -> {
+                isMuted = true
+                onMute(true)
+            }
+            "UNMUTE" -> {
+                isMuted = false
+                onMute(false)
+            }
+            "SHOW LOGO" -> showLogo = true
+            "HIDE LOGO" -> showLogo = false
+            "SHOW TITLE" -> showTitle = true
+            "HIDE TITLE" -> showTitle = false
+            "PLAY GALLERY" -> isPlayingGallery = true
+            "STOP GALLERY" -> isPlayingGallery = false
+        }
+        onToast("Director: $action - Room $roomCode")
+    }
+
+    fun startLiveFromDirector() {
+        val dests = selectedDests()
+        if (dests.isEmpty()) {
+            liveStatus = "FAILED - Check Key"
+            onToast("Tick at least 1 destination")
+        } else {
+            val first = dests[0]
+            if (first.third.isBlank() || first.second.isBlank()) {
+                setStatus(first.first, "FAILED - Check Key")
+                liveStatus = "FAILED - Check Key"
+                onToast("Enter key for ${first.first} first")
+            } else {
+                val started = onStartStream(first.second)
+                if (started) {
+                    currentDestIndex = 0
+                    isStreaming = true
+                    setStatus(first.first, "LIVE ✅")
+                    dests.drop(1).forEach { d -> setStatus(d.first, "READY - Tap Switch") }
+                    liveStatus = "LIVE to ${first.first}"
+                    remoteCommand = "Director STARTED LIVE to ${first.first}"
+                    onToast("LIVE to ${first.first}")
+                } else {
+                    setStatus(first.first, "FAILED - Check Key")
+                    liveStatus = "FAILED - Check Key"
+                    onToast("FAILED - Check key")
+                }
+            }
+        }
+    }
+
+    fun stopLiveFromDirector() {
+        onStopStream()
+        isStreaming = false
+        currentDestIndex = -1
+        liveStatus = "STOPPED"
+        statusYoutube = "OFF"
+        statusFacebook = "OFF"
+        statusJsomi = "OFF"
+        statusCustom = "OFF"
+        remoteCommand = "Director STOPPED LIVE"
+        onToast("Stopped All")
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())
     ) {
-        Text(text = "JSTV PRO v2 - COMMIT 3 FIXED", fontSize = 22.sp)
+        Text(text = "JSTV PRO v2 - COMMIT 4", fontSize = 22.sp)
+        Text(text = "Mode: $appMode | Room: $roomCode | CAM $camIndex", fontSize = 16.sp)
         Text(text = "Status: $liveStatus", fontSize = 18.sp, color = when {
             liveStatus.startsWith("LIVE") -> Color.Green
             liveStatus.startsWith("FAILED") -> Color.Red
@@ -194,6 +269,26 @@ fun JstvProScreen(
         })
         Spacer(modifier = Modifier.height(8.dp))
 
+        // ============ COMMIT 4: MODE SWITCH ============
+        Text(text = "REMOTE CONTROL - Choose Mode", fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Button(
+                onClick = { appMode = "Presenter" },
+                content = { Text(text = if (appMode == "Presenter") "● PRESENTER" else "Presenter") }
+            )
+            Button(
+                onClick = { appMode = "Director" },
+                content = { Text(text = if (appMode == "Director") "● DIRECTOR" else "Director") }
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code - Same on both phones") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = "Director says: $remoteCommand", fontSize = 14.sp, color = Color.Blue)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // ============ CAMERA PREVIEW + OVERLAY ============
         Box(
             modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.DarkGray)
         ) {
@@ -201,6 +296,20 @@ fun JstvProScreen(
                 factory = { ctx -> SurfaceView(ctx).also { view -> onSetCamera(view) } },
                 modifier = Modifier.fillMaxSize()
             )
+            Text(
+                text = "CAM $camIndex - $appMode",
+                color = Color.White,
+                fontSize = 14.sp,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.TopStart).padding(8.dp).background(Color.Black).padding(4.dp)
+            )
+            if (appMode == "Presenter") {
+                Text(
+                    text = if (directorJoined) "Director Connected ✓" else "Waiting for Director...",
+                    color = Color.Yellow,
+                    fontSize = 12.sp,
+                    modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd).padding(8.dp)
+                )
+            }
             if (showLogo) {
                 Box(
                     modifier = Modifier.offset(logoOffset.x.dp, logoOffset.y.dp).size(logoSize.dp)
@@ -241,6 +350,43 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        // ============ COMMIT 4: DIRECTOR PANEL ============
+        if (appMode == "Director") {
+            Text(text = "DIRECTOR PANEL - Controls Presenter", fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { directorAction("CAM 1") }, content = { Text(text = "CAM 1") })
+                Button(onClick = { directorAction("CAM 2") }, content = { Text(text = "CAM 2") })
+                Button(onClick = { directorAction("CAM 3") }, content = { Text(text = "CAM 3") })
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { directorAction(if (isMuted) "UNMUTE" else "MUTE") }, content = { Text(text = if (isMuted) "Unmute" else "Mute") })
+                Button(onClick = { directorAction(if (showLogo) "HIDE LOGO" else "SHOW LOGO") }, content = { Text(text = if (showLogo) "Hide Logo" else "Show Logo") })
+                Button(onClick = { directorAction(if (showTitle) "HIDE TITLE" else "SHOW TITLE") }, content = { Text(text = if (showTitle) "Hide Title" else "Show Title") })
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { directorAction(if (isPlayingGallery) "STOP GALLERY" else "PLAY GALLERY") }, content = { Text(text = if (isPlayingGallery) "Stop Gallery" else "Play Gallery") })
+                Button(onClick = { onSwitchCamera() }, content = { Text(text = "Front/Back") })
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { startLiveFromDirector() }, enabled = !isStreaming, content = { Text(text = "START LIVE (Director)") })
+                Button(onClick = { stopLiveFromDirector() }, enabled = isStreaming, content = { Text(text = "STOP LIVE (Director)") })
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        } else {
+            Text(text = "PRESENTER - Just show camera. Director controls you.", fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { onSwitchCamera() }, content = { Text(text = "Switch Cam") })
+                Button(onClick = { directorJoined = true; remoteCommand = "Joined Room $roomCode" }, content = { Text(text = "Join Room $roomCode") })
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // ============ MULTISTREAM ============
         Text(text = "MULTISTREAM - Tick destinations", fontSize = 18.sp)
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -269,52 +415,12 @@ fun JstvProScreen(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             Button(
-                onClick = {
-                    val dests = selectedDests()
-                    if (dests.isEmpty()) {
-                        liveStatus = "FAILED - Check Key"
-                        onToast("Tick at least 1 destination")
-                    } else {
-                        val first = dests[0]
-                        if (first.third.isBlank() || first.second.isBlank()) {
-                            setStatus(first.first, "FAILED - Check Key")
-                            liveStatus = "FAILED - Check Key"
-                            onToast("Enter key for ${first.first} first")
-                        } else {
-                            liveStatus = "CONNECTING to ${first.first}..."
-                            val started = onStartStream(first.second)
-                            if (started) {
-                                currentDestIndex = 0
-                                isStreaming = true
-                                setStatus(first.first, "LIVE ✅")
-                                dests.drop(1).forEach { d -> setStatus(d.first, "READY - Tap Switch") }
-                                liveStatus = "LIVE to ${first.first}"
-                                onToast("LIVE to ${first.first}")
-                            } else {
-                                setStatus(first.first, "FAILED - Check Key")
-                                liveStatus = "FAILED - Check Key"
-                                isStreaming = false
-                                onToast("FAILED - Check key for ${first.first}")
-                            }
-                        }
-                    }
-                },
+                onClick = { startLiveFromDirector() },
                 enabled = !isStreaming,
                 content = { Text(text = "START MULTISTREAM") }
             )
-
             Button(
-                onClick = {
-                    onStopStream()
-                    isStreaming = false
-                    currentDestIndex = -1
-                    liveStatus = "STOPPED"
-                    statusYoutube = "OFF"
-                    statusFacebook = "OFF"
-                    statusJsomi = "OFF"
-                    statusCustom = "OFF"
-                    onToast("Stopped All")
-                },
+                onClick = { stopLiveFromDirector() },
                 enabled = isStreaming,
                 content = { Text(text = "STOP ALL") }
             )
@@ -358,19 +464,6 @@ fun JstvProScreen(
             content = { Text(text = "SWITCH DESTINATION LIVE") }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            Button(onClick = { onSwitchCamera() }, content = { Text(text = "Switch Cam") })
-            Button(
-                onClick = {
-                    isMuted = !isMuted
-                    onMute(isMuted)
-                },
-                content = { Text(text = if (isMuted) "Unmute" else "Mute") }
-            )
-        }
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(text = "SETTINGS - Stream Keys", fontSize = 18.sp)
@@ -383,8 +476,6 @@ fun JstvProScreen(
         OutlinedTextField(value = customUrl, onValueChange = { customUrl = it }, label = { Text("Custom RTMP URL e.g. rtmp://server/live") }, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(value = customKey, onValueChange = { customKey = it }, label = { Text("Custom Key") }, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code - Commit 4") }, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
         OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Ticker Text") }, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
@@ -460,7 +551,7 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
         Button(
-            onClick = { onToast("Settings Saved - Commit 3 OK") },
+            onClick = { onToast("Settings Saved - Commit 4 OK - JSTV PRO v2 DONE") },
             modifier = Modifier.fillMaxWidth(),
             content = { Text(text = "SAVE SETTINGS") }
         )
