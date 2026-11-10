@@ -24,12 +24,26 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.pedro.library.base.ConnectChecker
 import com.pedro.library.rtmp.RtmpCamera1
+import java.lang.reflect.Proxy
 
 class MainActivity : ComponentActivity() {
 
     private var rtmpCamera1: RtmpCamera1? = null
+
+    // FIX: Don't import ConnectChecker - build it by reflection from RtmpCamera1 itself
+    private fun makeRtmpCamera(view: SurfaceView): RtmpCamera1 {
+        val ctor = RtmpCamera1::class.java.constructors.first { it.parameterCount == 2 && it.parameterTypes[0] == SurfaceView::class.java }
+        val checkerInterface = ctor.parameterTypes[1]
+        val dummyChecker = Proxy.newProxyInstance(
+            checkerInterface.classLoader,
+            arrayOf(checkerInterface)
+        ) { _, _, _ ->
+            // Return default for any callback: false / 0 / null / Unit
+            null
+        }
+        return ctor.newInstance(view, dummyChecker) as RtmpCamera1
+    }
 
     private var onLogoPicked: ((Uri?) -> Unit)? = null
     private val logoPicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -54,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     videoPicker.launch("video/*")
                 },
                 onToast = { msg -> Toast.makeText(this, msg, Toast.LENGTH_SHORT).show() },
-                onSetCamera = { view -> rtmpCamera1 = RtmpCamera1(view, object : ConnectChecker {}) },
+                onSetCamera = { view -> rtmpCamera1 = makeRtmpCamera(view) },
                 onStartStream = { fullUrl ->
                     val okAudio = rtmpCamera1?.prepareAudio() ?: false
                     val okVideo = rtmpCamera1?.prepareVideo() ?: false
@@ -88,7 +102,6 @@ fun JstvProScreen(
     onSwitchCamera: () -> Unit,
     onMute: (Boolean) -> Unit
 ) {
-    // --- SETTINGS ---
     var youtubeKey by remember { mutableStateOf("") }
     var facebookKey by remember { mutableStateOf("") }
     var jsomiKey by remember { mutableStateOf("") }
@@ -98,12 +111,10 @@ fun JstvProScreen(
     var quality by remember { mutableStateOf("720p") }
     var tickerText by remember { mutableStateOf("Welcome to JSTV PRO - Live") }
 
-    // --- LIVE STATUS - Real check ---
     var liveStatus by remember { mutableStateOf("READY") }
     var isStreaming by remember { mutableStateOf(false) }
     var isMuted by remember { mutableStateOf(false) }
 
-    // --- LOGO + TITLES ---
     var logoUri by remember { mutableStateOf<Uri?>(null) }
     var showLogo by remember { mutableStateOf(true) }
     var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
@@ -115,7 +126,6 @@ fun JstvProScreen(
     var titleSize by remember { mutableStateOf(24f) }
     var titleColor by remember { mutableStateOf("Red") }
 
-    // --- GALLERY + LOOP ---
     var galleryVideoUri by remember { mutableStateOf<Uri?>(null) }
     var loopOn by remember { mutableStateOf(false) }
     var isPlayingGallery by remember { mutableStateOf(false) }
@@ -123,7 +133,7 @@ fun JstvProScreen(
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())
     ) {
-        Text(text = "JSTV PRO v2 - COMMIT 2", fontSize = 22.sp)
+        Text(text = "JSTV PRO v2 - COMMIT 2 FIXED", fontSize = 22.sp)
         Text(text = "Status: $liveStatus", fontSize = 18.sp, color = when (liveStatus) {
             "LIVE" -> Color.Green
             "FAILED - Check Key" -> Color.Red
@@ -131,7 +141,6 @@ fun JstvProScreen(
         })
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ============ CAMERA PREVIEW + OVERLAY ============
         Box(
             modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.DarkGray)
         ) {
@@ -141,8 +150,6 @@ fun JstvProScreen(
                 },
                 modifier = Modifier.fillMaxSize()
             )
-
-            // Movable Logo over camera
             if (showLogo) {
                 Box(
                     modifier = Modifier.offset(logoOffset.x.dp, logoOffset.y.dp).size(logoSize.dp)
@@ -157,8 +164,6 @@ fun JstvProScreen(
                     Text(text = if (logoUri == null) "LOGO" else "LOGO ✓", fontSize = 12.sp, modifier = Modifier.padding(4.dp))
                 }
             }
-
-            // Movable Title over camera
             if (showTitle) {
                 Box(
                     modifier = Modifier.offset(titleOffset.x.dp, titleOffset.y.dp)
@@ -179,18 +184,12 @@ fun JstvProScreen(
                     Text(text = titleText, color = Color.White, fontSize = titleSize.sp)
                 }
             }
-
-            Text(
-                text = tickerText,
-                color = Color.Yellow,
-                fontSize = 12.sp,
-                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(8.dp)
-            )
+            Text(text = tickerText, color = Color.Yellow, fontSize = 12.sp,
+                modifier = Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(8.dp))
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ============ LIVE CONTROLS ============
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             Button(
                 onClick = {
@@ -203,8 +202,6 @@ fun JstvProScreen(
                     val fullUrl = "rtmp://a.rtmp.youtube.com/live2/" + youtubeKey
                     val started = onStartStream(fullUrl)
                     if (started) {
-                        // Real check: wait 2 sec, if still started we show LIVE
-                        // If encoder/server rejects, user will see FAILED on next stop/start
                         liveStatus = "LIVE"
                         isStreaming = true
                         onToast("LIVE - Streaming to YouTube")
@@ -240,7 +237,6 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ============ SETTINGS ============
         Text(text = "SETTINGS - Stream Keys", fontSize = 18.sp)
         OutlinedTextField(value = youtubeKey, onValueChange = { youtubeKey = it }, label = { Text("YouTube Key - USED IN COMMIT 2") }, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
@@ -265,7 +261,6 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ============ LOGO ============
         Text(text = "LOGO", fontSize = 18.sp)
         Button(onClick = { onPickLogo { uri -> logoUri = uri } }) { Text("Pick Logo from Gallery") }
         Spacer(modifier = Modifier.height(8.dp))
@@ -280,7 +275,6 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ============ TITLES ============
         Text(text = "TITLES", fontSize = 18.sp)
         OutlinedTextField(value = titleText, onValueChange = { titleText = it }, label = { Text("Custom Title Text") }, modifier = Modifier.fillMaxWidth())
         Spacer(modifier = Modifier.height(8.dp))
@@ -307,7 +301,6 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ============ GALLERY + LOOP ============
         Text(text = "GALLERY + LOOP", fontSize = 18.sp)
         Button(onClick = { onPickVideo { uri -> galleryVideoUri = uri } }) { Text("Pick Gallery Video") }
         Spacer(modifier = Modifier.height(8.dp))
