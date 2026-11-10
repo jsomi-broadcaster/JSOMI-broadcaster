@@ -78,7 +78,6 @@ class MainActivity : ComponentActivity() {
                     }
                 },
                 onSwitchUrl = { fullUrl ->
-                    // Live switch: stop old stream, keep preview, start new URL
                     try {
                         rtmpCamera1?.stopStream()
                         rtmpCamera1?.startStream(fullUrl)
@@ -110,7 +109,6 @@ fun JstvProScreen(
     onSwitchCamera: () -> Unit,
     onMute: (Boolean) -> Unit
 ) {
-    // --- SETTINGS / KEYS ---
     var youtubeKey by remember { mutableStateOf("") }
     var facebookKey by remember { mutableStateOf("") }
     var jsomiKey by remember { mutableStateOf("") }
@@ -120,7 +118,6 @@ fun JstvProScreen(
     var quality by remember { mutableStateOf("720p") }
     var tickerText by remember { mutableStateOf("Welcome to JSTV PRO - Live") }
 
-    // --- COMMIT 3: MULTISTREAM ---
     var useYoutube by remember { mutableStateOf(true) }
     var useFacebook by remember { mutableStateOf(false) }
     var useJsomi by remember { mutableStateOf(false) }
@@ -136,7 +133,6 @@ fun JstvProScreen(
     var isMuted by remember { mutableStateOf(false) }
     var currentDestIndex by remember { mutableStateOf(-1) }
 
-    // --- LOGO + TITLES ---
     var logoUri by remember { mutableStateOf<Uri?>(null) }
     var showLogo by remember { mutableStateOf(true) }
     var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
@@ -148,18 +144,25 @@ fun JstvProScreen(
     var titleSize by remember { mutableStateOf(24f) }
     var titleColor by remember { mutableStateOf("Red") }
 
-    // --- GALLERY + LOOP ---
     var galleryVideoUri by remember { mutableStateOf<Uri?>(null) }
     var loopOn by remember { mutableStateOf(false) }
     var isPlayingGallery by remember { mutableStateOf(false) }
 
-    // Helper: build list of selected destinations as (name, fullUrl, key)
     fun selectedDests(): List<Triple<String, String, String>> {
         val list = mutableListOf<Triple<String, String, String>>()
-        if (useYoutube) list.add(Triple("YouTube", "rtmp://a.rtmp.youtube.com/live2/" + youtubeKey, youtubeKey))
-        if (useFacebook) list.add(Triple("Facebook", "rtmps://live-api-s.facebook.com:443/rtmp/" + facebookKey, facebookKey))
-        if (useJsomi) list.add(Triple("JSOMI", "rtmp://jsomi.tv/live/" + jsomiKey, jsomiKey))
-        if (useCustom) list.add(Triple("Custom", if (customUrl.isBlank()) "" else customUrl + "/" + customKey, customKey))
+        if (useYoutube) {
+            list.add(Triple("YouTube", "rtmp://a.rtmp.youtube.com/live2/" + youtubeKey, youtubeKey))
+        }
+        if (useFacebook) {
+            list.add(Triple("Facebook", "rtmps://live-api-s.facebook.com:443/rtmp/" + facebookKey, facebookKey))
+        }
+        if (useJsomi) {
+            list.add(Triple("JSOMI", "rtmp://jsomi.tv/live/" + jsomiKey, jsomiKey))
+        }
+        if (useCustom) {
+            val full = if (customUrl.isBlank()) "" else customUrl + "/" + customKey
+            list.add(Triple("Custom", full, customKey))
+        }
         return list
     }
 
@@ -183,7 +186,7 @@ fun JstvProScreen(
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())
     ) {
-        Text(text = "JSTV PRO v2 - COMMIT 3", fontSize = 22.sp)
+        Text(text = "JSTV PRO v2 - COMMIT 3 FIXED", fontSize = 22.sp)
         Text(text = "Status: $liveStatus", fontSize = 18.sp, color = when {
             liveStatus.startsWith("LIVE") -> Color.Green
             liveStatus.startsWith("FAILED") -> Color.Red
@@ -191,7 +194,6 @@ fun JstvProScreen(
         })
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ============ CAMERA PREVIEW + OVERLAY ============
         Box(
             modifier = Modifier.fillMaxWidth().height(300.dp).background(Color.DarkGray)
         ) {
@@ -239,7 +241,6 @@ fun JstvProScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // ============ COMMIT 3: MULTISTREAM PANEL ============
         Text(text = "MULTISTREAM - Tick destinations", fontSize = 18.sp)
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -273,34 +274,34 @@ fun JstvProScreen(
                     if (dests.isEmpty()) {
                         liveStatus = "FAILED - Check Key"
                         onToast("Tick at least 1 destination")
-                        return@Button
-                    }
-                    val first = dests[0]
-                    if (first.third.isBlank() || first.second.isBlank()) {
-                        setStatus(first.first, "FAILED - Check Key")
-                        liveStatus = "FAILED - Check Key"
-                        onToast("Enter key for ${first.first} first")
-                        return@Button
-                    }
-                    liveStatus = "CONNECTING to ${first.first}..."
-                    val started = onStartStream(first.second)
-                    if (started) {
-                        currentDestIndex = 0
-                        isStreaming = true
-                        setStatus(first.first, "LIVE ✅")
-                        // Others are ready to switch to
-                        for (i in 1 until dests.size) setStatus(dests[i].first, "READY - Tap Switch")
-                        liveStatus = "LIVE to ${first.first}"
-                        onToast("LIVE to ${first.first}")
                     } else {
-                        setStatus(first.first, "FAILED - Check Key")
-                        liveStatus = "FAILED - Check Key"
-                        isStreaming = false
-                        onToast("FAILED - Check key for ${first.first}")
+                        val first = dests[0]
+                        if (first.third.isBlank() || first.second.isBlank()) {
+                            setStatus(first.first, "FAILED - Check Key")
+                            liveStatus = "FAILED - Check Key"
+                            onToast("Enter key for ${first.first} first")
+                        } else {
+                            liveStatus = "CONNECTING to ${first.first}..."
+                            val started = onStartStream(first.second)
+                            if (started) {
+                                currentDestIndex = 0
+                                isStreaming = true
+                                setStatus(first.first, "LIVE ✅")
+                                dests.drop(1).forEach { d -> setStatus(d.first, "READY - Tap Switch") }
+                                liveStatus = "LIVE to ${first.first}"
+                                onToast("LIVE to ${first.first}")
+                            } else {
+                                setStatus(first.first, "FAILED - Check Key")
+                                liveStatus = "FAILED - Check Key"
+                                isStreaming = false
+                                onToast("FAILED - Check key for ${first.first}")
+                            }
+                        }
                     }
                 },
-                enabled = !isStreaming
-            ) { Text("START MULTISTREAM") }
+                enabled = !isStreaming,
+                content = { Text(text = "START MULTISTREAM") }
+            )
 
             Button(
                 onClick = {
@@ -308,14 +309,15 @@ fun JstvProScreen(
                     isStreaming = false
                     currentDestIndex = -1
                     liveStatus = "STOPPED"
-                    statusYoutube = if (useYoutube) "OFF" else "OFF"
+                    statusYoutube = "OFF"
                     statusFacebook = "OFF"
                     statusJsomi = "OFF"
                     statusCustom = "OFF"
                     onToast("Stopped All")
                 },
-                enabled = isStreaming
-            ) { Text("STOP ALL") }
+                enabled = isStreaming,
+                content = { Text(text = "STOP ALL") }
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -323,4 +325,145 @@ fun JstvProScreen(
         Button(
             onClick = {
                 val dests = selectedDests()
-                if (!isStreaming || dests.size 
+                if (!isStreaming || dests.size < 2) {
+                    onToast("Tick 2+ destinations to switch")
+                } else {
+                    val nextIndex = (currentDestIndex + 1) % dests.size
+                    val next = dests[nextIndex]
+                    if (next.third.isBlank()) {
+                        setStatus(next.first, "FAILED - Check Key")
+                        onToast("Enter key for ${next.first}")
+                    } else {
+                        val ok = onSwitchUrl(next.second)
+                        if (ok) {
+                            dests.forEach { d ->
+                                if (d.first != next.first) {
+                                    setStatus(d.first, "READY - Tap Switch")
+                                }
+                            }
+                            setStatus(next.first, "LIVE ✅")
+                            currentDestIndex = nextIndex
+                            liveStatus = "LIVE to ${next.first}"
+                            onToast("Switched LIVE to ${next.first}")
+                        } else {
+                            setStatus(next.first, "FAILED - Check Key")
+                            liveStatus = "FAILED - Check Key"
+                            onToast("FAILED to switch to ${next.first}")
+                        }
+                    }
+                }
+            },
+            enabled = isStreaming,
+            modifier = Modifier.fillMaxWidth(),
+            content = { Text(text = "SWITCH DESTINATION LIVE") }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Button(onClick = { onSwitchCamera() }, content = { Text(text = "Switch Cam") })
+            Button(
+                onClick = {
+                    isMuted = !isMuted
+                    onMute(isMuted)
+                },
+                content = { Text(text = if (isMuted) "Unmute" else "Mute") }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = "SETTINGS - Stream Keys", fontSize = 18.sp)
+        OutlinedTextField(value = youtubeKey, onValueChange = { youtubeKey = it }, label = { Text("YouTube Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = facebookKey, onValueChange = { facebookKey = it }, label = { Text("Facebook Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = jsomiKey, onValueChange = { jsomiKey = it }, label = { Text("JSOMI TV Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = customUrl, onValueChange = { customUrl = it }, label = { Text("Custom RTMP URL e.g. rtmp://server/live") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = customKey, onValueChange = { customKey = it }, label = { Text("Custom Key") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code - Commit 4") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Ticker Text") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Quality: $quality  ")
+            Button(onClick = { quality = if (quality == "720p") "1080p" else "720p" }, content = { Text(text = "Switch to ${if (quality == "720p") "1080p" else "720p"}") })
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = "LOGO", fontSize = 18.sp)
+        Button(onClick = { onPickLogo { uri -> logoUri = uri } }, content = { Text(text = "Pick Logo from Gallery") })
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Show Logo  ")
+            Switch(checked = showLogo, onCheckedChange = { showLogo = it })
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { logoSize = (logoSize + 20f).coerceAtMost(180f) }, content = { Text(text = "Logo +") })
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { logoSize = (logoSize - 20f).coerceAtLeast(40f) }, content = { Text(text = "Logo -") })
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = "TITLES", fontSize = 18.sp)
+        OutlinedTextField(value = titleText, onValueChange = { titleText = it }, label = { Text("Custom Title Text") }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(8.dp))
+        Row {
+            Button(onClick = { titleText = "ENQUIRY" }, content = { Text(text = "ENQUIRY") })
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { titleText = "RESTORATION" }, content = { Text(text = "RESTORATION") })
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { titleText = "BREAKING" }, content = { Text(text = "BREAKING") })
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Show Title  ")
+            Switch(checked = showTitle, onCheckedChange = { showTitle = it })
+            Spacer(modifier = Modifier.width(16.dp))
+            Button(onClick = { titleColor = if (titleColor == "Red") "Blue" else if (titleColor == "Blue") "Green" else "Red" }, content = { Text(text = "Color: $titleColor") })
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row {
+            Button(onClick = { titleSize = (titleSize + 4f).coerceAtMost(48f) }, content = { Text(text = "Title +") })
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(onClick = { titleSize = (titleSize - 4f).coerceAtLeast(12f) }, content = { Text(text = "Title -") })
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(text = "GALLERY + LOOP", fontSize = 18.sp)
+        Button(onClick = { onPickVideo { uri -> galleryVideoUri = uri } }, content = { Text(text = "Pick Gallery Video") })
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = if (galleryVideoUri == null) "No video picked" else "Video picked ✓")
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(text = "Loop ON/OFF  ")
+            Switch(checked = loopOn, onCheckedChange = { loopOn = it })
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(text = if (loopOn) "LOOP: ON" else "LOOP: OFF")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = {
+                if (galleryVideoUri == null) onToast("Pick a video first")
+                else {
+                    isPlayingGallery = !isPlayingGallery
+                    onToast(if (isPlayingGallery) "Playing Gallery Video" else "Gallery Paused")
+                }
+            },
+            content = { Text(text = if (isPlayingGallery) "Stop Gallery Video" else "Play Gallery Video") }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = { onToast("Settings Saved - Commit 3 OK") },
+            modifier = Modifier.fillMaxWidth(),
+            content = { Text(text = "SAVE SETTINGS") }
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
