@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.pedro.common.ConnectChecker
 import com.pedro.library.rtmp.RtmpCamera1
-import com.pedro.library.util.ConnectCheckerRtmp
 
 class MainActivity : ComponentActivity() {
     private var rtmpCamera1: RtmpCamera1? = null
@@ -105,20 +105,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun makeCamera(view: SurfaceView): RtmpCamera1 {
-        val checker = object : ConnectCheckerRtmp {
-            override fun onConnectionStartedRtmp(rtmpUrl: String) {
+        val checker = object : ConnectChecker {
+            override fun onConnectionStarted(url: String) {
             }
-            override fun onConnectionSuccessRtmp() {
+            override fun onConnectionSuccess() {
             }
-            override fun onConnectionFailedRtmp(reason: String) {
+            override fun onConnectionFailed(reason: String) {
             }
-            override fun onNewBitrateRtmp(bitrate: Long) {
+            override fun onNewBitrate(bitrate: Long) {
             }
-            override fun onDisconnectRtmp() {
+            override fun onDisconnect() {
             }
-            override fun onAuthErrorRtmp() {
+            override fun onAuthError() {
             }
-            override fun onAuthSuccessRtmp() {
+            override fun onAuthSuccess() {
             }
         }
         return RtmpCamera1(view, checker)
@@ -617,4 +617,288 @@ fun JstvScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = youtubeKey,
-                    onValue
+                    onValueChange = { youtubeKey = it },
+                    label = { Text("YouTube Key") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = facebookKey,
+                    onValueChange = { facebookKey = it },
+                    label = { Text("Facebook Key") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Facebook: copy ONLY key from Facebook > Live > Stream Key. Get fresh key each live.",
+                    fontSize = 12.sp,
+                    color = Color.Blue
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "3) LOGO",
+                    fontSize = 18.sp
+                )
+                Button(onClick = {
+                    onPickLogo { uri ->
+                        logoUri = uri
+                    }
+                }) {
+                    Text("Pick Logo")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Show Logo  ")
+                    Switch(
+                        checked = showLogo,
+                        onCheckedChange = { showLogo = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        logoSize = (logoSize + 20f).coerceAtMost(180f)
+                    }) {
+                        Text("Logo +")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        logoSize = (logoSize - 20f).coerceAtLeast(40f)
+                    }) {
+                        Text("Logo -")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "4) TITLES - Each moves alone",
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = "Drag one title on BROADCAST. Others stay.",
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                titles.forEach { item ->
+                    val one = item
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = one.text,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Button(onClick = {
+                                titles = titles.filter { it.id != one.id }
+                            }) {
+                                Text("Delete")
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Button(onClick = {
+                                titles = titles.map {
+                                    if (it.id == one.id) {
+                                        it.copy(offset = it.offset + Offset(-20f, 0f))
+                                    } else {
+                                        it
+                                    }
+                                }
+                            }) {
+                                Text("⬅️")
+                            }
+                            Button(onClick = {
+                                titles = titles.map {
+                                    if (it.id == one.id) {
+                                        it.copy(offset = it.offset + Offset(20f, 0f))
+                                    } else {
+                                        it
+                                    }
+                                }
+                            }) {
+                                Text("➡️")
+                            }
+                            Button(onClick = {
+                                titles = titles.map {
+                                    if (it.id == one.id) {
+                                        it.copy(offset = it.offset + Offset(0f, -20f))
+                                    } else {
+                                        it
+                                    }
+                                }
+                            }) {
+                                Text("⬆️")
+                            }
+                            Button(onClick = {
+                                titles = titles.map {
+                                    if (it.id == one.id) {
+                                        it.copy(offset = it.offset + Offset(0f, 20f))
+                                    } else {
+                                        it
+                                    }
+                                }
+                            }) {
+                                Text("⬇️")
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+                OutlinedTextField(
+                    value = newTitle,
+                    onValueChange = { newTitle = it },
+                    label = { Text("New Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row {
+                    Button(onClick = {
+                        if (newTitle.isNotBlank()) {
+                            titles = titles + TitleItem(
+                                nextId,
+                                newTitle,
+                                Offset(20f, 200f + titles.size * 60f)
+                            )
+                            nextId = nextId + 1
+                            newTitle = ""
+                        }
+                    }) {
+                        Text("+ ADD TITLE")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        titles = listOf(
+                            TitleItem(1, "BREAKING", Offset(20f, 200f)),
+                            TitleItem(2, "ENQUIRY", Offset(20f, 260f)),
+                            TitleItem(3, "RESTORATION", Offset(20f, 320f))
+                        )
+                        nextId = 4
+                    }) {
+                        Text("Reset to 3")
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Show Titles  ")
+                    Switch(
+                        checked = showTitle,
+                        onCheckedChange = { showTitle = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        if (titleColor == "Red") {
+                            titleColor = "Blue"
+                        } else if (titleColor == "Blue") {
+                            titleColor = "Green"
+                        } else {
+                            titleColor = "Red"
+                        }
+                    }) {
+                        Text("Color: " + titleColor)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row {
+                    Button(onClick = {
+                        titleSize = (titleSize + 4f).coerceAtMost(48f)
+                    }) {
+                        Text("Title +")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        titleSize = (titleSize - 4f).coerceAtLeast(12f)
+                    }) {
+                        Text("Title -")
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "5) MOVING TEXT + LOOP",
+                    fontSize = 18.sp
+                )
+                OutlinedTextField(
+                    value = tickerText,
+                    onValueChange = { tickerText = it },
+                    label = { Text("Moving Text") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Moving  ")
+                    Switch(
+                        checked = tickerMoving,
+                        onCheckedChange = { tickerMoving = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = if (tickerMoving) "MOVING" else "STATIC")
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Loop  ")
+                    Switch(
+                        checked = tickerLoop,
+                        onCheckedChange = { tickerLoop = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = if (tickerLoop) "LOOP ON" else "LOOP OFF")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "6) GALLERY + LOOP",
+                    fontSize = 18.sp
+                )
+                Button(onClick = {
+                    onPickVideo { uri ->
+                        galleryUri = uri
+                    }
+                }) {
+                    Text("Pick Gallery Video")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (galleryUri == null) {
+                        "No video picked"
+                    } else {
+                        "Video picked ✓"
+                    }
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Loop  ")
+                    Switch(
+                        checked = loopOn,
+                        onCheckedChange = { loopOn = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = if (loopOn) "LOOP ON" else "LOOP OFF")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = {
+                    if (galleryUri == null) {
+                        onToast("Pick a video first")
+                    } else {
+                        isGallery = !isGallery
+                    }
+                }) {
+                    if (isGallery) {
+                        Text("Stop Gallery Video")
+                    } else {
+                        Text("Play Gallery Video")
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = {
+                        tab = "BROADCAST"
+                        onToast("Back to Broadcast - Target: " + liveTarget)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("✅ DONE - GO TO BROADCAST")
+                }
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+    }
+}
