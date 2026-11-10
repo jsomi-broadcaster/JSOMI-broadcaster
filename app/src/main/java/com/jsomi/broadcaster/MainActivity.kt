@@ -291,11 +291,11 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     Spacer(Modifier.height(6.dp))
     Button(onClick = { if (galleryUri == null) onToast("Pick a video first") else isGallery = !isGallery }) { Text(if (isGallery) "Stop Gallery Video" else "Play Gallery Video") }
     Spacer(Modifier.height(12.dp))
-    Text("9) SHARE LINK",
-             Spacer(Modifier.height(12.dp))
+        Text("9) SHARE LINK", fontSize = 18.sp, color = Color.White)
+    Spacer(Modifier.height(12.dp))
     Button(onClick = { share() }) { Text("🔗 SHARE LINK - MULTISTREAM") }
     Spacer(Modifier.height(20.dp))
-    Button(onClick = { tab = "BROADCAST"; onToast("Back to Broadcast - ON: " + onList().joinToString(" + ") { it.platform }) }, modifier = Modifier.fillMaxWidth()) { Text("✅ DONE - GO TO BROADCAST") }
+    Button(onClick = { tab = "BROADCAST" }, modifier = Modifier.fillMaxWidth()) { Text("✅ DONE - GO TO BROADCAST") }
     Spacer(Modifier.height(32.dp))
    }
   }
