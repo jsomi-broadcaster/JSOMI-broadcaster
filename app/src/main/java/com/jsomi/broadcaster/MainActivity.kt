@@ -1,6 +1,7 @@
 package com.jsomi.broadcaster
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -33,7 +34,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,12 +48,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.pedro.common.ConnectChecker
 import com.pedro.library.rtmp.RtmpCamera1
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     private var rtmpCamera1: RtmpCamera1? = null
@@ -178,15 +186,6 @@ class MainActivity : ComponentActivity() {
                         false
                     }
                 },
-                onSwitchUrl = { url ->
-                    try {
-                        rtmpCamera1?.stopStream()
-                        rtmpCamera1?.startStream(url)
-                        true
-                    } catch (e: Exception) {
-                        false
-                    }
-                },
                 onStop = {
                     try {
                         rtmpCamera1?.stopStream()
@@ -230,6 +229,12 @@ data class TitleItem(
     val offset: Offset
 )
 
+data class Destination(
+    val id: Int,
+    val name: String,
+    val key: String
+)
+
 @Composable
 fun JstvScreen(
     hasPermissions: Boolean,
@@ -242,20 +247,26 @@ fun JstvScreen(
     onSetCamera: (SurfaceView) -> Unit,
     onPreview: () -> Unit,
     onStartStream: (String) -> Boolean,
-    onSwitchUrl: (String) -> Boolean,
     onStop: () -> Unit,
     onSwitchCam: () -> Unit,
     onMute: (Boolean) -> Unit
 ) {
+    val ctx = LocalContext.current
     var tab by remember { mutableStateOf("BROADCAST") }
+    var liveTarget by remember { mutableStateOf("Facebook") }
+    var customUrl by remember { mutableStateOf("") }
+    var customKey by remember { mutableStateOf("") }
     var youtubeKey by remember { mutableStateOf("") }
     var facebookKey by remember { mutableStateOf("") }
-    var liveTarget by remember { mutableStateOf("Facebook") }
-    var useYoutube by remember { mutableStateOf(true) }
-    var useFacebook by remember { mutableStateOf(true) }
+    var tiktokKey by remember { mutableStateOf("") }
+    var instagramKey by remember { mutableStateOf("") }
+    var twitchKey by remember { mutableStateOf("") }
+    var kickKey by remember { mutableStateOf("") }
     var liveStatus by remember { mutableStateOf("READY") }
     var isStreaming by remember { mutableStateOf(false) }
+    var showSave by remember { mutableStateOf(false) }
     var isMuted by remember { mutableStateOf(false) }
+    var cameraName by remember { mutableStateOf("Back Camera") }
     var logoUri by remember { mutableStateOf<Uri?>(null) }
     var showLogo by remember { mutableStateOf(true) }
     var logoOffset by remember { mutableStateOf(Offset(20f, 20f)) }
@@ -263,15 +274,34 @@ fun JstvScreen(
     var showTitle by remember { mutableStateOf(true) }
     var titleSize by remember { mutableStateOf(24f) }
     var titleColor by remember { mutableStateOf("Red") }
+    var titleFont by remember { mutableStateOf("Normal") }
+    var titleBold by remember { mutableStateOf(true) }
     var tickerText by remember { mutableStateOf("Welcome to JSTV PRO - Live - ") }
     var tickerMoving by remember { mutableStateOf(true) }
     var tickerLoop by remember { mutableStateOf(true) }
+    var tickerAlign by remember { mutableStateOf("Left") }
+    var tickerColor by remember { mutableStateOf("Yellow") }
+    var tickerSize by remember { mutableStateOf(15f) }
+    var tickerSpeed by remember { mutableStateOf(12f) }
     var galleryUri by remember { mutableStateOf<Uri?>(null) }
-    var loopOn by remember { mutableStateOf(false) }
+    var galleryLoop by remember { mutableStateOf(true) }
     var isGallery by remember { mutableStateOf(false) }
     var newTitle by remember { mutableStateOf("") }
     var nextId by remember { mutableStateOf(4) }
-
+    var introText by remember { mutableStateOf("Welcome to JSTV - Jesus Saves") }
+    var showIntro by remember { mutableStateOf(true) }
+    var introVisible by remember { mutableStateOf(false) }
+    var currentTime by remember { mutableStateOf("") }
+    var nextDestId by remember { mutableStateOf(3) }
+    var secondTarget by remember { mutableStateOf("None") }
+    var destinations by remember {
+        mutableStateOf(
+            listOf(
+                Destination(1, "Facebook", ""),
+                Destination(2, "YouTube", "")
+            )
+        )
+    }
     var titles by remember {
         mutableStateOf(
             listOf(
@@ -288,32 +318,99 @@ fun JstvScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        while (true) {
+            val fmt = SimpleDateFormat("hh:mm:ss a", Locale.getDefault())
+            currentTime = fmt.format(Date())
+            delay(1000)
+        }
+    }
+
+    LaunchedEffect(introVisible) {
+        if (introVisible) {
+            delay(3000)
+            introVisible = false
+        }
+    }
+
     val infinite = rememberInfiniteTransition(label = "ticker")
     val tickerX by infinite.animateFloat(
         initialValue = 400f,
         targetValue = -800f,
         animationSpec = infiniteRepeatable(
-            animation = tween(12000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            animation = tween((tickerSpeed * 1000).toInt(), easing = LinearEasing),
+            repeatMode = if (tickerLoop) RepeatMode.Restart else RepeatMode.Restart
         ),
         label = "tickerX"
     )
-
-    fun urlFor(name: String): String {
-        if (name == "YouTube") {
-            return "rtmp://a.rtmp.youtube.com/live2/" + youtubeKey
-        }
-        if (name == "Facebook") {
-            return "rtmps://live-api-s.facebook.com:443/rtmp/" + facebookKey
-        }
-        return ""
-    }
 
     fun keyFor(name: String): String {
         if (name == "YouTube") {
             return youtubeKey
         }
+        if (name == "TikTok") {
+            return tiktokKey
+        }
+        if (name == "Instagram") {
+            return instagramKey
+        }
+        if (name == "Twitch") {
+            return twitchKey
+        }
+        if (name == "Kick") {
+            return kickKey
+        }
+        if (name == "Custom") {
+            return customKey
+        }
         return facebookKey
+    }
+
+    fun urlFor(name: String): String {
+        if (name == "YouTube") {
+            return "rtmp://a.rtmp.youtube.com/live2/" + youtubeKey
+        }
+        if (name == "TikTok") {
+            return "rtmp://push-rtmp-l1.tiktok.com/live/" + tiktokKey
+        }
+        if (name == "Instagram") {
+            return "rtmps://live-upload.instagram.com:443/rtmp/" + instagramKey
+        }
+        if (name == "Twitch") {
+            return "rtmp://live.twitch.tv/app/" + twitchKey
+        }
+        if (name == "Kick") {
+            return "rtmp://live.kick.com/app/" + kickKey
+        }
+        if (name == "Custom") {
+            if (customUrl.isBlank()) {
+                return customKey
+            }
+            return customUrl + "/" + customKey
+        }
+        return "rtmps://live-api-s.facebook.com:443/rtmp/" + facebookKey
+    }
+
+    fun watchLink(name: String): String {
+        if (name == "YouTube") {
+            return "https://youtube.com/live - JSTV Live"
+        }
+        if (name == "Facebook") {
+            return "https://facebook.com/live - JSTV Live"
+        }
+        if (name == "Twitch") {
+            return "https://twitch.tv - JSTV Live"
+        }
+        if (name == "TikTok") {
+            return "https://tiktok.com/live - JSTV Live"
+        }
+        if (name == "Instagram") {
+            return "https://instagram.com/live - JSTV Live"
+        }
+        if (name == "Kick") {
+            return "https://kick.com - JSTV Live"
+        }
+        return "JSTV Live - " + name
     }
 
     fun goLive() {
@@ -323,7 +420,7 @@ fun JstvScreen(
             return
         }
         val key = keyFor(liveTarget)
-        if (key.isBlank()) {
+        if (liveTarget != "Custom" && key.isBlank()) {
             liveStatus = "FAILED - Enter Key for " + liveTarget
             onToast("Enter " + liveTarget + " key in SETUP")
             tab = "SETUP"
@@ -333,7 +430,11 @@ fun JstvScreen(
         val ok = onStartStream(urlFor(liveTarget))
         if (ok) {
             isStreaming = true
+            showSave = false
             liveStatus = "LIVE to " + liveTarget
+            if (showIntro) {
+                introVisible = true
+            }
             onToast("LIVE to " + liveTarget)
         } else {
             liveStatus = "FAILED - Check Key"
@@ -345,8 +446,10 @@ fun JstvScreen(
         val to = liveTarget
         onStop()
         isStreaming = false
-        liveStatus = "ENDED - Saved to " + to
-        onToast("ENDED - Saved to " + to)
+        introVisible = false
+        showSave = true
+        liveStatus = "ENDED - Tap SAVE to save"
+        onToast("ENDED - Tap SAVE")
     }
 
     fun titleBg(): Color {
@@ -356,25 +459,74 @@ fun JstvScreen(
         if (titleColor == "Green") {
             return Color.Green
         }
+        if (titleColor == "Yellow") {
+            return Color.Yellow
+        }
+        if (titleColor == "Purple") {
+            return Color(0xFF800080)
+        }
+        if (titleColor == "Orange") {
+            return Color(0xFFFF9800)
+        }
         return Color.Red
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black)
-                .padding(6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            Button(onClick = { tab = "BROADCAST" }) {
-                Text("📺 BROADCAST")
-            }
-            Button(onClick = { tab = "SETUP" }) {
-                Text("⚙️ SETUP")
+    fun tickerBg(): Color {
+        if (tickerColor == "White") {
+            return Color.White
+        }
+        if (tickerColor == "Green") {
+            return Color.Green
+        }
+        if (tickerColor == "Red") {
+            return Color.Red
+        }
+        if (tickerColor == "Cyan") {
+            return Color.Cyan
+        }
+        return Color.Yellow
+    }
+
+    fun fontFor(): FontFamily {
+        if (titleFont == "Serif") {
+            return FontFamily.Serif
+        }
+        if (titleFont == "Mono") {
+            return FontFamily.Monospace
+        }
+        if (titleFont == "Cursive") {
+            return FontFamily.Cursive
+        }
+        return FontFamily.Default
+    }
+
+    fun tickerAlignValue(): TextAlign {
+        if (tickerAlign == "Center") {
+            return TextAlign.Center
+        }
+        if (tickerAlign == "Right") {
+            return TextAlign.End
+        }
+        return TextAlign.Start
+    }
+
+    Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        if (!isStreaming) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black)
+                    .padding(6.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Button(onClick = { tab = "BROADCAST" }) {
+                    Text("📺 BROADCAST")
+                }
+                Button(onClick = { tab = "SETUP" }) {
+                    Text("⚙️ SETUP")
+                }
             }
         }
-
         if (!hasPermissions) {
             Box(
                 modifier = Modifier
@@ -387,7 +539,6 @@ fun JstvScreen(
                 }
             }
         }
-
         if (tab == "BROADCAST") {
             Box(
                 modifier = Modifier
@@ -396,27 +547,71 @@ fun JstvScreen(
             ) {
                 if (hasPermissions) {
                     AndroidView(
-                        factory = { ctx ->
-                            SurfaceView(ctx).also { v ->
+                        factory = { ctx2 ->
+                            SurfaceView(ctx2).also { v ->
                                 onSetCamera(v)
                             }
                         },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-                if (isStreaming) {
+                if (isGallery && galleryUri != null) {
                     Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.DarkGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "GALLERY VIDEO PLAYING\nLoop: " + if (galleryLoop) "ON" else "OFF",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                if (introVisible) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.85f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = introText,
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+                if (isStreaming || showSave) {
+                    Row(
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .padding(12.dp)
                             .background(Color.Red)
-                            .padding(8.dp)
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "● LIVE to " + liveTarget,
+                            text = if (isStreaming) "● LIVE " else "● ENDED ",
                             color = Color.White,
                             fontSize = 16.sp
                         )
+                        Text(
+                            text = currentTime,
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                        if (isStreaming) {
+                            Text(
+                                text = "  " + liveTarget,
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
                 if (showLogo) {
@@ -463,7 +658,9 @@ fun JstvScreen(
                             Text(
                                 text = one.text,
                                 color = Color.White,
-                                fontSize = titleSize.sp
+                                fontSize = titleSize.sp,
+                                fontFamily = fontFor(),
+                                fontWeight = if (titleBold) FontWeight.Bold else FontWeight.Normal
                             )
                         }
                     }
@@ -472,75 +669,124 @@ fun JstvScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(bottom = 105.dp)
+                        .padding(bottom = if (isStreaming) 70.dp else 105.dp)
                         .background(Color.Black)
                 ) {
                     if (tickerMoving) {
                         Text(
                             text = tickerText + " • " + tickerText,
-                            color = Color.Yellow,
-                            fontSize = 15.sp,
+                            color = tickerBg(),
+                            fontSize = tickerSize.sp,
+                            maxLines = 1,
+                            textAlign = tickerAlignValue(),
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .offset(if (tickerLoop) tickerX.dp else 0.dp)
                                 .padding(6.dp)
                         )
                     } else {
                         Text(
                             text = tickerText,
-                            color = Color.Yellow,
-                            fontSize = 15.sp,
-                            modifier = Modifier.padding(6.dp)
+                            color = tickerBg(),
+                            fontSize = tickerSize.sp,
+                            maxLines = 1,
+                            textAlign = tickerAlignValue(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(6.dp)
                         )
                     }
                 }
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        text = liveStatus,
-                        color = if (isStreaming) Color.Green else Color.White,
-                        fontSize = 13.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                if (!isStreaming) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(Color.Black.copy(alpha = 0.6f))
+                            .padding(8.dp)
                     ) {
-                        Button(onClick = {
-                            if (isStreaming) {
-                                endLive()
-                            } else {
-                                goLive()
-                            }
-                        }) {
-                            if (isStreaming) {
-                                Text("⏹ END LIVE")
-                            } else {
+                        Text(
+                            text = liveStatus + " | " + currentTime,
+                            color = if (isStreaming) Color.Green else Color.White,
+                            fontSize = 13.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Button(onClick = { goLive() }) {
                                 Text("🔴 GO LIVE")
                             }
-                        }
-                        Button(onClick = { onSwitchCam() }) {
-                            Text("Switch Cam")
-                        }
-                        Button(onClick = { onRotate() }) {
-                            if (isLandscape) {
-                                Text("↻ Portrait")
-                            } else {
-                                Text("↻ Landscape")
+                            Button(onClick = {
+                                onSwitchCam()
+                                cameraName = if (cameraName == "Back Camera") "Front Camera" else "Back Camera"
+                            }) {
+                                Text(cameraName)
+                            }
+                            Button(onClick = { onRotate() }) {
+                                if (isLandscape) {
+                                    Text("↻ Portrait")
+                                } else {
+                                    Text("↻ Landscape")
+                                }
+                            }
+                            Button(onClick = {
+                                isMuted = !isMuted
+                                onMute(isMuted)
+                            }) {
+                                if (isMuted) {
+                                    Text("Unmute")
+                                } else {
+                                    Text("Mute")
+                                }
                             }
                         }
-                        Button(onClick = {
-                            isMuted = !isMuted
-                            onMute(isMuted)
-                        }) {
-                            if (isMuted) {
-                                Text("Unmute")
-                            } else {
-                                Text("Mute")
+                        if (showSave) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                Button(onClick = {
+                                    showSave = false
+                                    liveStatus = "SAVED ✓"
+                                    onToast("SAVED ✓ - Video saved")
+                                }) {
+                                    Text("💾 SAVE VIDEO")
+                                }
+                                Button(onClick = {
+                                    val send = Intent(Intent.ACTION_SEND)
+                                    send.type = "text/plain"
+                                    send.putExtra(Intent.EXTRA_TEXT, watchLink(liveTarget))
+                                    ctx.startActivity(Intent.createChooser(send, "Share Live Link"))
+                                }) {
+                                    Text("🔗 SHARE LINK")
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Button(onClick = { endLive() }) {
+                                Text("⏹ END LIVE")
+                            }
+                            Button(onClick = {
+                                val send = Intent(Intent.ACTION_SEND)
+                                send.type = "text/plain"
+                                send.putExtra(Intent.EXTRA_TEXT, watchLink(liveTarget))
+                                ctx.startActivity(Intent.createChooser(send, "Share Live Link"))
+                            }) {
+                                Text("🔗 SHARE")
                             }
                         }
                     }
@@ -550,216 +796,194 @@ fun JstvScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(Color.Black)
                     .padding(16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = "⚙️ SETUP - All settings here",
-                    fontSize = 20.sp
-                )
-                Text(
-                    text = "Status: " + liveStatus,
-                    fontSize = 14.sp
-                )
+                Text(text = "⚙️ SETUP - All settings here", fontSize = 20.sp, color = Color.White)
+                Text(text = "Status: " + liveStatus + " | " + currentTime, fontSize = 14.sp, color = Color.White)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "1) LIVE TARGET - Pick ONE",
-                    fontSize = 18.sp
-                )
-                Text(
-                    text = "Phone streams to 1 place at a time.",
-                    fontSize = 13.sp
-                )
+                Text(text = "1) SOURCES - Pick ONE to stream to", fontSize = 18.sp, color = Color.White)
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    Button(onClick = { liveTarget = "YouTube" }) {
-                        if (liveTarget == "YouTube") {
-                            Text("● YouTube")
-                        } else {
-                            Text("YouTube")
+                val sources = listOf("YouTube", "Facebook", "TikTok", "Instagram", "Twitch", "Kick", "Custom")
+                sources.forEach { src ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = src, color = Color.White, fontSize = 16.sp)
+                        Button(onClick = { liveTarget = src }) {
+                            if (liveTarget == src) {
+                                Text("● " + src)
+                            } else {
+                                Text(src)
+                            }
                         }
                     }
-                    Button(onClick = { liveTarget = "Facebook" }) {
-                        if (liveTarget == "Facebook") {
-                            Text("● Facebook")
-                        } else {
-                            Text("Facebook")
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Target now: " + liveTarget,
-                    fontSize = 14.sp
-                )
+                Text(text = "Target now: " + liveTarget, fontSize = 14.sp, color = Color.Green)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "2) KEYS",
-                    fontSize = 18.sp
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = useYoutube,
-                        onCheckedChange = { useYoutube = it }
-                    )
-                    Text(text = "YouTube")
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        checked = useFacebook,
-                        onCheckedChange = { useFacebook = it }
-                    )
-                    Text(text = "Facebook")
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = youtubeKey,
-                    onValueChange = { youtubeKey = it },
-                    label = { Text("YouTube Key") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = facebookKey,
-                    onValueChange = { facebookKey = it },
-                    label = { Text("Facebook Key") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Facebook: copy ONLY key from Facebook > Live > Stream Key. Get fresh key each live.",
-                    fontSize = 12.sp,
-                    color = Color.Blue
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "3) LOGO",
-                    fontSize = 18.sp
-                )
-                Button(onClick = {
-                    onPickLogo { uri ->
-                        logoUri = uri
+                Text(text = "2) KEYS - Paste key for each source", fontSize = 18.sp, color = Color.White)
+                OutlinedTextField(value = youtubeKey, onValueChange = { youtubeKey = it }, label = { Text("YouTube Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = facebookKey, onValueChange = { facebookKey = it }, label = { Text("Facebook Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = tiktokKey, onValueChange = { tiktokKey = it }, label = { Text("TikTok Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = instagramKey, onValueChange = { instagramKey = it }, label = { Text("Instagram Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = twitchKey, onValueChange = { twitchKey = it }, label = { Text("Twitch Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = kickKey, onValueChange = { kickKey = it }, label = { Text("Kick Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = customUrl, onValueChange = { customUrl = it }, label = { Text("Custom RTMP URL") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(value = customKey, onValueChange = { customKey = it }, label = { Text("Custom Key") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "3) MULTIPLE CONNECTIONS", fontSize = 18.sp, color = Color.White)
+                Text(text = "Main: " + liveTarget + " | 2nd: " + secondTarget, fontSize = 14.sp, color = Color.White)
+                destinations.forEach { dest ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = dest.name, color = Color.White)
+                        Button(onClick = {
+                            destinations = destinations.filter { it.id != dest.id }
+                            onToast("Removed " + dest.name)
+                        }) {
+                            Text("Remove Connection")
+                        }
                     }
-                }) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+                Row {
+                    Button(onClick = {
+                        secondTarget = if (secondTarget == "None") "YouTube" else "Facebook"
+                        destinations = destinations + Destination(nextDestId, secondTarget, "")
+                        nextDestId = nextDestId + 1
+                    }) {
+                        Text("+ ADD 2ND CONNECTION")
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "4) CAMERA", fontSize = 18.sp, color = Color.White)
+                Text(text = "Camera now: " + cameraName, color = Color.White)
+                Row {
+                    Button(onClick = {
+                        onSwitchCam()
+                        cameraName = if (cameraName == "Back Camera") "Front Camera" else "Back Camera"
+                    }) {
+                        Text("Switch Camera")
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "5) INTRO - Shows for 3 sec on GO LIVE", fontSize = 18.sp, color = Color.White)
+                OutlinedTextField(value = introText, onValueChange = { introText = it }, label = { Text("Intro Text") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Show Intro  ", color = Color.White)
+                    Switch(checked = showIntro, onCheckedChange = { showIntro = it })
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = if (showIntro) "INTRO ON" else "INTRO OFF", color = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { introVisible = true }) {
+                        Text("Preview Intro")
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "6) LOGO", fontSize = 18.sp, color = Color.White)
+                Button(onClick = { onPickLogo { uri -> logoUri = uri } }) {
                     Text("Pick Logo")
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Show Logo  ")
-                    Switch(
-                        checked = showLogo,
-                        onCheckedChange = { showLogo = it }
-                    )
+                    Text(text = "Show Logo  ", color = Color.White)
+                    Switch(checked = showLogo, onCheckedChange = { showLogo = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = {
-                        logoSize = (logoSize + 20f).coerceAtMost(180f)
-                    }) {
+                    Button(onClick = { logoSize = (logoSize + 20f).coerceAtMost(180f) }) {
                         Text("Logo +")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = {
-                        logoSize = (logoSize - 20f).coerceAtLeast(40f)
-                    }) {
+                    Button(onClick = { logoSize = (logoSize - 20f).coerceAtLeast(40f) }) {
                         Text("Logo -")
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "4) TITLES - Each moves alone",
-                    fontSize = 18.sp
-                )
-                Text(
-                    text = "Drag one title on BROADCAST. Others stay.",
-                    fontSize = 13.sp
-                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "7) TITLES - SEE + EDIT EACH ONE", fontSize = 18.sp, color = Color.White)
+                Text(text = "Each title has its own box, edit, delete, move.", fontSize = 13.sp, color = Color.White)
                 Spacer(modifier = Modifier.height(6.dp))
                 titles.forEach { item ->
                     val one = item
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.DarkGray)
+                            .padding(8.dp)
+                    ) {
+                        Text(text = "TITLE: " + one.text, color = Color.White, fontSize = 16.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = one.text,
+                            onValueChange = { newText ->
+                                titles = titles.map {
+                                    if (it.id == one.id) it.copy(text = newText) else it
+                                }
+                            },
+                            label = { Text("Edit this title") },
                             modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = one.text,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Button(onClick = {
-                                titles = titles.filter { it.id != one.id }
-                            }) {
-                                Text("Delete")
-                            }
-                        }
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             Button(onClick = {
                                 titles = titles.map {
-                                    if (it.id == one.id) {
-                                        it.copy(offset = it.offset + Offset(-20f, 0f))
-                                    } else {
-                                        it
-                                    }
+                                    if (it.id == one.id) it.copy(offset = it.offset + Offset(-20f, 0f)) else it
                                 }
                             }) {
                                 Text("⬅️")
                             }
                             Button(onClick = {
                                 titles = titles.map {
-                                    if (it.id == one.id) {
-                                        it.copy(offset = it.offset + Offset(20f, 0f))
-                                    } else {
-                                        it
-                                    }
+                                    if (it.id == one.id) it.copy(offset = it.offset + Offset(20f, 0f)) else it
                                 }
                             }) {
                                 Text("➡️")
                             }
                             Button(onClick = {
                                 titles = titles.map {
-                                    if (it.id == one.id) {
-                                        it.copy(offset = it.offset + Offset(0f, -20f))
-                                    } else {
-                                        it
-                                    }
+                                    if (it.id == one.id) it.copy(offset = it.offset + Offset(0f, -20f)) else it
                                 }
                             }) {
                                 Text("⬆️")
                             }
                             Button(onClick = {
                                 titles = titles.map {
-                                    if (it.id == one.id) {
-                                        it.copy(offset = it.offset + Offset(0f, 20f))
-                                    } else {
-                                        it
-                                    }
+                                    if (it.id == one.id) it.copy(offset = it.offset + Offset(0f, 20f)) else it
                                 }
                             }) {
                                 Text("⬇️")
+                            }
+                            Button(onClick = {
+                                titles = titles.filter { it.id != one.id }
+                            }) {
+                                Text("Delete")
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                OutlinedTextField(
-                    value = newTitle,
-                    onValueChange = { newTitle = it },
-                    label = { Text("New Title") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                OutlinedTextField(value = newTitle, onValueChange = { newTitle = it }, label = { Text("New Title") }, modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(6.dp))
                 Row {
                     Button(onClick = {
                         if (newTitle.isNotBlank()) {
-                            titles = titles + TitleItem(
-                                nextId,
-                                newTitle,
-                                Offset(20f, 200f + titles.size * 60f)
-                            )
+                            titles = titles + TitleItem(nextId, newTitle, Offset(20f, 200f + titles.size * 60f))
                             nextId = nextId + 1
                             newTitle = ""
                         }
@@ -779,101 +1003,114 @@ fun JstvScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Show Titles  ")
-                    Switch(
-                        checked = showTitle,
-                        onCheckedChange = { showTitle = it }
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = {
-                        if (titleColor == "Red") {
-                            titleColor = "Blue"
-                        } else if (titleColor == "Blue") {
-                            titleColor = "Green"
-                        } else {
-                            titleColor = "Red"
+                Text(text = "THEME - Title Background Color", fontSize = 16.sp, color = Color.White)
+                Row {
+                    listOf("Red", "Blue", "Green", "Yellow", "Purple", "Orange").forEach { c ->
+                        Button(onClick = { titleColor = c }) {
+                            if (titleColor == c) Text("● " + c) else Text(c)
                         }
-                    }) {
-                        Text("Color: " + titleColor)
+                        Spacer(modifier = Modifier.width(4.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "FONT - Title Font Style", fontSize = 16.sp, color = Color.White)
                 Row {
-                    Button(onClick = {
-                        titleSize = (titleSize + 4f).coerceAtMost(48f)
-                    }) {
+                    listOf("Normal", "Serif", "Mono", "Cursive").forEach { f ->
+                        Button(onClick = { titleFont = f }) {
+                            if (titleFont == f) Text("● " + f) else Text(f)
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Show Titles  ", color = Color.White)
+                    Switch(checked = showTitle, onCheckedChange = { showTitle = it })
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Bold  ", color = Color.White)
+                    Switch(checked = titleBold, onCheckedChange = { titleBold = it })
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row {
+                    Button(onClick = { titleSize = (titleSize + 4f).coerceAtMost(48f) }) {
                         Text("Title +")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = {
-                        titleSize = (titleSize - 4f).coerceAtLeast(12f)
-                    }) {
+                    Button(onClick = { titleSize = (titleSize - 4f).coerceAtLeast(12f) }) {
                         Text("Title -")
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "5) MOVING TEXT + LOOP",
-                    fontSize = 18.sp
-                )
-                OutlinedTextField(
-                    value = tickerText,
-                    onValueChange = { tickerText = it },
-                    label = { Text("Moving Text") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "8) MOVING TEXT - SINGLE LINE + ALIGN", fontSize = 18.sp, color = Color.White)
+                OutlinedTextField(value = tickerText, onValueChange = { tickerText = it }, label = { Text("Moving Text - One Line") }, modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "Preview - Single Line:", color = Color.White)
+                Text(text = tickerText, color = tickerBg(), fontSize = tickerSize.sp, maxLines = 1, textAlign = tickerAlignValue(), modifier = Modifier.fillMaxWidth().background(Color.Black))
+                Spacer(modifier = Modifier.height(6.dp))
+                Row {
+                    listOf("Left", "Center", "Right").forEach { a ->
+                        Button(onClick = { tickerAlign = a }) {
+                            if (tickerAlign == a) Text("● " + a) else Text(a)
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row {
+                    listOf("Yellow", "White", "Green", "Red", "Cyan").forEach { c ->
+                        Button(onClick = { tickerColor = c }) {
+                            if (tickerColor == c) Text("● " + c) else Text(c)
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Moving  ")
-                    Switch(
-                        checked = tickerMoving,
-                        onCheckedChange = { tickerMoving = it }
-                    )
+                    Text(text = "Moving  ", color = Color.White)
+                    Switch(checked = tickerMoving, onCheckedChange = { tickerMoving = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = if (tickerMoving) "MOVING" else "STATIC")
+                    Text(text = if (tickerMoving) "MOVING" else "STATIC", color = Color.White)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Loop  ")
-                    Switch(
-                        checked = tickerLoop,
-                        onCheckedChange = { tickerLoop = it }
-                    )
+                    Text(text = "LOOP Moving Text  ", color = Color.White)
+                    Switch(checked = tickerLoop, onCheckedChange = { tickerLoop = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = if (tickerLoop) "LOOP ON" else "LOOP OFF")
+                    Text(text = if (tickerLoop) "LOOP ON - Repeats" else "LOOP OFF - Stops", color = Color.White)
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "6) GALLERY + LOOP",
-                    fontSize = 18.sp
-                )
-                Button(onClick = {
-                    onPickVideo { uri ->
-                        galleryUri = uri
+                Spacer(modifier = Modifier.height(6.dp))
+                Row {
+                    Button(onClick = { tickerSize = (tickerSize + 2f).coerceAtMost(32f) }) {
+                        Text("Text +")
                     }
-                }) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { tickerSize = (tickerSize - 2f).coerceAtLeast(10f) }) {
+                        Text("Text -")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { tickerSpeed = (tickerSpeed - 2f).coerceAtLeast(4f) }) {
+                        Text("Faster")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = { tickerSpeed = (tickerSpeed + 2f).coerceAtMost(20f) }) {
+                        Text("Slower")
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "9) GALLERY + LOOP - VISIBLE", fontSize = 18.sp, color = Color.White)
+                Button(onClick = { onPickVideo { uri -> galleryUri = uri } }) {
                     Text("Pick Gallery Video")
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = if (galleryUri == null) {
-                        "No video picked"
-                    } else {
-                        "Video picked ✓"
-                    }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = if (galleryUri == null) "No video picked" else "Video picked ✓", color = Color.White)
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Loop  ")
-                    Switch(
-                        checked = loopOn,
-                        onCheckedChange = { loopOn = it }
-                    )
+                    Text(text = "LOOP Gallery Video  ", color = Color.White)
+                    Switch(checked = galleryLoop, onCheckedChange = { galleryLoop = it })
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = if (loopOn) "LOOP ON" else "LOOP OFF")
+                    Text(text = if (galleryLoop) "LOOP ON - Repeats" else "LOOP OFF", color = Color.White)
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Button(onClick = {
                     if (galleryUri == null) {
                         onToast("Pick a video first")
@@ -881,13 +1118,19 @@ fun JstvScreen(
                         isGallery = !isGallery
                     }
                 }) {
-                    if (isGallery) {
-                        Text("Stop Gallery Video")
-                    } else {
-                        Text("Play Gallery Video")
-                    }
+                    if (isGallery) Text("Stop Gallery Video") else Text("Play Gallery Video")
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(text = "10) SHARE LINK", fontSize = 18.sp, color = Color.White)
+                Button(onClick = {
+                    val send = Intent(Intent.ACTION_SEND)
+                    send.type = "text/plain"
+                    send.putExtra(Intent.EXTRA_TEXT, watchLink(liveTarget))
+                    ctx.startActivity(Intent.createChooser(send, "Share Live Link"))
+                }) {
+                    Text("🔗 SHARE LINK - " + liveTarget)
+                }
+                Spacer(modifier = Modifier.height(20.dp))
                 Button(
                     onClick = {
                         tab = "BROADCAST"
