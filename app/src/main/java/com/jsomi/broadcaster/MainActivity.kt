@@ -300,3 +300,4 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
    }
   }
  }
+}
