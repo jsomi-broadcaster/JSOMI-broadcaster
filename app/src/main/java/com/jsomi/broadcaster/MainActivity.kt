@@ -83,7 +83,7 @@ class MainActivity : ComponentActivity() {
                 onToggleRotate = {
                     isLandscape = !isLandscape
                     requestedOrientation = if (isLandscape) ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    try { rtmpCamera1?.setVideoOrientation(if (isLandscape) 90 else 0) } catch (e: Exception) { }
+                
                 },
                 onPickLogo = { callback -> onLogoPicked = callback; logoPicker.launch("image/*") },
                 onPickVideo = { callback -> onVideoPicked = callback; videoPicker.launch("video/*") },
