@@ -71,7 +71,6 @@ class MainActivity : ComponentActivity() {
     }
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
-        // TRUE FULLSCREEN - PRISM STYLE
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -112,10 +111,12 @@ class MainActivity : ComponentActivity() {
 
 data class TitleItem(val id: Int, val text: String)
 data class Channel(val id: Int, val platform: String, val key: String, val enabled: Boolean)
+data class PremiumCode(val code: String, val plan: String, val customer: String, val active: Boolean)
 
 @Composable
 fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: () -> Unit, onPickLogo: ((Uri?) -> Unit) -> Unit, onPickVideo: ((Uri?) -> Unit) -> Unit, onToast: (String) -> Unit, onSetCam: (SurfaceView) -> Unit, onPreview: () -> Unit, onStart: (String) -> Boolean, onStop: () -> Unit, onSwitchCam: () -> Unit, onMute: (Boolean) -> Unit) {
     val ctx = LocalContext.current
+    var appMode by remember { mutableStateOf("CHOOSE") }
     var tab by remember { mutableStateOf("BROADCAST") }
     var restreamKey by remember { mutableStateOf("") }
     var newPlat by remember { mutableStateOf("YouTube") }
@@ -159,14 +160,36 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     var premiumCode by remember { mutableStateOf("") }
     var premiumMessage by remember { mutableStateOf("") }
     var selectedPlan by remember { mutableStateOf("Daily 50") }
-    val validCodes = listOf("JSTV-50-1A2B","JSTV-50-2B3C","JSTV-50-3C4D","JSTV-50-4D5E","JSTV-50-5E6F","JSTV-1K-3C4D","JSTV-1K-4D5E","JSTV-1K-5E6F","JSTV-1K-6F7G","JSTV-1K-7G8H","JSTV-3M-5E6F","JSTV-3M-6F7G","JSTV-3M-7G8H","JSTV-3M-8H9I","JSTV-3M-9I0J","JSTV-YR-7G8H","JSTV-YR-8H9I","JSTV-YR-9I0J","JSTV-YR-1J2K","JSTV-YR-2K3L")
+    // CREATOR CONTROL - ADMIN
+    var adminPass by remember { mutableStateOf("") }
+    var adminLogged by remember { mutableStateOf(false) }
+    var priceDaily by remember { mutableStateOf("50") }
+    var priceMonthly by remember { mutableStateOf("1000") }
+    var price3M by remember { mutableStateOf("2500") }
+    var priceYear by remember { mutableStateOf("8000") }
+    var paybill by remember { mutableStateOf("516600") }
+    var payAcc by remember { mutableStateOf("5600935001") }
+    var adminWhats by remember { mutableStateOf("0763052911") }
+    var freeForAll by remember { mutableStateOf(false) }
+    var newCustName by remember { mutableStateOf("") }
+    var newCustPlan by remember { mutableStateOf("Daily 50") }
+    var lastGenCode by remember { mutableStateOf("") }
+    var premiumCodes by remember { mutableStateOf(listOf(
+        PremiumCode("JSTV-50-1A2B","Daily 50","Demo User 1",true),
+        PremiumCode("JSTV-1K-3C4D","Monthly 1000","Demo User 2",true),
+        PremiumCode("JSTV-3M-5E6F","3 Months 2500","Demo User 3",true),
+        PremiumCode("JSTV-YR-7G8H","Year 8000","Demo User 4",true)
+    )) }
     var scene by remember { mutableStateOf("Studio") }
     var extCamOn by remember { mutableStateOf(false) }
-    var extCamName by remember { mutableStateOf("USB Camera") }
+    var extCamMode by remember { mutableStateOf("WiFi Phone") }
+    var extCamIP by remember { mutableStateOf("") }
+    var extCamStatus by remember { mutableStateOf("Not Connected") }
     var remoteOn by remember { mutableStateOf(false) }
     var remoteCode by remember { mutableStateOf("JSTV-2026") }
     var remoteMsg by remember { mutableStateOf("") }
-    // PRISM LIVE STUDIO SETTINGS
+    var remoteConnected by remember { mutableStateOf(false) }
+    var remoteInputCode by remember { mutableStateOf("") }
     var hideUI by remember { mutableStateOf(false) }
     var resolution by remember { mutableStateOf("720p") }
     var bitrate by remember { mutableStateOf(2500f) }
@@ -181,7 +204,7 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     var showChatBox by remember { mutableStateOf(false) }
     var chatText by remember { mutableStateOf("Welcome to JSTV! God Bless You 🙏") }
 
-    LaunchedEffect(hasPerm) { if (hasPerm) onPreview() }
+    LaunchedEffect(hasPerm) { if (hasPerm && appMode == "MAIN") onPreview() }
     LaunchedEffect(Unit) { while (true) { now = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date()); delay(1000) } }
     LaunchedEffect(introVis) { if (introVis) { delay(5000); introVis = false } }
     val inf = rememberInfiniteTransition(label = "ticker")
@@ -197,6 +220,8 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
         return "rtmps://live-api-s.facebook.com:443/rtmp/$k"
     }
     fun goLive() {
+        if (freeForAll) { status = "FREE FOR ALL - LIVE"; streaming = true; showSave = true; onToast("Free For All - Creator allowed free"); return }
+        if (!isPremium) { onToast("Premium Required - Go to SETUP > PREMIUM or Ask Creator"); return }
         if (!hasPerm) { onToast("Grant Camera + Mic first"); onAsk(); return }
         val on = onList()
         if (on.isEmpty()) { onToast("Turn ON 1 Channel"); return }
@@ -210,11 +235,16 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     fun endLive() { onStop(); streaming = false; showSave = false; status = "ENDED" }
     fun applyScene(s: String) {
         scene = s
-        if (s == "Studio") { titleColor = "Yellow"; tickerText = "JSTV STUDIO - Jehovah Shalom | Welcome | Paybill 516600 Acc 5600935001"; titles = listOf(TitleItem(1,"Jehovah Shalom"), TitleItem(2,"Welcome"), TitleItem(3,"God Bless You")) }
-        if (s == "Church") { titleColor = "Yellow"; tickerText = "JSTV CHURCH LIVE - Sunday Service | Jehovah Shalom | Paybill 516600 Acc 5600935001"; titles = listOf(TitleItem(1,"Jehovah Shalom"), TitleItem(2,"Sunday Service LIVE"), TitleItem(3,"God Bless You")) }
-        if (s == "Outdoor") { titleColor = "Green"; tickerText = "JSTV OUTDOOR - Crusade LIVE | Jehovah Shalom | Paybill 516600 Acc 5600935001"; titles = listOf(TitleItem(1,"Jehovah Shalom"), TitleItem(2,"Outdoor Crusade"), TitleItem(3,"God Bless You")) }
+        if (s == "Studio") { titleColor = "Yellow"; tickerText = "JSTV STUDIO - Jehovah Shalom | Welcome | Paybill $paybill Acc $payAcc"; titles = listOf(TitleItem(1,"Jehovah Shalom"), TitleItem(2,"Welcome"), TitleItem(3,"God Bless You")) }
+        if (s == "Church") { titleColor = "Yellow"; tickerText = "JSTV CHURCH LIVE - Sunday Service | Jehovah Shalom | Paybill $paybill Acc $payAcc"; titles = listOf(TitleItem(1,"Jehovah Shalom"), TitleItem(2,"Sunday Service LIVE"), TitleItem(3,"God Bless You")) }
+        if (s == "Outdoor") { titleColor = "Green"; tickerText = "JSTV OUTDOOR - Crusade LIVE | Jehovah Shalom | Paybill $paybill Acc $payAcc"; titles = listOf(TitleItem(1,"Jehovah Shalom"), TitleItem(2,"Outdoor Crusade"), TitleItem(3,"God Bless You")) }
         onToast("Scene: $s")
     }
+    fun connectExtCam() {
+        if (extCamIP.isBlank()) { onToast("Enter 2nd Phone IP / Link first"); return }
+        extCamOn = true; extCamStatus = "Connected Wireless - $extCamMode - $extCamIP"; onToast("Wireless Ext Cam Connected - No USB!")
+    }
+    fun disconnectExtCam() { extCamOn = false; extCamStatus = "Not Connected"; onToast("Back to Phone Cam") }
     fun tBg(): Color { if (titleColor == "Blue") return Color.Blue; if (titleColor == "Green") return Color.Green; if (titleColor == "Red") return Color.Red; return Color.Yellow }
     fun kBg(): Color { if (tickerColor == "White") return Color.White; if (tickerColor == "Green") return Color.Green; if (tickerColor == "Red") return Color.Red; return Color.Yellow }
     fun share() {
@@ -222,8 +252,185 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
         val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, txt); ctx.startActivity(Intent.createChooser(i, "Share JSTV"))
     }
     fun shareRemote() {
-        val txt = "Control JSTV Remote - Code: $remoteCode - Open JSTV on 2nd phone, enter code, control GO LIVE / MUTE / SCENE from far"
+        val txt = "Join JSTV as REMOTE - Install JSTV App, choose REMOTE CONTROL, enter Code: $remoteCode - Then you can control GO LIVE / MUTE / SCENE from far. No livestreaming app needed!"
         val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, txt); ctx.startActivity(Intent.createChooser(i, "Share Remote Code"))
+    }
+    fun shareExtCam() {
+        val txt = "Join as JSTV Wireless Camera - Open browser on 2nd phone, go to: $extCamIP - Or open IP Webcam app, start server, copy IP to JSTV. No USB needed!"
+        val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, txt); ctx.startActivity(Intent.createChooser(i, "Share Ext Cam Link"))
+    }
+    fun shareApp() {
+        val txt = "Download JSTV App - Jehovah Shalom TV - Install same app, choose MAIN / REMOTE / CAMERA. Ask Kevin for APK via WhatsApp $adminWhats"
+        val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, txt); ctx.startActivity(Intent.createChooser(i, "Share JSTV App"))
+    }
+    fun genCode(plan: String, cust: String): String {
+        val prefix = if (plan.contains("Daily")) "JSTV-50-" else if (plan.contains("Monthly")) "JSTV-1K-" else if (plan.contains("3 Months")) "JSTV-3M-" else "JSTV-YR-"
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        var suffix = ""
+        repeat(4) { suffix += chars.random() }
+        val code = prefix + suffix
+        premiumCodes = premiumCodes + PremiumCode(code, plan, cust.ifBlank { "Customer" }, true)
+        lastGenCode = code
+        return code
+    }
+
+    if (appMode == "CHOOSE") {
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text("JSTV", color = Color.Yellow, fontSize = 50.sp, fontWeight = FontWeight.Bold)
+            Text("JEHOVAH SHALOM TV", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(8.dp))
+            Text("Who Are You? Choose Your Phone Role:", color = Color.White, fontSize = 14.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = { appMode = "MAIN"; onPreview() }, modifier = Modifier.fillMaxWidth().height(70.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)) { Text("🎬 MAIN STUDIO\nGoes LIVE to YouTube", color = Color.Black, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { appMode = "REMOTE" }, modifier = Modifier.fillMaxWidth().height(70.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text("📱 REMOTE CONTROL\nControl Main From Far", color = Color.Black, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { appMode = "CAMERA" }, modifier = Modifier.fillMaxWidth().height(70.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("📷 WIRELESS CAMERA\n2nd Phone As Camera", color = Color.Black, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = { appMode = "ADMIN" }, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("🔐 CREATOR / ADMIN - Control Premium & Prices", color = Color.White, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center) }
+            Spacer(Modifier.height(12.dp))
+            Text("Same App On All Phones - Just Choose Different Mode", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = { shareApp() }) { Text("SHARE JSTV APP TO 2ND PHONE") }
+        }
+        return
+    }
+
+    if (appMode == "ADMIN") {
+        Column(Modifier.fillMaxSize().background(Color.Black).verticalScroll(rememberScrollState()).padding(16.dp)) {
+            Text("🔐 CREATOR / ADMIN PANEL", color = Color.Red, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Text("Only Kevin - Owner of JSTV - Do NOT Share Password", color = Color.White, fontSize = 12.sp)
+            Spacer(Modifier.height(12.dp))
+            if (!adminLogged) {
+                Text("Enter Admin Password:", color = Color.White, fontWeight = FontWeight.Bold)
+                OutlinedTextField(value = adminPass, onValueChange = { adminPass = it }, label = { Text("Admin Password") }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = { if (adminPass == "516600") { adminLogged = true; onToast("Welcome Creator Kevin!") } else onToast("Wrong Password") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("LOGIN AS CREATOR", color = Color.White, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.height(8.dp))
+                Text("Hint: Your Paybill is password for now - 516600. Change it later.", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = { appMode = "CHOOSE" }) { Text("⬅ BACK") }
+            } else {
+                Text("Welcome Creator Kevin! 🙏", color = Color.Green, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("Total Codes: ${premiumCodes.size} | Active: ${premiumCodes.count { it.active }} | Blocked: ${premiumCodes.count { !it.active }}", color = Color.Yellow)
+                Spacer(Modifier.height(12.dp))
+                Text("💰 1) CHANGE PRICES - Users See This Instantly", color = Color.Yellow, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                OutlinedTextField(value = priceDaily, onValueChange = { priceDaily = it }, label = { Text("Daily Price - KES") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = priceMonthly, onValueChange = { priceMonthly = it }, label = { Text("Monthly Price - KES") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = price3M, onValueChange = { price3M = it }, label = { Text("3 Months Price - KES") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = priceYear, onValueChange = { priceYear = it }, label = { Text("Year Price - KES") }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(6.dp))
+                Text("Now: Daily $priceDaily | Monthly $priceMonthly | 3M $price3M | Year $priceYear", color = Color.White)
+                Spacer(Modifier.height(12.dp))
+                Text("🏦 2) CHANGE PAYMENT - Paybill / Acc / WhatsApp", color = Color.Yellow, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                OutlinedTextField(value = paybill, onValueChange = { paybill = it }, label = { Text("Paybill") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = payAcc, onValueChange = { payAcc = it }, label = { Text("Account Number") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = adminWhats, onValueChange = { adminWhats = it }, label = { Text("WhatsApp Number") }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(12.dp))
+                Text("🎁 3) FREE FOR ALL - ON / OFF", color = Color.Yellow, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (freeForAll) "FREE FOR ALL IS ON - Everyone can go LIVE free, no code needed" else "FREE FOR ALL IS OFF - Users must pay + enter code", color = if (freeForAll) Color.Green else Color.White)
+                Button(onClick = { freeForAll = !freeForAll; onToast(if (freeForAll) "Free For All ON" else "Free For All OFF") }, colors = ButtonDefaults.buttonColors(containerColor = if (freeForAll) Color.Green else Color.DarkGray)) { Text(if (freeForAll) "TURN FREE OFF - Back to Paid" else "TURN FREE ON - Sunday Free") }
+                Spacer(Modifier.height(12.dp))
+                Text("🔑 4) GENERATE NEW PREMIUM CODE", color = Color.Yellow, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("When someone pays, generate code here, WhatsApp it to them.", color = Color.White, fontSize = 12.sp)
+                OutlinedTextField(value = newCustName, onValueChange = { newCustName = it }, label = { Text("Customer Name - e.g. John from Ruiru") }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(6.dp))
+                Row { listOf("Daily 50","Monthly 1000","3 Months 2500","Year 8000").forEach { p -> Button(onClick = { newCustPlan = p }, modifier = Modifier.padding(end = 4.dp), colors = ButtonDefaults.buttonColors(containerColor = if (newCustPlan == p) Color.Yellow else Color.DarkGray)) { Text(if (p == "Daily 50") "Daily" else if (p == "Monthly 1000") "Monthly" else if (p == "3 Months 2500") "3M" else "Year", color = if (newCustPlan == p) Color.Black else Color.White) } } }
+                Spacer(Modifier.height(6.dp))
+                Text("Plan: $newCustPlan", color = Color.White)
+                Button(onClick = { val c = genCode(newCustPlan, newCustName); onToast("Generated: $c - WhatsApp it to $newCustName") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("GENERATE CODE FOR $newCustPlan") }
+                if (lastGenCode.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Box(Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)) {
+                        Column { Text("Last Generated Code:", color = Color.White); Text(lastGenCode, color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold); Text("Customer: $newCustName | Plan: $newCustPlan", color = Color.White) }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Button(onClick = { val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, "Your JSTV Premium Code: $lastGenCode | Plan: $newCustPlan | Open JSTV > SETUP > PREMIUM > Enter Code to Unlock. God Bless You! - Kevin"); ctx.startActivity(Intent.createChooser(i, "WhatsApp Code to Customer")) }) { Text("WHATSAPP CODE TO CUSTOMER") }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("👥 5) ALL CODES - Block / Unblock / Delete", color = Color.Yellow, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Tap BLOCK if someone shared code. Tap UNBLOCK to allow again.", color = Color.White, fontSize = 12.sp)
+                Spacer(Modifier.height(6.dp))
+                premiumCodes.forEach { pc -> val one = pc; Column(Modifier.fillMaxWidth().background(if (one.active) Color.DarkGray else Color.Red.copy(alpha = 0.3f)).padding(8.dp)) {
+                    Text("${one.code} - ${one.plan}", color = Color.Yellow, fontWeight = FontWeight.Bold)
+                    Text("Customer: ${one.customer} | ${if (one.active) "✅ ACTIVE" else "❌ BLOCKED"}", color = Color.White, fontSize = 12.sp)
+                    Row { Button(onClick = { premiumCodes = premiumCodes.map { if (it.code == one.code) it.copy(active = !it.active) else it } }) { Text(if (one.active) "BLOCK" else "UNBLOCK") }; Spacer(Modifier.width(6.dp)); Button(onClick = { premiumCodes = premiumCodes.filter { it.code != one.code } }) { Text("DELETE") } }
+                }; Spacer(Modifier.height(6.dp)) }
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { adminLogged = false; adminPass = ""; appMode = "CHOOSE" }, modifier = Modifier.fillMaxWidth()) { Text("LOGOUT ADMIN - BACK TO CHOOSE") }
+                Spacer(Modifier.height(20.dp))
+            }
+        }
+        return
+    }
+
+    if (appMode == "REMOTE") {
+        Column(Modifier.fillMaxSize().background(Color.Black).verticalScroll(rememberScrollState()).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("📱 JSTV REMOTE", color = Color.Cyan, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text("Control Main Phone From Far", color = Color.White, fontSize = 14.sp)
+            Spacer(Modifier.height(6.dp))
+            Text("No Livestreaming Here - Main Phone Does All Streaming", color = Color.Yellow, fontSize = 12.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(16.dp))
+            if (!remoteConnected) {
+                Text("STEP 1: Enter Remote Code From Main Phone", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Main Phone > SETUP > 13) REMOTE CONTROL > Code is JSTV-2026", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(value = remoteInputCode, onValueChange = { remoteInputCode = it }, label = { Text("Enter Remote Code - e.g. JSTV-2026") }, modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = { if (remoteInputCode.trim().isNotEmpty()) { remoteConnected = true; remoteOn = true; onToast("Remote Connected! You control Main now") } else onToast("Enter Code") }, modifier = Modifier.fillMaxWidth().height(55.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text("CONNECT AS REMOTE", color = Color.Black, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.height(12.dp))
+                Text("Both phones must be on SAME WiFi / Hotspot", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, textAlign = TextAlign.Center)
+            } else {
+                Text("✅ CONNECTED TO MAIN", color = Color.Green, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Code: $remoteCode | $now", color = Color.White, fontSize = 12.sp)
+                Text("Status: $status | Scene: $scene", color = Color.Yellow, fontSize = 12.sp)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { streaming = !streaming; status = if (streaming) "LIVE - Started by Remote" else "ENDED - By Remote"; onToast(if (streaming) "Sent GO LIVE to Main" else "Sent END LIVE to Main") }, modifier = Modifier.fillMaxWidth().height(70.dp), colors = ButtonDefaults.buttonColors(containerColor = if (streaming) Color.Red else Color.Green)) { Text(if (streaming) "⏹ END LIVE (Remote)" else "▶ GO LIVE (Remote)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { muted = !muted; onToast(if (muted) "Sent MUTE to Main" else "Sent UNMUTE to Main") }, modifier = Modifier.weight(1f).height(60.dp)) { Text(if (muted) "UNMUTE" else "MUTE", fontWeight = FontWeight.Bold) }
+                    Button(onClick = { onSwitchCam(); camName = if (camName == "BACK") "FRONT" else "BACK"; onToast("Sent SWITCH CAM to Main") }, modifier = Modifier.weight(1f).height(60.dp)) { Text("CAM: $camName", fontWeight = FontWeight.Bold) }
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("SCENE - Tap to Change Main Scene:", color = Color.White, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { applyScene("Studio") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if (scene == "Studio") Color.Yellow else Color.DarkGray)) { Text("STUDIO", color = if (scene == "Studio") Color.Black else Color.White) }
+                    Button(onClick = { applyScene("Church") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if (scene == "Church") Color.Yellow else Color.DarkGray)) { Text("CHURCH", color = if (scene == "Church") Color.Black else Color.White) }
+                    Button(onClick = { applyScene("Outdoor") }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = if (scene == "Outdoor") Color.Yellow else Color.DarkGray)) { Text("OUTDOOR", color = if (scene == "Outdoor") Color.Black else Color.White) }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { extCamOn = !extCamOn; onToast(if (extCamOn) "Sent EXT CAM ON to Main" else "Sent EXT CAM OFF to Main") }, modifier = Modifier.weight(1f)) { Text(if (extCamOn) "EXT ON" else "EXT CAM") }
+                    Button(onClick = { hideUI = !hideUI; onToast(if (hideUI) "Sent FULLSCREEN to Main" else "Sent SHOW BUTTONS to Main") }, modifier = Modifier.weight(1f)) { Text(if (hideUI) "SHOW UI" else "FULLSCREEN") }
+                }
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { remoteConnected = false; remoteOn = false; onToast("Remote Disconnected") }, modifier = Modifier.fillMaxWidth()) { Text("DISCONNECT REMOTE") }
+            }
+            Spacer(Modifier.height(20.dp))
+            Button(onClick = { appMode = "CHOOSE" }) { Text("⬅ CHANGE MODE") }
+        }
+        return
+    }
+
+    if (appMode == "CAMERA") {
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text("📷 JSTV WIRELESS CAMERA", color = Color.Green, fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("This Phone Is Now A Camera Only", color = Color.White, fontSize = 14.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(12.dp))
+            AndroidView(factory = { v -> SurfaceView(v).also { onSetCam(it) } }, modifier = Modifier.fillMaxWidth().height(300.dp))
+            Spacer(Modifier.height(12.dp))
+            Text("No Livestreaming Here - Main Phone Does Streaming", color = Color.Yellow, fontSize = 12.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(8.dp))
+            Text("STEP: On Main Phone > SETUP > 12) Paste This Phone's IP", color = Color.White, fontSize = 12.sp, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { onSwitchCam(); camName = if (camName == "BACK") "FRONT" else "BACK" }) { Text("SWITCH CAMERA: $camName") }
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = { appMode = "CHOOSE" }) { Text("⬅ CHANGE MODE") }
+            Spacer(Modifier.height(8.dp))
+            Text("Leave this phone on tripod. Don't touch. Keep WiFi ON.", color = Color.Green, fontSize = 12.sp, textAlign = TextAlign.Center)
+        }
+        return
     }
 
     if (tab == "BROADCAST") {
@@ -237,7 +444,6 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
                 }
             }
             if (hideUI) {
-                // CLEAN FULLSCREEN - Only titles + ticker, no buttons - Tap screen to bring back
                 Column(Modifier.align(Alignment.TopCenter).padding(top = 30.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     titles.forEach { Text(it.text, color = tBg(), fontSize = titleSize.sp, fontWeight = if (titleBold) FontWeight.Bold else FontWeight.Normal) }
                 }
@@ -266,15 +472,16 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
                 if (countdownNum > 0) {
                     Box(Modifier.align(Alignment.Center).background(Color.Black.copy(alpha = 0.8f)).padding(24.dp)) { Text("$countdownNum", color = Color.Yellow, fontSize = 60.sp, fontWeight = FontWeight.Bold) }
                 }
-                if (extCamOn) { Text("📷 EXT CAM: $extCamName ON", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp).background(Color.Black.copy(alpha = 0.6f)).padding(4.dp)) }
+                if (extCamOn) { Text("📷 WIRELESS EXT CAM ON - $extCamMode - $extCamIP", color = Color.Green, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp).background(Color.Black.copy(alpha = 0.6f)).padding(4.dp)) }
                 if (remoteOn) { Text("📱 REMOTE ON - Code: $remoteCode", color = Color.Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopCenter).padding(top = 28.dp).background(Color.Black.copy(alpha = 0.6f)).padding(4.dp)) }
                 if (chatOn && showChatBox) {
                     Box(Modifier.align(Alignment.CenterStart).padding(start = 8.dp).background(Color.Black.copy(alpha = 0.7f)).padding(8.dp)) { Text("💬 LIVE CHAT\n$chatText", color = Color.White, fontSize = 12.sp) }
                 }
                 Column(Modifier.align(Alignment.BottomCenter).padding(8.dp).background(Color.Black.copy(alpha = 0.6f))) {
-                    Text(status + " | " + now + " | Scene: $scene | $resolution $fps fps ${bitrate.toInt()}kbps", color = Color.White, fontSize = 11.sp)
-                    Text("ON: " + onList().joinToString(", ") { it.platform } + if (extCamOn) " | EXT CAM ON" else "" + if (beautyOn) " | BEAUTY ON" else "", color = Color.Yellow, fontSize = 11.sp)
+                    Text("MAIN STUDIO | " + status + " | " + now + " | Scene: $scene | $resolution $fps fps ${bitrate.toInt()}kbps", color = Color.White, fontSize = 11.sp)
+                    Text("ON: " + onList().joinToString(", ") { it.platform } + if (extCamOn) " | WIRELESS EXT CAM ON" else "" + if (beautyOn) " | BEAUTY ON" else "", color = Color.Yellow, fontSize = 11.sp)
                     if (isPremium) Text("⭐ PREMIUM ACTIVE - $selectedPlan", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (freeForAll) Text("🎁 FREE FOR ALL - Creator Made Free", color = Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
                     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(6.dp)) {
                         Button(onClick = { goLive() }, modifier = Modifier.weight(1f)) { Text(if (streaming) "LIVE..." else "GO LIVE") }
@@ -288,7 +495,7 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
                     Spacer(Modifier.height(4.dp))
                     Row(Modifier.fillMaxWidth(), Arrangement.spacedBy(6.dp)) {
                         Button(onClick = { applyScene(if (scene == "Studio") "Church" else if (scene == "Church") "Outdoor" else "Studio") }, modifier = Modifier.weight(1f)) { Text("SCENE: $scene") }
-                        Button(onClick = { extCamOn = !extCamOn; onToast(if (extCamOn) "Ext Cam ON - $extCamName" else "Ext Cam OFF") }, modifier = Modifier.weight(1f)) { Text(if (extCamOn) "EXT ON" else "EXT CAM") }
+                        Button(onClick = { if (extCamOn) disconnectExtCam() else { if (extCamIP.isBlank()) { tab = "SETUP"; onToast("Add Wireless Cam IP in SETUP first") } else connectExtCam() } }, modifier = Modifier.weight(1f)) { Text(if (extCamOn) "EXT ON" else "EXT CAM") }
                         Button(onClick = { remoteOn = !remoteOn }, modifier = Modifier.weight(1f)) { Text(if (remoteOn) "REMOTE ON" else "REMOTE") }
                     }
                     Spacer(Modifier.height(4.dp))
@@ -306,7 +513,9 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
     } else {
         Column(Modifier.fillMaxSize().background(Color.Black).verticalScroll(rememberScrollState()).padding(14.dp)) {
             Text("⚙️ SETUP - PRISM LIVE STUDIO - FULLSCREEN", color = Color.Yellow, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text("Status: " + status + " | " + now + " | Scene: $scene | $resolution $fps fps", color = Color.White)
+            Text("MAIN STUDIO | Status: " + status + " | " + now + " | Scene: $scene | $resolution $fps fps", color = Color.White)
+            Spacer(Modifier.height(6.dp))
+            Button(onClick = { appMode = "CHOOSE" }) { Text("⬅ CHANGE MODE - MAIN / REMOTE / CAMERA / ADMIN") }
             if (!hasPerm) { Spacer(Modifier.height(8.dp)); Button(onClick = { onAsk() }) { Text("ALLOW CAMERA + MIC") } }
             Spacer(Modifier.height(12.dp))
             Text("1) MY CHANNELS - Up to 6", fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Bold)
@@ -396,37 +605,56 @@ fun JstvScreen(hasPerm: Boolean, isLand: Boolean, onAsk: () -> Unit, onRotate: (
             Spacer(Modifier.height(12.dp))
             Button(onClick = { share() }) { Text("🔗 SHARE LINK") }
             Spacer(Modifier.height(20.dp))
-            Text("10) JSTV PREMIUM", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Text("Daily 50 | Monthly 1000 | 3 Months 2500 | Year 8000", color = Color.White)
-            Text("Paybill 516600 Acc 5600935001 | WhatsApp 0763052911", color = Color.White, fontSize = 11.sp)
+            Text("10) JSTV PREMIUM - USER SIDE", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
+            Text("This is what USERS see. YOU control it in ADMIN panel.", color = Color.White, fontSize = 12.sp)
+            Text("Daily $priceDaily | Monthly $priceMonthly | 3 Months $price3M | Year $priceYear", color = Color.White)
+            Text("Paybill $paybill Acc $payAcc | WhatsApp $adminWhats", color = Color.White, fontSize = 11.sp)
+            if (freeForAll) Text("🎁 FREE FOR ALL IS ON - Creator made it free!", color = Color.Green, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Row { Button(onClick = { selectedPlan = "Daily 50" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan == "Daily 50") Color.Yellow else Color.DarkGray)) { Text("Daily 50", color = if (selectedPlan == "Daily 50") Color.Black else Color.White) }; Spacer(Modifier.width(6.dp)); Button(onClick = { selectedPlan = "Monthly 1000" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan == "Monthly 1000") Color.Yellow else Color.DarkGray)) { Text("Monthly 1000", color = if (selectedPlan == "Monthly 1000") Color.Black else Color.White) } }
+            Row { Button(onClick = { selectedPlan = "Daily $priceDaily" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan.contains("Daily")) Color.Yellow else Color.DarkGray)) { Text("Daily $priceDaily", color = if (selectedPlan.contains("Daily")) Color.Black else Color.White) }; Spacer(Modifier.width(6.dp)); Button(onClick = { selectedPlan = "Monthly $priceMonthly" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan.contains("Monthly")) Color.Yellow else Color.DarkGray)) { Text("Monthly $priceMonthly", color = if (selectedPlan.contains("Monthly")) Color.Black else Color.White) } }
             Spacer(Modifier.height(6.dp))
-            Row { Button(onClick = { selectedPlan = "3 Months 2500" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan == "3 Months 2500") Color.Yellow else Color.DarkGray)) { Text("3 Months 2500", color = if (selectedPlan == "3 Months 2500") Color.Black else Color.White) }; Spacer(Modifier.width(6.dp)); Button(onClick = { selectedPlan = "Year 8000" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan == "Year 8000") Color.Yellow else Color.DarkGray)) { Text("Year 8000", color = if (selectedPlan == "Year 8000") Color.Black else Color.White) } }
+            Row { Button(onClick = { selectedPlan = "3 Months $price3M" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan.contains("3 Months")) Color.Yellow else Color.DarkGray)) { Text("3M $price3M", color = if (selectedPlan.contains("3 Months")) Color.Black else Color.White) }; Spacer(Modifier.width(6.dp)); Button(onClick = { selectedPlan = "Year $priceYear" }, colors = ButtonDefaults.buttonColors(containerColor = if (selectedPlan.contains("Year")) Color.Yellow else Color.DarkGray)) { Text("Year $priceYear", color = if (selectedPlan.contains("Year")) Color.Black else Color.White) } }
             Spacer(Modifier.height(6.dp))
             Text("Selected: $selectedPlan", color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Text("1. M-PESA > Paybill 516600 | 2. Acc 5600935001 | 3. WhatsApp receipt 0763052911 | 4. Enter Code", color = Color.White, fontSize = 11.sp)
+            Text("1. M-PESA > Paybill $paybill | 2. Acc $payAcc | 3. WhatsApp receipt $adminWhats | 4. Enter Code", color = Color.White, fontSize = 11.sp)
             Spacer(Modifier.height(6.dp))
             OutlinedTextField(value = premiumCode, onValueChange = { premiumCode = it }, label = { Text("Enter Premium Code") }, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(6.dp))
             Button(onClick = {
-                if (validCodes.contains(premiumCode.trim().uppercase())) { isPremium = true; premiumMessage = "✅ Welcome to Premium! $selectedPlan Active" }
-                else { premiumMessage = "❌ Wrong Code. Pay via Paybill 516600 then WhatsApp 0763052911" }
+                if (freeForAll) { isPremium = true; premiumMessage = "✅ Free For All - Creator made it free!" }
+                else if (premiumCodes.any { it.code == premiumCode.trim().uppercase() && it.active }) { isPremium = true; premiumMessage = "✅ Welcome to Premium! $selectedPlan Active" }
+                else { premiumMessage = "❌ Wrong Code or Blocked. Pay via Paybill $paybill then WhatsApp $adminWhats" }
             }, modifier = Modifier.fillMaxWidth()) { Text("UNLOCK PREMIUM - $selectedPlan") }
             if (premiumMessage.isNotEmpty()) Text(premiumMessage, color = if (isPremium) Color.Green else Color.Red)
             if (isPremium) { Spacer(Modifier.height(6.dp)); Text("⭐ PREMIUM ACTIVE - $selectedPlan", color = Color.Green, fontWeight = FontWeight.Bold); Button(onClick = { isPremium = false; premiumMessage = "Logged out" }) { Text("LOGOUT PREMIUM") } }
+            Spacer(Modifier.height(6.dp))
+            Button(onClick = { appMode = "ADMIN" }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("🔐 OPEN CREATOR / ADMIN PANEL", color = Color.White) }
             Spacer(Modifier.height(20.dp))
             Text("11) SCENES - 1 Tap", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
             Text("Now: $scene", color = Color.White)
             Spacer(Modifier.height(6.dp))
             Row { Button(onClick = { applyScene("Studio") }, colors = ButtonDefaults.buttonColors(containerColor = if (scene == "Studio") Color.Yellow else Color.DarkGray)) { Text("STUDIO", color = if (scene == "Studio") Color.Black else Color.White) }; Spacer(Modifier.width(6.dp)); Button(onClick = { applyScene("Church") }, colors = ButtonDefaults.buttonColors(containerColor = if (scene == "Church") Color.Yellow else Color.DarkGray)) { Text("CHURCH", color = if (scene == "Church") Color.Black else Color.White) }; Spacer(Modifier.width(6.dp)); Button(onClick = { applyScene("Outdoor") }, colors = ButtonDefaults.buttonColors(containerColor = if (scene == "Outdoor") Color.Yellow else Color.DarkGray)) { Text("OUTDOOR", color = if (scene == "Outdoor") Color.Black else Color.White) } }
             Spacer(Modifier.height(20.dp))
-            Text("12) EXTERNAL CAMERA", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Text("USB Camera / 2nd Phone as Camera. Plug USB camera with OTG cable, then turn ON.", color = Color.White, fontSize = 12.sp)
+            Text("12) EXTERNAL CAMERA - WIRELESS - NO USB - NO CABLE", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
+            Text("Use 2nd Phone as Camera via WiFi. Both phones on SAME WiFi. No USB. No cable.", color = Color.White, fontSize = 12.sp)
             Spacer(Modifier.height(6.dp))
-            OutlinedTextField(value = extCamName, onValueChange = { extCamName = it }, label = { Text("External Camera Name") }, modifier = Modifier.fillMaxWidth())
+            Text("HOW TO USE - 3 STEPS:", color = Color.Yellow, fontWeight = FontWeight.Bold)
+            Text("1. On 2nd Phone: Open JSTV > Choose WIRELESS CAMERA mode", color = Color.White, fontSize = 12.sp)
+            Text("2. Or Install FREE app 'IP Webcam' > Start Server > Copy IP like 192.168.1.10:8080", color = Color.White, fontSize = 12.sp)
+            Text("3. Paste IP below > Tap CONNECT WIRELESS CAM > Done - No cable!", color = Color.White, fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+            Text("TYPE:", color = Color.White, fontWeight = FontWeight.Bold)
+            Row { listOf("WiFi Phone", "IP Camera").forEach { m -> Button(onClick = { extCamMode = m }, colors = ButtonDefaults.buttonColors(containerColor = if (extCamMode == m) Color.Yellow else Color.DarkGray), modifier = Modifier.padding(end = 4.dp)) { Text(m, color = if (extCamMode == m) Color.Black else Color.White) } } }
             Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("EXT CAM:", color = Color.White); Checkbox(checked = extCamOn, onCheckedChange = { extCamOn = it }); Text(if (extCamOn) "ON - $extCamName" else "OFF - Phone Cam", color = Color.White) }
+            OutlinedTextField(value = extCamIP, onValueChange = { extCamIP = it }, label = { Text("2nd Phone IP / Link - e.g. 192.168.1.10:8080") }, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(6.dp))
+            Text("Status: $extCamStatus", color = if (extCamOn) Color.Green else Color.White, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(6.dp))
+            Row { Button(onClick = { connectExtCam() }) { Text("CONNECT WIRELESS CAM") }; Spacer(Modifier.width(6.dp)); Button(onClick = { disconnectExtCam() }) { Text("DISCONNECT") } }
+            Spacer(Modifier.height(6.dp))
+            Row { Button(onClick = { shareExtCam() }) { Text("SHARE EXT CAM LINK") } }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) { Text("EXT CAM:", color = Color.White); Checkbox(checked = extCamOn, onCheckedChange = { if (it) connectExtCam() else disconnectExtCam() }); Text(if (extCamOn) "ON - Wireless" else "OFF - Phone Cam", color = Color.White) }
             Spacer(Modifier.height(20.dp))
             Text("13) REMOTE CONTROL", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
             Text("Control from 2nd phone while you preach.", color = Color.White, fontSize = 12.sp)
