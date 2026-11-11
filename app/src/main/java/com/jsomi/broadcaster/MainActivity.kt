@@ -598,4 +598,50 @@ fun SetupStudio(s: AppState, onToast: (String) -> Unit) {
     Spacer(Modifier.height(6.dp))
     Row { Button(onClick = { if (s.extCamIP.isBlank()) onToast("Enter 2nd Phone IP first") else { s.extCamOn = true; s.extCamStatus = "Connected - ${s.extCamIP}"; onToast("Wireless Ext Cam Connected") } }) { Text("CONNECT WIRELESS CAM") }; Spacer(Modifier.width(6.dp)); Button(onClick = { s.extCamOn = false; s.extCamStatus = "Not Connected" }) { Text("DISCONNECT") } }
     Spacer(Modifier.height(6.dp))
-    Button(on
+    Button(onClick = { val txt = "Join as JSTV Wireless Camera - Open browser on 2nd phone, go to: ${s.extCamIP}"; val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, txt); ctx.startActivity(Intent.createChooser(i, "Share Ext Cam Link")) }) { Text("SHARE EXT CAM LINK") }
+Spacer(Modifier.height(6.dp))
+Row(verticalAlignment = Alignment.CenterVertically) { Text("EXT CAM:", color = Color.White); Checkbox(checked = s.extCamOn, onCheckedChange = { if (it) { if (s.extCamIP.isBlank()) onToast("Enter IP first") else { s.extCamOn = true; s.extCamStatus = "Connected" } } else { s.extCamOn = false; s.extCamStatus = "Not Connected" } }); Text(if (s.extCamOn) "ON - Wireless" else "OFF - Phone Cam", color = Color.White) }
+Spacer(Modifier.height(20.dp))
+Text("13) REMOTE CONTROL", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
+OutlinedTextField(value = s.remoteCode, onValueChange = { s.remoteCode = it }, label = { Text("Remote Code") }, modifier = Modifier.fillMaxWidth())
+Spacer(Modifier.height(6.dp))
+Row(verticalAlignment = Alignment.CenterVertically) { Text("REMOTE:", color = Color.White); Checkbox(checked = s.remoteOn, onCheckedChange = { s.remoteOn = it }); Text(if (s.remoteOn) "ON - Code: ${s.remoteCode}" else "OFF", color = Color.White) }
+Spacer(Modifier.height(6.dp))
+Row { Button(onClick = { s.remoteOn = true; s.remoteMsg = "Remote ON - Code ${s.remoteCode}" }) { Text("TURN REMOTE ON") }; Spacer(Modifier.width(6.dp)); Button(onClick = { val txt = "Join JSTV as REMOTE - Enter Code: ${s.remoteCode}"; val i = Intent(Intent.ACTION_SEND); i.type = "text/plain"; i.putExtra(Intent.EXTRA_TEXT, txt); ctx.startActivity(Intent.createChooser(i, "Share Remote Code")) }) { Text("SHARE CODE") } }
+Spacer(Modifier.height(20.dp))
+Text("14) LIVE STUDIO - LIKE PRISM", fontSize = 18.sp, color = Color.Yellow, fontWeight = FontWeight.Bold)
+Spacer(Modifier.height(8.dp))
+Text("QUALITY - Resolution", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+Row { listOf("720p", "1080p").forEach { r -> Button(onClick = { s.resolution = r }, colors = ButtonDefaults.buttonColors(containerColor = if (s.resolution == r) Color.Yellow else Color.DarkGray), modifier = Modifier.padding(end = 4.dp)) { Text(r, color = if (s.resolution == r) Color.Black else Color.White) } } }
+Spacer(Modifier.height(6.dp))
+Text("FPS: ${s.fps}", color = Color.White)
+Row { listOf("30", "60").forEach { f -> Button(onClick = { s.fps = f }, colors = ButtonDefaults.buttonColors(containerColor = if (s.fps == f) Color.Yellow else Color.DarkGray), modifier = Modifier.padding(end = 4.dp)) { Text("$f FPS", color = if (s.fps == f) Color.Black else Color.White) } } }
+Spacer(Modifier.height(6.dp))
+Text("BITRATE: ${s.bitrate.toInt()} kbps", color = Color.White)
+Slider(value = s.bitrate, onValueChange = { s.bitrate = it }, valueRange = 1000f..6000f)
+Row { Button(onClick = { s.bitrate = 1500f }) { Text("LOW - Slow Net") }; Button(onClick = { s.bitrate = 2500f }) { Text("MED") }; Button(onClick = { s.bitrate = 4500f }) { Text("HIGH - Clear") } }
+Spacer(Modifier.height(12.dp))
+Text("AUDIO MIXER", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+Text("MIC Volume: ${s.micVol.toInt()}%", color = Color.White)
+Slider(value = s.micVol, onValueChange = { s.micVol = it }, valueRange = 0f..100f)
+Text("MUSIC Volume: ${s.musicVol.toInt()}%", color = Color.White)
+Slider(value = s.musicVol, onValueChange = { s.musicVol = it }, valueRange = 0f..100f)
+Row { Button(onClick = { s.muted = !s.muted }) { Text(if (s.muted) "UNMUTE MIC" else "MUTE MIC") }; Spacer(Modifier.width(6.dp)); Button(onClick = { s.musicVol = 0f }) { Text("MUTE MUSIC") } }
+Spacer(Modifier.height(12.dp))
+Text("FILTERS", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+Row(verticalAlignment = Alignment.CenterVertically) { Text("BEAUTY:", color = Color.White); Checkbox(checked = s.beautyOn, onCheckedChange = { s.beautyOn = it }); Text(if (s.beautyOn) "ON" else "OFF", color = Color.White) }
+Text("BRIGHTNESS: ${s.brightness.toInt()}%", color = Color.White)
+Slider(value = s.brightness, onValueChange = { s.brightness = it }, valueRange = 0f..100f)
+Row { Button(onClick = { s.brightness = 30f }) { Text("DARK") }; Button(onClick = { s.brightness = 50f }) { Text("NORMAL") }; Button(onClick = { s.brightness = 80f }) { Text("BRIGHT") } }
+Spacer(Modifier.height(12.dp))
+Text("LIVE CHAT", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+Row(verticalAlignment = Alignment.CenterVertically) { Text("SHOW CHAT:", color = Color.White); Checkbox(checked = s.chatOn, onCheckedChange = { s.chatOn = it }); Text(if (s.chatOn) "ON" else "OFF", color = Color.White) }
+OutlinedTextField(value = s.chatText, onValueChange = { s.chatText = it }, label = { Text("Chat Preview Text") }, modifier = Modifier.fillMaxWidth())
+Spacer(Modifier.height(6.dp))
+Button(onClick = { s.showChatBox = !s.showChatBox }) { Text(if (s.showChatBox) "HIDE CHAT ON SCREEN" else "SHOW CHAT ON SCREEN") }
+Spacer(Modifier.height(12.dp))
+Text("COUNTDOWN", fontSize = 16.sp, color = Color.White, fontWeight = FontWeight.Bold)
+Row(verticalAlignment = Alignment.CenterVertically) { Text("COUNTDOWN:", color = Color.White); Checkbox(checked = s.countdownOn, onCheckedChange = { s.countdownOn = it }); Text(if (s.countdownOn) "ON - 3-2-1" else "OFF", color = Color.White) }
+Spacer(Modifier.height(6.dp))
+Button(onClick = { s.hideUI = true; s.tab = "BROADCAST" }) { Text("GO FULLSCREEN CLEAN NOW") }
+}
