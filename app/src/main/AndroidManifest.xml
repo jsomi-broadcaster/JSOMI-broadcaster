@@ -10,7 +10,7 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/jstv_logo"
-        android:label="JSTV"
+        android:label="JSTV Broadcaster Studio"
         android:supportsRtl="true"
         android:theme="@style/Theme.JSOMIBroadcaster">
         <activity
