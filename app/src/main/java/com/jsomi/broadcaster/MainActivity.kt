@@ -3,13 +3,19 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -19,10 +25,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { MaterialTheme { BroadcasterApp() } } }
@@ -30,167 +42,383 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun BroadcasterApp(){
     val ctx = LocalContext.current
-    var screen by remember { mutableStateOf("HOME") }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var screen by remember { mutableStateOf("PERMISSION") }
+    var role by remember { mutableStateOf("") }
+    var roomCode by remember { mutableStateOf("") }
+    var linked by remember { mutableStateOf(false) }
+    var isLive by remember { mutableStateOf(false) }
+    var liveSeconds by remember { mutableStateOf(0) }
+    var showPremium by remember { mutableStateOf(false) }
+    var isPremium by remember { mutableStateOf(false) }
+    var premiumShown by remember { mutableStateOf(false) }
+
+    // TOP SCREEN - ONLY 3 - MAIN / REMOTE / SCREEN
+    var source by remember { mutableStateOf("MAIN CAMERA") } // MAIN CAMERA | REMOTE | SCREEN
+    var cameraSide by remember { mutableStateOf("BACK") }
+    var showSettings by remember { mutableStateOf(false) } // ALL SETTINGS INSIDE - HIDDEN BY DEFAULT
+    var showInbox by remember { mutableStateOf(false) }
+    var inboxUnread by remember { mutableStateOf(2) }
+
+    // ALL SETTINGS - INSIDE - NOT ON TOP
+    var streamTitle by remember { mutableStateOf("My Live Show") }
     var channel by remember { mutableStateOf("JSTV Main") }
     var scene by remember { mutableStateOf("Studio") }
     var ticker by remember { mutableStateOf("Welcome to JSTV - Your Voice, Your Channel") }
-    var cameraOn by remember { mutableStateOf(true) }
-    var micOn by remember { mutableStateOf(true) }
-    var isLive by remember { mutableStateOf(false) }
+    var showTicker by remember { mutableStateOf(true) }
+    var loopTicker by remember { mutableStateOf(true) }
     var quality by remember { mutableStateOf("HD 720p") }
+    var fps by remember { mutableStateOf("30 FPS") }
+    var flash by remember { mutableStateOf(false) }
+    var zoom by remember { mutableStateOf("1x") }
+    var beauty by remember { mutableStateOf(false) }
+    var stabilization by remember { mutableStateOf(true) }
+    var autoFocus by remember { mutableStateOf(true) }
+    var micOn by remember { mutableStateOf(true) }
+    var cameraOn by remember { mutableStateOf(true) }
+    var introVideo by remember { mutableStateOf("No Intro Selected") }
+    var playIntro by remember { mutableStateOf(false) }
+    var loopIntro by remember { mutableStateOf(false) }
+    var verse by remember { mutableStateOf("John 3:16 - For God so loved the world...") }
+    var showVerse by remember { mutableStateOf(true) }
+    var showLogo by remember { mutableStateOf(true) }
+    var logoText by remember { mutableStateOf("JSTV") }
+    var displayText by remember { mutableStateOf("LIVE FROM JSTV STUDIO") }
+    var showDisplayText by remember { mutableStateOf(true) }
+    var saveAfter by remember { mutableStateOf(true) }
+    var ytOn by remember { mutableStateOf(true) }
+    var fbOn by remember { mutableStateOf(false) }
+    var tkOn by remember { mutableStateOf(false) }
+    var customOn by remember { mutableStateOf(false) }
+    var ytUrl by remember { mutableStateOf("rtmp://a.rtmp.youtube.com/live2") }
+    var fbUrl by remember { mutableStateOf("rtmps://live-api-s.facebook.com:443/rtmp/") }
+    var tkUrl by remember { mutableStateOf("rtmp://push.tiktok.com/live/") }
+    var customUrl by remember { mutableStateOf("") }
+    var ytKey by remember { mutableStateOf("") }
+    var fbKey by remember { mutableStateOf("") }
+    var tkKey by remember { mutableStateOf("") }
+    var customKey by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
-    var isPremium by remember { mutableStateOf(false) }
-    var showPremium by remember { mutableStateOf(false) }
-    var streamTitle by remember { mutableStateOf("My Live Show") }
-    var roomCode by remember { mutableStateOf("") }
-    var linked by remember { mutableStateOf(false) }
-    var source by remember { mutableStateOf("MAIN CAMERA") }
-    var cameraSide by remember { mutableStateOf("BACK") }
-    var remoteLink by remember { mutableStateOf("") }
-    var destination by remember { mutableStateOf("YouTube") }
-    var rtmpUrl by remember { mutableStateOf("rtmp://a.rtmp.youtube.com/live2") }
-    var streamKey by remember { mutableStateOf("") }
-    var viewers by remember { mutableStateOf(0) }
-    var likes by remember { mutableStateOf(0) }
-    var chatMsg by remember { mutableStateOf("") }
-    var chatList by remember { mutableStateOf(listOf("Welcome to JSTV!")) }
-    var permMsg by remember { mutableStateOf("Tap ALLOW to enable Camera + Mic") }
-    val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ res -> permMsg = if(res.values.all{ it }) "✅ ALL PERMISSIONS GRANTED" else "⚠️ Allow permissions to Go Live" }
+
+    // INBOX - ADMIN -> USER
+    var inboxMsgs by remember { mutableStateOf(mutableListOf(
+        "👑 ADMIN: Welcome to JSTV! Your Room JSTV-6638 is LINKED ✅" to "10:00 AM",
+        "👑 ADMIN: Reminder - GO LIVE needs Premium after 30 sec FREE trial. Get code on WhatsApp 0763052911" to "10:05 AM",
+        "👑 ADMIN: New Offer - 50% OFF Monthly! Code in ADMIN Offer tab" to "10:10 AM"
+    )) }
+
+    var permMsg by remember { mutableStateOf("Allow all 5") }
+    var permTick by remember { mutableStateOf(0) }
     fun hasPerm(p:String)=ContextCompat.checkSelfPermission(ctx,p)==PackageManager.PERMISSION_GRANTED
+    fun permList():Array<String>{
+        val l = mutableListOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        if(Build.VERSION.SDK_INT>=33){ l.add(Manifest.permission.READ_MEDIA_VIDEO); l.add(Manifest.permission.READ_MEDIA_IMAGES); l.add(Manifest.permission.READ_MEDIA_AUDIO) }
+        else { l.add(Manifest.permission.READ_EXTERNAL_STORAGE); l.add(Manifest.permission.WRITE_EXTERNAL_STORAGE) }
+        return l.toTypedArray()
+    }
+    val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ res -> permTick++; permMsg = if(res.values.all{ it }) "✅ ALL GRANTED" else "⚠️ Some denied" }
+    val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.GetContent()){ uri -> if(uri!=null){ introVideo="Intro: ${uri.lastPathSegment}"; playIntro=true; Toast.makeText(ctx,"Intro Added ✅",Toast.LENGTH_SHORT).show() } }
     fun toast(m:String){ Toast.makeText(ctx,m,Toast.LENGTH_SHORT).show() }
     fun wa(msg:String){ val i=Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text="+Uri.encode(msg))); try{ctx.startActivity(i)}catch(e:Exception){} }
+    val timeNow = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())
+
+    // LIVE TIMER - 30 SEC FREE TRIAL
+    LaunchedEffect(isLive){
+        if(isLive){
+            while(isLive){
+                delay(1000); liveSeconds++
+                if(liveSeconds>=30 && !isPremium && !premiumShown){
+                    premiumShown=true; showPremium=true
+                    toast("30 SEC FREE DONE - Premium Needed to Continue")
+                }
+            }
+        }
+    }
+    fun liveTime():String{ val h=liveSeconds/3600; val m=(liveSeconds%3600)/60; val s=liveSeconds%60; return String.format("%02d:%02d:%02d", h,m,s) }
+
+    // REAL CAMERA - CameraX
+    @Composable
+    fun RealCamera(){
+        if(!cameraOn || source=="SCREEN"){
+            Box(Modifier.fillMaxWidth().height(280.dp).background(Color(0xFF222222)), contentAlignment=Alignment.Center){
+                Column(horizontalAlignment=Alignment.CenterHorizontally){
+                    Text(if(source=="SCREEN") "🖥️ SCREEN SHARE" else "📷 CAMERA OFF", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
+                    Text(if(source=="SCREEN") "Your phone screen will show on LIVE" else "Tap CAMERA ON below", color=Color.Gray, fontSize=12.sp)
+                    Text("Title: $streamTitle", color=Color.White, fontSize=12.sp)
+                    Text("Channel: $channel | $scene", color=Color.Gray, fontSize=11.sp)
+                }
+            }
+            return
+        }
+        // REAL CAMERA OPEN - NOT PREVIEW BOX
+        Box(Modifier.fillMaxWidth().height(280.dp).background(Color.Black)){
+            AndroidView(factory={ c ->
+                val pv = PreviewView(c)
+                val providerFuture = ProcessCameraProvider.getInstance(c)
+                providerFuture.addListener({
+                    val provider = providerFuture.get()
+                    val preview = Preview.Builder().build().also{ it.setSurfaceProvider(pv.surfaceProvider) }
+                    val selector = if(cameraSide=="BACK") CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
+                    try{ provider.unbindAll(); provider.bindToLifecycle(lifecycleOwner, selector, preview) }catch(e:Exception){}
+                }, ContextCompat.getMainExecutor(c))
+                pv
+            }, modifier=Modifier.fillMaxSize())
+            // OVERLAY ON REAL CAMERA - See everything before GO LIVE
+            Column(Modifier.fillMaxSize().padding(8.dp)){
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween){
+                    Text(if(isLive) "● LIVE ${liveTime()}" else "○ PREVIEW - NOT LIVE YET", color=if(isLive) Color.Red else Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold)
+                    Text(if(isLive && liveSeconds<30) "FREE: ${30-liveSeconds}s LEFT" else if(isLive) "PREMIUM ✅" else "SETUP BEFORE LIVE", color=Color.Yellow, fontSize=11.sp, fontWeight=FontWeight.Bold)
+                }
+                Spacer(Modifier.weight(1f))
+                if(showLogo) Text(logoText, color=Color(0xFF00E5FF), fontSize=20.sp, fontWeight=FontWeight.Bold)
+                if(showDisplayText) Text(displayText, color=Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold)
+                if(showVerse) Text("📖 $verse", color=Color.Yellow, fontSize=11.sp)
+                if(showTicker) Text("↔ $ticker", color=Color(0xFF00E5FF), fontSize=11.sp)
+            }
+        }
+    }
 
     Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment=Alignment.CenterHorizontally){
-        Text("JSTV", color=Color(0xFF00E5FF), fontSize=42.sp, fontWeight=FontWeight.Bold)
-        Text("BROADCASTER", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
-        Text("Create Your Own Live Channel", color=Color.Gray, fontSize=12.sp)
-        Spacer(Modifier.height(8.dp))
-        Box(Modifier.fillMaxWidth().background(Color(0xFF222222)).padding(10.dp)){
-            Column{
-                Text("📷 PERMISSIONS: Camera + Mic", color=Color.Yellow, fontSize=12.sp, fontWeight=FontWeight.Bold)
-                Text(permMsg, color=Color.White, fontSize=11.sp)
-                Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                    Button(onClick={ permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00E5FF))){ Text("ALLOW CAMERA + MIC", color=Color.Black, fontSize=11.sp) }
-                    Button(onClick={ ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null))) }){ Text("SETTINGS", fontSize=11.sp) }
+
+        // STEP 1 - PERMISSION
+        if(screen=="PERMISSION"){
+            Box(Modifier.fillMaxWidth().background(Color(0xFF00CFFF)).padding(20.dp), contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV", color=Color.Black, fontSize=42.sp, fontWeight=FontWeight.Bold); Text("BROADCASTER STUDIO", color=Color.Black, fontSize=18.sp, fontWeight=FontWeight.Bold) } }
+            Spacer(Modifier.height(16.dp))
+            Text("🔐 PERMISSIONS", color=Color.Yellow, fontSize=20.sp, fontWeight=FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+            val t = permTick
+            Box(Modifier.fillMaxWidth().background(Color(0xFF222222)).padding(16.dp)){
+                Column{
+                    Text("📷 Camera: ${if(hasPerm(Manifest.permission.CAMERA)) "✅" else "❌"}", color=Color.White, fontSize=13.sp); Spacer(Modifier.height(6.dp))
+                    Text("🎥 Video: ${if(hasPerm(Manifest.permission.CAMERA)) "✅" else "❌"}", color=Color.White, fontSize=13.sp); Spacer(Modifier.height(6.dp))
+                    Text("🔊 Audio: ${if(hasPerm(Manifest.permission.RECORD_AUDIO)) "✅" else "❌"}", color=Color.White, fontSize=13.sp); Spacer(Modifier.height(6.dp))
+                    Text("🎤 Mic: ${if(hasPerm(Manifest.permission.RECORD_AUDIO)) "✅" else "❌"}", color=Color.White, fontSize=13.sp); Spacer(Modifier.height(6.dp))
+                    val fOk = if(Build.VERSION.SDK_INT>=33) hasPerm(Manifest.permission.READ_MEDIA_VIDEO) else hasPerm(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    Text("📁 File: ${if(fOk) "✅" else "❌"}", color=Color.White, fontSize=13.sp)
+                    Text(permMsg, color=Color.Yellow, fontSize=12.sp)
                 }
-                Text("Camera: ${if(hasPerm(Manifest.permission.CAMERA)) "✅" else "❌"}  Mic: ${if(hasPerm(Manifest.permission.RECORD_AUDIO)) "✅" else "❌"}", color=Color.Gray, fontSize=11.sp)
             }
+            Spacer(Modifier.height(16.dp))
+            Button(onClick={ permLauncher.launch(permList()) }, modifier=Modifier.fillMaxWidth().height(56.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00E5FF))){ Text("ALLOW ALL PERMISSIONS", color=Color.Black, fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(10.dp))
+            Button(onClick={ ctx.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null))) }, modifier=Modifier.fillMaxWidth()){ Text("OPEN SETTINGS") }
+            Spacer(Modifier.height(20.dp))
+            Button(onClick={ screen="FIRST" }, modifier=Modifier.fillMaxWidth().height(56.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00E600))){ Text("CONTINUE → CHOOSE ROLE", color=Color.White, fontWeight=FontWeight.Bold) }
         }
-        Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
-            listOf("HOME","SETUP","CHANNELS","HELP").forEach{ t -> Button(onClick={screen=t}, modifier=Modifier.weight(1f).height(44.dp), contentPadding=PaddingValues(0.dp), colors=ButtonDefaults.buttonColors(containerColor=if(screen==t) Color(0xFF00E5FF) else Color(0xFF444444))){ Text(t, color=if(screen==t) Color.Black else Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold) } }
-        }
-        Spacer(Modifier.height(12.dp))
-        if(screen=="HOME"){
-            Text("SOURCE - MAIN / REMOTE / CAMERA", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
-            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                listOf("MAIN CAMERA","REMOTE","SCREEN").forEach{ s -> Button(onClick={source=s}, modifier=Modifier.weight(1f).height(44.dp), contentPadding=PaddingValues(0.dp), colors=ButtonDefaults.buttonColors(containerColor=if(source==s) Color.Yellow else Color(0xFF444444))){ Text(s, color=if(source==s) Color.Black else Color.White, fontSize=11.sp, fontWeight=FontWeight.Bold) } }
+
+        // STEP 2 - CHOOSE ROLE - YOUR PHOTO - ONLY 3 BUTTONS
+        if(screen=="FIRST"){
+            Box(Modifier.fillMaxWidth().border(4.dp, Color(0xFF00FF00)).background(Color(0xFF00CFFF)).padding(20.dp), contentAlignment=Alignment.Center){
+                Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV", color=Color.Black, fontSize=48.sp, fontWeight=FontWeight.Bold); Text("BROADCASTER STUDIO", color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold); Text("CYAN + GREEN", color=Color.Black, fontSize=14.sp) }
             }
-            Spacer(Modifier.height(6.dp))
-            if(source=="MAIN CAMERA"){
-                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("BACK","FRONT").forEach{ c -> Button(onClick={cameraSide=c}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(cameraSide==c) Color(0xFF00E5FF) else Color(0xFF444444))){ Text("$c CAMERA", color=if(cameraSide==c) Color.Black else Color.White, fontSize=11.sp) } } }
-                Text("Using: Phone $cameraSide Camera - Main Studio", color=Color.Gray, fontSize=11.sp)
-            }
-            if(source=="REMOTE"){ OutlinedTextField(value=remoteLink, onValueChange={remoteLink=it}, label={Text("Remote Guest Link")}, modifier=Modifier.fillMaxWidth()); Button(onClick={ wa("Join my JSTV Live as Remote Guest: $remoteLink") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF25D366))){ Text("SHARE REMOTE LINK VIA WHATSAPP") } }
-            if(source=="SCREEN"){ Text("Screen Share - Show phone screen on Live", color=Color.Gray, fontSize=11.sp) }
+            Spacer(Modifier.height(10.dp))
+            Text("CYAN + GREEN = BROADCASTER STUDIO", color=Color(0xFF00E5FF), fontSize=14.sp, fontWeight=FontWeight.Bold)
+            Spacer(Modifier.height(14.dp))
+            Text("Time: $timeNow", color=Color.Gray, fontSize=14.sp)
+            Text("Choose Your Phone Role:", color=Color.White, fontSize=20.sp)
+            Spacer(Modifier.height(14.dp))
+            Button(onClick={ role="MAIN STUDIO"; screen="MAIN" }, modifier=Modifier.fillMaxWidth().height(72.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00CFFF))){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("MAIN STUDIO", color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold); Text("Goes LIVE - Controlled by ADMIN", color=Color.Black, fontSize=12.sp) } }
+            Spacer(Modifier.height(10.dp))
+            Button(onClick={ role="REMOTE CONTROL"; screen="REMOTE" }, modifier=Modifier.fillMaxWidth().height(72.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00FF00))){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("REMOTE CONTROL", color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold); Text("Control Main From Far - FULL LIVE CONTROL", color=Color.Black, fontSize=12.sp) } }
+            Spacer(Modifier.height(10.dp))
+            Button(onClick={ role="WIRELESS CAMERA"; screen="WIRELESS" }, modifier=Modifier.fillMaxWidth().height(72.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.White)){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("WIRELESS CAMERA", color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold); Text("2nd Phone As Camera", color=Color.Black, fontSize=12.sp) } }
+            Spacer(Modifier.height(20.dp))
+            Text("LINK TO JSTV STUDIO ADMIN (RED LOGO)", color=Color.Yellow, fontSize=15.sp, fontWeight=FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            Box(Modifier.fillMaxWidth().height(220.dp).background(Color(0xFF333333)), contentAlignment=Alignment.Center){
-                Column(horizontalAlignment=Alignment.CenterHorizontally){
-                    Text(if(isLive) "● ON AIR - LIVE" else "PREVIEW - $source", color=if(isLive) Color.Red else Color.White, fontSize=17.sp, fontWeight=FontWeight.Bold)
-                    Text("Channel: $channel", color=Color.White, fontSize=14.sp)
-                    Text("Scene: $scene | Source: $source", color=Color.White, fontSize=12.sp)
-                    Text("Camera: ${if(cameraOn) "ON ($cameraSide)" else "OFF"} | Mic: ${if(micOn) "ON" else "OFF"}", color=Color.Gray, fontSize=12.sp)
-                    Text("Quality: $quality | To: $destination", color=Color.Gray, fontSize=11.sp)
-                    if(isLive) Text("👁 $viewers watching  ❤️ $likes likes", color=Color.Yellow, fontSize=12.sp)
-                    Text("Ticker: $ticker", color=Color.Yellow, fontSize=11.sp)
+            OutlinedTextField(value=roomCode, onValueChange={roomCode=it.uppercase()}, label={Text("Room Code from ADMIN - e.g. JSTV-2026")}, modifier=Modifier.fillMaxWidth())
+            Button(onClick={ if(roomCode.startsWith("JSTV-")){ linked=true; toast("LINKED - $roomCode") } else toast("Enter Room Code") }, modifier=Modifier.fillMaxWidth().height(52.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00CFFF))){ Text(if(linked) "LINKED - $roomCode ✅" else "LINK TO STUDIO ADMIN", color=Color.Black, fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(14.dp))
+            Button(onClick={ wa("Hi ADMIN, I want to link Broadcaster.") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF444444))){ Text("WHATSAPP ADMIN - 0763052911", color=Color.White) }
+            Spacer(Modifier.height(16.dp))
+            Button(onClick={ toast("Link First - Enter Room Code, then Choose Role") }){ Text("Link First") }
+        }
+
+        // ============ MAIN / REMOTE - TOP SCREEN = ONLY MAIN / REMOTE / SCREEN + REAL CAMERA ============
+        if(screen=="MAIN" || screen=="REMOTE"){
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween){ Text(if(screen=="MAIN") "MAIN STUDIO" else "REMOTE CONTROL", color=if(screen=="MAIN") Color(0xFF00E5FF) else Color(0xFF00FF00), fontSize=19.sp, fontWeight=FontWeight.Bold); Button(onClick={ screen="FIRST" }){ Text("← BACK") } }
+            Text("Role: $role | ${if(linked) "LINKED - $roomCode ✅" else "NOT LINKED"}", color=if(linked) Color.Green else Color.Yellow, fontSize=12.sp)
+            Spacer(Modifier.height(8.dp))
+
+            // INBOX + SETTINGS BUTTONS - TOP, NOT ALL SETTINGS
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                Button(onClick={ showInbox=!showInbox; if(showInbox) inboxUnread=0 }, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(inboxUnread>0) Color.Yellow else Color(0xFF444444))){ Text(if(inboxUnread>0) "📩 INBOX ($inboxUnread) NEW!" else "📩 INBOX", color=if(inboxUnread>0) Color.Black else Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold) }
+                Button(onClick={ showSettings=!showSettings }, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7B61FF))){ Text(if(showSettings) "❌ CLOSE SETTINGS" else "⚙️ OPEN SETTINGS", color=Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold) }
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // INBOX - ADMIN NOTIFICATIONS
+            if(showInbox){
+                Box(Modifier.fillMaxWidth().background(Color(0xFF222222)).padding(12.dp)){
+                    Column{
+                        Text("📩 INBOX - MESSAGES FROM ADMIN", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold)
+                        Text("Admin can send you notification here", color=Color.Gray, fontSize=11.sp)
+                        Spacer(Modifier.height(8.dp))
+                        inboxMsgs.forEach{ (msg, time) ->
+                            Box(Modifier.fillMaxWidth().background(Color(0xFF444444)).padding(10.dp)){ Column{ Text(msg, color=Color.White, fontSize=12.sp); Text(time, color=Color.Gray, fontSize=10.sp) } }
+                            Spacer(Modifier.height(6.dp))
+                        }
+                        Button(onClick={ wa("Hi ADMIN, I saw your message in INBOX") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF25D366))){ Text("REPLY TO ADMIN ON WHATSAPP", color=Color.White, fontSize=11.sp) }
+                    }
                 }
-            }
-            Spacer(Modifier.height(10.dp))
-            Text("Stream Title", color=Color.White, fontSize=13.sp, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=streamTitle, onValueChange={streamTitle=it}, modifier=Modifier.fillMaxWidth())
-            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                Button(onClick={cameraOn=!cameraOn}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(cameraOn) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(cameraOn) "CAMERA ON" else "CAMERA OFF", fontSize=12.sp) }
-                Button(onClick={micOn=!micOn}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(micOn) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(micOn) "MIC ON" else "MIC OFF", fontSize=12.sp) }
-            }
-            Spacer(Modifier.height(10.dp))
-            Text("LINK TO STUDIO ADMIN (RED LOGO)", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold)
-            OutlinedTextField(value=roomCode, onValueChange={roomCode=it.uppercase()}, label={Text("Room Code - e.g. JSTV-6638")}, modifier=Modifier.fillMaxWidth())
-            Button(onClick={ if(roomCode.startsWith("JSTV-")){ linked=true; toast("LINKED - $roomCode") } else toast("Enter Room Code from ADMIN") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00E5FF))){ Text(if(linked) "LINKED - $roomCode" else "LINK TO STUDIO ADMIN", color=Color.Black, fontWeight=FontWeight.Bold) }
-            Spacer(Modifier.height(10.dp))
-            Button(onClick={
-                if(!linked){ toast("Link to ADMIN first"); return@Button }
-                if(streamKey.isBlank()){ toast("Enter Stream Key in SETUP"); screen="SETUP"; return@Button }
-                if(isLive){ isLive=false; toast("Stopped") }
-                else if(isPremium){ isLive=true; viewers=12; toast("You Are LIVE - $channel") }
-                else showPremium=true
-            }, modifier=Modifier.fillMaxWidth().height(56.dp), colors=ButtonDefaults.buttonColors(containerColor=if(isLive) Color.Red else Color(0xFF00E600))){ Text(if(isLive) "STOP LIVE" else "GO LIVE - PREMIUM", color=Color.White, fontSize=17.sp, fontWeight=FontWeight.Bold) }
-            Text("Preview is free. GO LIVE needs Premium Code from ADMIN.", color=Color.Gray, fontSize=11.sp)
-            if(isLive){
                 Spacer(Modifier.height(10.dp))
-                Row(Modifier.fillMaxWidth()){ OutlinedTextField(value=chatMsg, onValueChange={chatMsg=it}, label={Text("Chat...")}, modifier=Modifier.weight(1f)); Spacer(Modifier.width(6.dp)); Button(onClick={ if(chatMsg.isNotBlank()){ chatList=chatList+("You: $chatMsg"); chatMsg="" } }){ Text("SEND") } }
-                Button(onClick={likes++}, modifier=Modifier.fillMaxWidth()){ Text("❤️ LIKE - $likes") }
-                chatList.takeLast(5).forEach{ Text(it, color=Color.White, fontSize=12.sp) }
             }
-        }
-        if(screen=="SETUP"){
-            Text("SETUP - YOUR STUDIO + STREAMING", color=Color.Yellow, fontSize=17.sp, fontWeight=FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-            Text("1) WHERE TO STREAM TO? - 3 URL + CUSTOM", color=Color.White, fontSize=13.sp, modifier=Modifier.fillMaxWidth())
+
+            // SOURCE - ONLY 3 ON TOP - MAIN / REMOTE / SCREEN
+            Text("SOURCE - MAIN / REMOTE / SCREEN", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                listOf("YouTube","Facebook","TikTok","Custom").forEach{ d -> Button(onClick={ destination=d; rtmpUrl=when(d){ "YouTube"->"rtmp://a.rtmp.youtube.com/live2"; "Facebook"->"rtmps://live-api-s.facebook.com:443/rtmp/"; "TikTok"->"rtmp://push.tiktok.com/live/"; else->"" } }, modifier=Modifier.weight(1f).height(44.dp), contentPadding=PaddingValues(0.dp), colors=ButtonDefaults.buttonColors(containerColor=if(destination==d) Color.Yellow else Color(0xFF444444))){ Text(d, color=if(destination==d) Color.Black else Color.White, fontSize=11.sp) } }
+                listOf("MAIN CAMERA","REMOTE","SCREEN").forEach{ s ->
+                    Button(onClick={ source=s; if(s=="REMOTE") toast("Remote Mode - You control MAIN from far") }, modifier=Modifier.weight(1f).height(44.dp), contentPadding=PaddingValues(2.dp), colors=ButtonDefaults.buttonColors(containerColor=if(source==s) Color.Yellow else Color(0xFF444444))){ Text(s, color=if(source==s) Color.Black else Color.White, fontSize=10.sp, fontWeight=FontWeight.Bold) }
+                }
             }
-            Spacer(Modifier.height(6.dp))
-            Text("YouTube: rtmp://a.rtmp.youtube.com/live2", color=Color.Gray, fontSize=10.sp, modifier=Modifier.fillMaxWidth())
-            Text("Facebook: rtmps://live-api-s.facebook.com:443/rtmp/", color=Color.Gray, fontSize=10.sp, modifier=Modifier.fillMaxWidth())
-            Text("TikTok: rtmp://push.tiktok.com/live/", color=Color.Gray, fontSize=10.sp, modifier=Modifier.fillMaxWidth())
             Spacer(Modifier.height(8.dp))
-            Text("2) RTMP URL", color=Color.White, fontSize=13.sp, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=rtmpUrl, onValueChange={rtmpUrl=it}, modifier=Modifier.fillMaxWidth())
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                Button(onClick={cameraSide="BACK"}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(cameraSide=="BACK") Color(0xFF00E5FF) else Color(0xFF444444))){ Text("BACK CAMERA", color=if(cameraSide=="BACK") Color.Black else Color.White, fontSize=11.sp) }
+                Button(onClick={cameraSide="FRONT"}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(cameraSide=="FRONT") Color(0xFF00E5FF) else Color(0xFF444444))){ Text("FRONT CAMERA", color=if(cameraSide=="FRONT") Color.Black else Color.White, fontSize=11.sp) }
+            }
+            Spacer(Modifier.height(10.dp))
+
+            // REAL CAMERA - OPEN - VIEW EVERYTHING BEFORE GO LIVE
+            RealCamera()
             Spacer(Modifier.height(8.dp))
-            Text("3) Stream Key - From $destination", color=Color.White, fontSize=13.sp, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=streamKey, onValueChange={streamKey=it}, label={Text("Paste Stream Key here")}, modifier=Modifier.fillMaxWidth())
-            Text("YouTube: YouTube Studio > Go Live > Stream Key | Facebook: Live Producer > Stream Key | TikTok: LIVE Center > Stream Key", color=Color.Gray, fontSize=10.sp)
-            Spacer(Modifier.height(10.dp))
-            Text("Video Quality", color=Color.White, fontSize=14.sp, modifier=Modifier.fillMaxWidth())
-            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("SD 480p","HD 720p","FHD 1080p").forEach{ q -> Button(onClick={quality=q}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(quality==q) Color.Yellow else Color(0xFF444444))){ Text(q, color=if(quality==q) Color.Black else Color.White, fontSize=11.sp) } } }
-            Spacer(Modifier.height(10.dp))
-            Text("Scene", color=Color.White, fontSize=14.sp, modifier=Modifier.fillMaxWidth())
-            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("Studio","Outdoor","Church").forEach{ s -> Button(onClick={scene=s}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(scene==s) Color.Yellow else Color(0xFF444444))){ Text(s, color=if(scene==s) Color.Black else Color.White) } } }
-            Spacer(Modifier.height(10.dp))
-            Text("Ticker Text", color=Color.White, fontSize=14.sp, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=ticker, onValueChange={ticker=it}, modifier=Modifier.fillMaxWidth())
-            Spacer(Modifier.height(10.dp))
-            Button(onClick={ screen="HOME"; toast("Saved - $destination") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("SAVE & BACK TO HOME", color=Color.Black) }
-        }
-        if(screen=="CHANNELS"){
-            Text("YOUR CHANNELS", color=Color.Yellow, fontSize=18.sp, fontWeight=FontWeight.Bold)
-            listOf("JSTV Main","JSTV Sports","JSTV Music","JSTV News","JSTV Church","My Channel").forEach{ c -> Spacer(Modifier.height(6.dp)); Button(onClick={ channel=c; screen="HOME" }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(channel==c) Color.Yellow else Color(0xFF444444))){ Text(c, color=if(channel==c) Color.Black else Color.White) } }
-        }
-        if(screen=="HELP"){
-            Text("HELP & CONTACT - ABOUT APP & BROADCASTING", color=Color.Yellow, fontSize=16.sp, fontWeight=FontWeight.Bold)
-            Spacer(Modifier.height(10.dp))
-            Text("JSTV BROADCASTER lets you create your own Live Channel.", color=Color.White, fontSize=13.sp)
-            Text("1. Allow Camera + Mic  2. Link to ADMIN  3. SETUP: Choose YouTube/Facebook/TikTok/Custom + Paste Stream Key  4. Tap GO LIVE - Premium Code needed", color=Color.Gray, fontSize=12.sp)
+            Text("👀 You see REAL camera now - Check Title, Logo, Ticker, Verse BEFORE you GO LIVE", color=Color.Gray, fontSize=11.sp, textAlign=TextAlign.Center)
             Spacer(Modifier.height(8.dp))
-            Text("Daily 200 | Monthly 1000 | 3 Months 2500 | Year 8000", color=Color.White, fontSize=13.sp)
-            Text("Paybill 516600 Acc 5600935001", color=Color.White, fontSize=13.sp)
-            Text("Ask ADMIN for OFFER - Free Trial / 50% Off / Special Offer", color=Color.Yellow, fontSize=12.sp)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                Button(onClick={cameraOn=!cameraOn}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(cameraOn) Color(0xFF00E600) else Color.Red)){ Text(if(cameraOn) "CAMERA ON" else "CAMERA OFF", color=Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold) }
+                Button(onClick={micOn=!micOn}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(micOn) Color(0xFF00E600) else Color.Red)){ Text(if(micOn) "MIC ON" else "MIC MUTED", color=Color.White, fontSize=12.sp, fontWeight=FontWeight.Bold) }
+            }
             Spacer(Modifier.height(10.dp))
-            Button(onClick={ wa("Hi JSTV, I want Premium Code / OFFER to Go Live. I have paid.") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF25D366))){ Text("WHATSAPP US - 0763052911", fontWeight=FontWeight.Bold) }
+
+            // GO LIVE / END LIVE - ALWAYS VISIBLE
+            if(!isLive){
+                Button(onClick={
+                    if(!linked){ toast("Link to ADMIN first"); return@Button }
+                    if(ytKey.isBlank() && fbKey.isBlank() && tkKey.isBlank() && customKey.isBlank()){ toast("Open SETTINGS - Enter at least 1 Stream Key"); showSettings=true; return@Button }
+                    isLive=true; liveSeconds=0; premiumShown=false; toast("LIVE Started - FREE 30 Sec! Do settings before? You already did ✅")
+                }, modifier=Modifier.fillMaxWidth().height(60.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00E600))){ Text("GO LIVE - 30 SEC FREE", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold) }
+                Text("After GO LIVE, you get 30 SEC FREE. After 30 sec, Premium will ask.", color=Color.Gray, fontSize=11.sp)
+            } else {
+                Box(Modifier.fillMaxWidth().background(Color(0xFF8B0000)).padding(10.dp), contentAlignment=Alignment.Center){ Text("● LIVE - ${liveTime()} - ${if(liveSeconds<30) "FREE ${30-liveSeconds}s LEFT" else if(isPremium) "PREMIUM ✅ CONTINUE" else "PREMIUM NEEDED!"}", color=Color.White, fontSize=14.sp, fontWeight=FontWeight.Bold) }
+                Spacer(Modifier.height(8.dp))
+                Button(onClick={ isLive=false; liveSeconds=0; premiumShown=false; toast(if(saveAfter) "Live Ended - Video Saved ✅" else "Live Ended") }, modifier=Modifier.fillMaxWidth().height(56.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("END LIVE", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold) }
+                Text("REMOTE can also END LIVE from far - No need to go back to MAIN", color=Color.Gray, fontSize=11.sp)
+            }
+            Spacer(Modifier.height(12.dp))
+
+            // ============ ALL SETTINGS - INSIDE - HIDDEN UNTIL OPEN ============
+            if(showSettings){
+                Text("⚙️ ALL SETTINGS - INSIDE - Change anytime, even while LIVE", color=Color.Yellow, fontSize=14.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Text("LINK INSIDE:", color=Color.Yellow, fontSize=12.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                OutlinedTextField(value=roomCode, onValueChange={roomCode=it.uppercase()}, label={Text("Room Code")}, modifier=Modifier.fillMaxWidth())
+                Button(onClick={ if(roomCode.startsWith("JSTV-")){ linked=true; toast("LINKED") } else toast("Enter Room Code") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00CFFF))){ Text(if(linked) "LINKED - $roomCode" else "LINK TO ADMIN", color=Color.Black, fontWeight=FontWeight.Bold) }
+                Spacer(Modifier.height(10.dp))
+                Text("1) TITLE, CHANNEL, SCENE", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                OutlinedTextField(value=streamTitle, onValueChange={streamTitle=it}, label={Text("Stream Title")}, modifier=Modifier.fillMaxWidth())
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("JSTV Main","JSTV Sports","JSTV Music","JSTV News","JSTV Church").forEach{ c -> Button(onClick={channel=c}, modifier=Modifier.weight(1f).height(40.dp), contentPadding=PaddingValues(2.dp), colors=ButtonDefaults.buttonColors(containerColor=if(channel==c) Color.Yellow else Color(0xFF444444))){ Text(c, color=if(channel==c) Color.Black else Color.White, fontSize=9.sp) } } }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("Studio","Outdoor","Church").forEach{ s -> Button(onClick={scene=s}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(scene==s) Color.Yellow else Color(0xFF444444))){ Text(s, color=if(scene==s) Color.Black else Color.White) } } }
+                Spacer(Modifier.height(10.dp))
+                Text("2) MULTISTREAM - YOUTUBE / FACEBOOK / TIKTOK / CUSTOM", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically){ Button(onClick={ytOn=!ytOn}, colors=ButtonDefaults.buttonColors(containerColor=if(ytOn) Color.Red else Color(0xFF444444))){ Text(if(ytOn) "YouTube ON" else "YouTube OFF", fontSize=11.sp) }; Spacer(Modifier.width(6.dp)); Text("YouTube", color=Color.White, fontWeight=FontWeight.Bold) }
+                OutlinedTextField(value=ytUrl, onValueChange={ytUrl=it}, label={Text("YouTube RTMP URL")}, modifier=Modifier.fillMaxWidth())
+                OutlinedTextField(value=ytKey, onValueChange={ytKey=it}, label={Text("YouTube Key")}, modifier=Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically){ Button(onClick={fbOn=!fbOn}, colors=ButtonDefaults.buttonColors(containerColor=if(fbOn) Color(0xFF1877F2) else Color(0xFF444444))){ Text(if(fbOn) "Facebook ON" else "Facebook OFF", fontSize=11.sp) }; Spacer(Modifier.width(6.dp)); Text("Facebook", color=Color.White, fontWeight=FontWeight.Bold) }
+                OutlinedTextField(value=fbUrl, onValueChange={fbUrl=it}, label={Text("Facebook RTMP URL")}, modifier=Modifier.fillMaxWidth())
+                OutlinedTextField(value=fbKey, onValueChange={fbKey=it}, label={Text("Facebook Key")}, modifier=Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically){ Button(onClick={tkOn=!tkOn}, colors=ButtonDefaults.buttonColors(containerColor=if(tkOn) Color.Black else Color(0xFF444444))){ Text(if(tkOn) "TikTok ON" else "TikTok OFF", fontSize=11.sp) }; Spacer(Modifier.width(6.dp)); Text("TikTok", color=Color.White, fontWeight=FontWeight.Bold) }
+                OutlinedTextField(value=tkUrl, onValueChange={tkUrl=it}, label={Text("TikTok RTMP URL")}, modifier=Modifier.fillMaxWidth())
+                OutlinedTextField(value=tkKey, onValueChange={tkKey=it}, label={Text("TikTok Key")}, modifier=Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically){ Button(onClick={customOn=!customOn}, colors=ButtonDefaults.buttonColors(containerColor=if(customOn) Color.Yellow else Color(0xFF444444))){ Text(if(customOn) "Custom ON" else "Custom OFF", color=if(customOn) Color.Black else Color.White, fontSize=11.sp) }; Spacer(Modifier.width(6.dp)); Text("Custom", color=Color.White, fontWeight=FontWeight.Bold) }
+                OutlinedTextField(value=customUrl, onValueChange={customUrl=it}, label={Text("Custom RTMP URL")}, modifier=Modifier.fillMaxWidth())
+                OutlinedTextField(value=customKey, onValueChange={customKey=it}, label={Text("Custom Key")}, modifier=Modifier.fillMaxWidth())
+                Spacer(Modifier.height(10.dp))
+                Text("3) CAMERA SETTINGS", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("SD 480p","HD 720p","FHD 1080p").forEach{ q -> Button(onClick={quality=q}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(quality==q) Color.Yellow else Color(0xFF444444))){ Text(q, color=if(quality==q) Color.Black else Color.White, fontSize=10.sp) } } }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("24 FPS","30 FPS","60 FPS").forEach{ f -> Button(onClick={fps=f}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(fps==f) Color.Yellow else Color(0xFF444444))){ Text(f, color=if(fps==f) Color.Black else Color.White, fontSize=11.sp) } } }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("1x","2x","3x").forEach{ z -> Button(onClick={zoom=z}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(zoom==z) Color.Yellow else Color(0xFF444444))){ Text(z, color=if(zoom==z) Color.Black else Color.White) } } }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    Button(onClick={flash=!flash}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(flash) Color.Yellow else Color(0xFF444444))){ Text(if(flash) "FLASH ON" else "FLASH OFF", color=if(flash) Color.Black else Color.White, fontSize=11.sp) }
+                    Button(onClick={beauty=!beauty}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(beauty) Color.Yellow else Color(0xFF444444))){ Text(if(beauty) "BEAUTY ON" else "BEAUTY OFF", color=if(beauty) Color.Black else Color.White, fontSize=11.sp) }
+                    Button(onClick={stabilization=!stabilization}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(stabilization) Color.Yellow else Color(0xFF444444))){ Text(if(stabilization) "STABLE ON" else "STABLE OFF", color=if(stabilization) Color.Black else Color.White, fontSize=11.sp) }
+                }
+                Spacer(Modifier.height(6.dp))
+                Button(onClick={autoFocus=!autoFocus}, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(autoFocus) Color.Yellow else Color(0xFF444444))){ Text(if(autoFocus) "FOCUS AUTO" else "FOCUS LOCK", color=if(autoFocus) Color.Black else Color.White) }
+                Spacer(Modifier.height(10.dp))
+                Text("4) INTRO, TICKER, LOGO, DISPLAY, VERSE", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                Text("Intro: $introVideo", color=Color.White, fontSize=12.sp)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    Button(onClick={ filePicker.launch("video/*") }, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7B61FF))){ Text("📁 PICK INTRO", color=Color.White, fontSize=10.sp) }
+                    Button(onClick={playIntro=!playIntro}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(playIntro) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(playIntro) "PLAY INTRO ON" else "PLAY INTRO OFF", fontSize=11.sp) }
+                    Button(onClick={loopIntro=!loopIntro}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(loopIntro) Color.Yellow else Color(0xFF444444))){ Text(if(loopIntro) "LOOP ON" else "LOOP OFF", color=if(loopIntro) Color.Black else Color.White, fontSize=11.sp) }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value=ticker, onValueChange={ticker=it}, label={Text("Scrolling Text - Changes LIVE")}, modifier=Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    Button(onClick={showTicker=!showTicker}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(showTicker) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(showTicker) "TICKER SHOW" else "TICKER HIDE", fontSize=11.sp) }
+                    Button(onClick={loopTicker=!loopTicker}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(loopTicker) Color.Yellow else Color(0xFF444444))){ Text(if(loopTicker) "LOOP TICKER ON" else "LOOP TICKER OFF", color=if(loopTicker) Color.Black else Color.White, fontSize=11.sp) }
+                }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value=logoText, onValueChange={logoText=it}, label={Text("Logo Text")}, modifier=Modifier.fillMaxWidth())
+                Button(onClick={showLogo=!showLogo}, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(showLogo) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(showLogo) "LOGO SHOW - $logoText" else "LOGO HIDE") }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value=displayText, onValueChange={displayText=it}, label={Text("Display Text")}, modifier=Modifier.fillMaxWidth())
+                Button(onClick={showDisplayText=!showDisplayText}, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(showDisplayText) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(showDisplayText) "DISPLAY SHOW" else "DISPLAY HIDE") }
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(value=verse, onValueChange={verse=it}, label={Text("Bible Verse - Changes LIVE")}, modifier=Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){
+                    Button(onClick={verse="Psalm 23:1 - The Lord is my shepherd"}, modifier=Modifier.weight(1f)){ Text("Psalm 23", fontSize=10.sp) }
+                    Button(onClick={verse="John 3:16 - For God so loved the world..."}, modifier=Modifier.weight(1f)){ Text("John 3:16", fontSize=10.sp) }
+                    Button(onClick={verse="Philippians 4:13 - I can do all things..."}, modifier=Modifier.weight(1f)){ Text("Phil 4:13", fontSize=10.sp) }
+                }
+                Button(onClick={showVerse=!showVerse}, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(showVerse) Color.Yellow else Color(0xFF444444))){ Text(if(showVerse) "VERSE SHOW ✅" else "VERSE HIDE", color=if(showVerse) Color.Black else Color.White) }
+                Spacer(Modifier.height(10.dp))
+                Text("5) SAVE", color=Color.Yellow, fontSize=13.sp, fontWeight=FontWeight.Bold, modifier=Modifier.fillMaxWidth())
+                Button(onClick={saveAfter=!saveAfter}, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(saveAfter) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(saveAfter) "✅ SAVE AFTER - ON" else "SAVE AFTER - OFF") }
+                Spacer(Modifier.height(8.dp))
+                Button(onClick={ showSettings=false; toast("Settings Saved - Back to Camera ✅") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF00E600))){ Text("SAVE & CLOSE SETTINGS - BACK TO CAMERA", color=Color.White, fontWeight=FontWeight.Bold) }
+            }
         }
+
+        if(screen=="WIRELESS"){
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween){ Text("WIRELESS CAMERA", color=Color.Black, fontSize=18.sp, fontWeight=FontWeight.Bold, modifier=Modifier.background(Color.White).padding(4.dp)); Button(onClick={ screen="FIRST" }){ Text("← BACK") } }
+            Spacer(Modifier.height(10.dp))
+            OutlinedTextField(value=roomCode, onValueChange={roomCode=it.uppercase()}, label={Text("Room Code - Same as MAIN")}, modifier=Modifier.fillMaxWidth())
+            Button(onClick={ if(roomCode.startsWith("JSTV-")){ linked=true; toast("CAMERA LINKED") } else toast("Enter Room Code") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.White)){ Text(if(linked) "CAMERA LINKED - $roomCode" else "LINK CAMERA TO ADMIN", color=Color.Black, fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(10.dp))
+            RealCamera()
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(6.dp)){ listOf("BACK","FRONT").forEach{ c -> Button(onClick={cameraSide=c}, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=if(cameraSide==c) Color.White else Color(0xFF444444))){ Text(c, color=if(cameraSide==c) Color.Black else Color.White) } } }
+            Spacer(Modifier.height(8.dp))
+            Button(onClick={cameraOn=!cameraOn}, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=if(cameraOn) Color(0xFF00E600) else Color(0xFF444444))){ Text(if(cameraOn) "WIRELESS CAMERA ON - Sending to MAIN" else "WIRELESS CAMERA OFF") }
+            Button(onClick={flash=!flash}, modifier=Modifier.fillMaxWidth()){ Text(if(flash) "FLASH ON" else "FLASH OFF") }
+            Spacer(Modifier.height(10.dp))
+            Button(onClick={ showInbox=!showInbox }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("📩 INBOX - MESSAGES FROM ADMIN", color=Color.Black, fontWeight=FontWeight.Bold) }
+            if(showInbox){ Spacer(Modifier.height(8.dp)); inboxMsgs.forEach{ (msg,time) -> Box(Modifier.fillMaxWidth().background(Color(0xFF444444)).padding(10.dp)){ Text(msg, color=Color.White, fontSize=12.sp) }; Spacer(Modifier.height(6.dp)) } }
+        }
+
+        // PREMIUM - AFTER 30 SEC
         if(showPremium){
             Spacer(Modifier.height(16.dp))
             Box(Modifier.fillMaxWidth().background(Color(0xFF444444)).padding(16.dp)){
                 Column(horizontalAlignment=Alignment.CenterHorizontally){
-                    Text("GO LIVE - PREMIUM REQUIRED", color=Color.Yellow, fontSize=16.sp, fontWeight=FontWeight.Bold)
-                    Text("No Demo Live. Enter Premium Code OR Offer Code from ADMIN.", color=Color.White, fontSize=13.sp)
-                    OutlinedTextField(value=code, onValueChange={code=it.uppercase()}, label={Text("Enter Code - e.g. JSTV-200-XXXX or JSTV-OFFER-XXXX")}, modifier=Modifier.fillMaxWidth())
-                    Button(onClick={ if(code.startsWith("JSTV-")){ isPremium=true; showPremium=false; isLive=true; viewers=12; toast("Premium Unlocked - LIVE!") } else toast("Wrong Code - WhatsApp ADMIN for OFFER") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("UNLOCK & GO LIVE", color=Color.Black, fontWeight=FontWeight.Bold) }
-                    Text("Daily 200 | Monthly 1000 | Paybill 516600 Acc 5600935001", color=Color.White, fontSize=11.sp)
-                    Button(onClick={ wa("Hi JSTV, I want Premium Code / OFFER to Go Live.") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF25D366))){ Text("WHATSAPP FOR CODE / OFFER - 0763052911") }
-                    Button(onClick={ showPremium=false }, modifier=Modifier.fillMaxWidth()){ Text("CANCEL") }
+                    Text("⏰ 30 SEC FREE DONE!", color=Color.Yellow, fontSize=18.sp, fontWeight=FontWeight.Bold)
+                    Text("Your FREE trial ended at ${liveTime()}", color=Color.White, fontSize=13.sp)
+                    Text("Enter Premium Code to CONTINUE LIVE - Without stopping", color=Color.White, fontSize=12.sp, textAlign=TextAlign.Center)
+                    OutlinedTextField(value=code, onValueChange={code=it.uppercase()}, label={Text("Code - JSTV-200-XXXX or JSTV-OFFER-XXXX")}, modifier=Modifier.fillMaxWidth())
+                    Button(onClick={ if(code.startsWith("JSTV-")){ isPremium=true; showPremium=false; toast("Premium ✅ Continue LIVE!") } else toast("Wrong Code") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("UNLOCK & CONTINUE LIVE", color=Color.Black, fontWeight=FontWeight.Bold) }
+                    Button(onClick={ wa("Hi ADMIN, my 30 sec free ended, I want Premium / OFFER") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF25D366))){ Text("WHATSAPP FOR CODE / OFFER", color=Color.White) }
+                    Button(onClick={ showPremium=false; isLive=false; liveSeconds=0; premiumShown=false }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("STOP LIVE", color=Color.White) }
+                    Button(onClick={ showPremium=false }, modifier=Modifier.fillMaxWidth()){ Text("CLOSE - I WILL ENTER LATER (Live keeps counting)") }
                 }
             }
         }
+        Spacer(Modifier.height(20.dp))
     }
 }
