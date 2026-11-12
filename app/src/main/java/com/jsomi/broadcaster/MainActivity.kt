@@ -98,9 +98,9 @@ fun BroadcasterApp() {
     var expiry by remember { mutableStateOf("") }
 
     // ===== TWO POPS =====
-    var showPremiumPopup by remember { mutableStateOf(false) } // POP 1 - After 30 sec
-    var showPayMethodPopup by remember { mutableStateOf(false) } // POP 2 - Choose How To Pay
-    var payMethod by remember { mutableStateOf("") } // "PAYBILL" or "STK"
+    var showPremiumPopup by remember { mutableStateOf(false) }
+    var showPayMethodPopup by remember { mutableStateOf(false) }
+    var payMethod by remember { mutableStateOf("") }
 
     val inbox = remember { mutableStateListOf<String>() }
     var unread by remember { mutableStateOf(0) }
@@ -217,7 +217,7 @@ fun BroadcasterApp() {
         }
     }
 
-    // ===== POP 1 - AFTER 30 SEC - PREMIUM ASKS =====
+    // ===== POP 1 - AFTER 30 SEC =====
     if (showPremiumPopup) {
         AlertDialog(onDismissRequest = { showPremiumPopup = false },
             title = { Text("30 Seconds Finished!") },
@@ -227,24 +227,16 @@ fun BroadcasterApp() {
         )
     }
 
-    // ===== POP 2 - CHOOSE HOW TO PAY - TWO WAYS =====
+    // ===== POP 2 - CHOOSE HOW TO PAY =====
     if (showPayMethodPopup) {
         AlertDialog(onDismissRequest = { showPayMethodPopup = false },
             title = { Text("Choose How To Pay") },
-            text = { Text("TWO REAL WAYS:\n\n1. PAYBILL MANUAL - You pay yourself in M-PESA menu.\nPaybill 516600 Acc 5600935001\n\n2. STK PUSH - Admin pushes to your phone. A REAL Safaricom PIN popup will come on YOUR phone. You enter PIN there.\n\nChoose one:") },
+            text = { Text("TWO REAL WAYS:\n\n1. PAYBILL MANUAL - You pay yourself in M-PESA menu.\nPaybill 516600 Acc 5600935001\n\n2. STK PUSH - Admin pushes to your phone. A REAL Safaricom PIN popup will come on YOUR phone.") },
             confirmButton = {
                 Column {
                     Button(onClick = { payMethod = "PAYBILL"; showPayMethodPopup = false; screen = "PAYMENT" }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("1. PAYBILL MANUAL") }
                     Spacer(modifier = Modifier.height(6.dp))
-                    Button(onClick = {
-                        payMethod = "STK"
-                        if (payPhone.length < 10 && whatsapp.length < 10) toast("Enter your number in SIGNUP / PAYMENT first")
-                        else {
-                            showPayMethodPopup = false; screen = "PAYMENT"
-                            openWhatsApp("254763052911", "Hi Admin, REQUEST STK PUSH\nName: $username\nPhone: ${if (payPhone.isNotBlank()) payPhone else whatsapp}\nPlan: $payPlan - ${priceFor(payPlan)} KES\nPlease PUSH STK to my phone. I will enter PIN on Safaricom popup.")
-                            toast("STK Request sent to Admin - Wait for Safaricom popup")
-                        }
-                    }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("2. REQUEST STK PUSH") }
+                    Button(onClick = { payMethod = "STK"; showPayMethodPopup = false; screen = "PAYMENT"; openWhatsApp("254763052911", "Hi Admin, REQUEST STK PUSH\nName: $username\nPhone: $payPhone\nPlan: $payPlan - ${priceFor(payPlan)} KES\nPlease PUSH STK to my phone.") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("2. REQUEST STK PUSH") }
                 }
             },
             dismissButton = { Button(onClick = { showPayMethodPopup = false }) { Text("CANCEL") } }
@@ -254,9 +246,8 @@ fun BroadcasterApp() {
     if (screen == "PAYMENT") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("PREMIUM - PAYMENT - REAL M-PESA", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(if (payMethod == "STK") "You chose: STK PUSH - Wait for REAL Safaricom PIN popup on your phone. Admin must push it. Do NOT enter PIN in this app." else "You chose: PAYBILL MANUAL - Pay yourself in M-PESA menu.", color = if (payMethod == "STK") Color.Cyan else Color.Yellow, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(if (payMethod == "STK") "You chose: STK PUSH - Wait for REAL Safaricom PIN popup on your phone." else "You chose: PAYBILL MANUAL - Pay yourself in M-PESA menu.", color = if (payMethod == "STK") Color.Cyan else Color.Yellow, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
-            // Button to change method - shows POP 2 again
             Button(onClick = { showPayMethodPopup = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text("CHANGE PAYMENT METHOD - SHOW POP 2 AGAIN") }
             Spacer(modifier = Modifier.height(10.dp))
             Column(modifier = Modifier.fillMaxWidth().background(Color(0xFF1B5E20)).padding(14.dp)) {
@@ -268,16 +259,13 @@ fun BroadcasterApp() {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("Daily", "Monthly", "3 Months", "Year").forEach { p -> Button(onClick = { payPlan = p; payAmount = priceFor(p) }, colors = ButtonDefaults.buttonColors(containerColor = if (payPlan == p) Color.Yellow else Color.DarkGray), modifier = Modifier.weight(1f)) { Text(p, fontSize = 10.sp, color = if (payPlan == p) Color.Black else Color.White) } } }
             Text("Selected: $payPlan - ${priceFor(payPlan)} KES - ${daysFor(payPlan)} Days", color = Color.Yellow, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
-
-            // POP 2 - METHOD 1 - PAYBILL
             if (payMethod != "STK") {
                 Text("METHOD 1 - PAYBILL MANUAL:", color = Color.Yellow, fontWeight = FontWeight.Bold)
                 Text("1. Open M-PESA on your phone\n2. Lipa Na M-PESA > Paybill\n3. Business: 516600\n4. Account: 5600935001\n5. Amount: $payAmount\n6. Enter M-PESA PIN in M-PESA menu\n7. You will get SMS with Receipt Code", color = Color.White, fontSize = 14.sp)
             }
-            // POP 2 - METHOD 2 - STK
             if (payMethod == "STK") {
                 Text("METHOD 2 - STK PUSH:", color = Color.Cyan, fontWeight = FontWeight.Bold)
-                Text("1. Admin will PUSH STK to your phone\n2. A REAL Safaricom popup will appear on YOUR phone\n3. Enter YOUR M-PESA PIN on THAT Safaricom popup - NOT in this app\n4. You will get SMS with Receipt Code\n5. If no popup in 2 mins, tap REQUEST AGAIN below", color = Color.White, fontSize = 14.sp)
+                Text("1. Admin will PUSH STK to your phone\n2. A REAL Safaricom popup will appear on YOUR phone\n3. Enter YOUR M-PESA PIN on THAT Safaricom popup - NOT in this app\n4. You will get SMS with Receipt Code", color = Color.White, fontSize = 14.sp)
                 Button(onClick = { openWhatsApp("254763052911", "Hi Admin, REQUEST STK AGAIN\nName: $username\nPhone: $payPhone\nPlan: $payPlan - $payAmount KES") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text("REQUEST STK PUSH AGAIN") }
             }
             Spacer(modifier = Modifier.height(10.dp))
