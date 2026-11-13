@@ -10,10 +10,8 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-
-        // ADD THIS LINE HERE:
-        maven { url = uri('https://jitpack.io') }
+        maven { url 'https://jitpack.io' }
     }
 }
-rootProject.name = "YourProjectName"
+rootProject.name = 'JSOMI-broadcaster'
 include ':app'
