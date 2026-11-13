@@ -1,9 +1,7 @@
 package com.jsomi.broadcaster
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -27,278 +25,128 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import java.text.SimpleDateFormat
-import java.util.*
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import kotlin.math.roundToInt
-import kotlinx.coroutines.delay
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { BroadcasterApp() } }
+const val DB_URL = "https://jstv-studio-default-rtdb.firebaseio.com"
+fun fbGet(path: String, onDone: (String)->Unit){ Thread{ try{ val c=URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.connectTimeout=8000; onDone(c.inputStream.bufferedReader().readText()) }catch(e:Exception){ onDone("") } }.start() }
+fun fbPut(path: String, json: String){ Thread{ try{ val c=URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.requestMethod="PUT"; c.doOutput=true; c.outputStream.write(json.toByteArray()); c.inputStream.bufferedReader().readText() }catch(e:Exception){} }.start() }
+
+class MainActivity : ComponentActivity(){ override fun onCreate(savedInstanceState: Bundle?){ super.onCreate(savedInstanceState); setContent{ MaterialTheme{ BroadcasterApp() } } } }
+@Composable fun RealCam(modifier: Modifier=Modifier, isFront: Boolean){ val lc=LocalLifecycleOwner.current; AndroidView(factory={ c-> val pv=PreviewView(c); try{ val f=ProcessCameraProvider.getInstance(c); f.addListener({ try{ val p=f.get(); val pr=Preview.Builder().build().also{it.setSurfaceProvider(pv.surfaceProvider)}; p.unbindAll(); p.bindToLifecycle(lc, if(isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, pr)}catch(e:Exception){} }, ContextCompat.getMainExecutor(c))}catch(e:Exception){}; pv }, modifier=modifier) }
+
+@Composable fun BroadcasterApp(){
+    val ctx=LocalContext.current
+    var hasPerm by remember{ mutableStateOf(ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED) }
+    val permLauncher=androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ r-> hasPerm=r.values.all{it} }
+    var screen by remember{ mutableStateOf("LOGIN") }
+    var username by remember{ mutableStateOf("")}; var whatsapp by remember{ mutableStateOf("")}; var pin by remember{ mutableStateOf("")}
+    var myKey by remember{ mutableStateOf("")}; var myPlan by remember{ mutableStateOf("Monthly")}; var myExpiry by remember{ mutableStateOf("")}; var isUnlocked by remember{ mutableStateOf(false)}; var isBanned by remember{ mutableStateOf(false)}
+    var adminMsg by remember{ mutableStateOf("")}; var offerMsg by remember{ mutableStateOf("")}; var ratesText by remember{ mutableStateOf("Daily 200 KES | Monthly 1000 KES | 3 Months 2500 KES | Year 8000 KES")}
+    var isLive by remember{ mutableStateOf(false)}; var isFront by remember{ mutableStateOf(true)}; var isMicOn by remember{ mutableStateOf(true)}
+    var channelName by remember{ mutableStateOf("JSTV")}; var ticker by remember{ mutableStateOf("Welcome to JSTV")}; var verse by remember{ mutableStateOf("John 3:16")}
+    var showTicker by remember{ mutableStateOf(true)}; var showVerse by remember{ mutableStateOf(true)}; var showLogo by remember{ mutableStateOf(true)}
+    var logoX by remember{ mutableStateOf(20f)}; var logoY by remember{ mutableStateOf(20f)}; var tickerX by remember{ mutableStateOf(0f)}; var tickerY by remember{ mutableStateOf(400f)}; var verseX by remember{ mutableStateOf(20f)}; var verseY by remember{ mutableStateOf(300f)}
+    var reportText by remember{ mutableStateOf("")}
+    fun toast(m:String){ Toast.makeText(ctx,m,Toast.LENGTH_SHORT).show() }
+    fun checkAdmin(){
+        fbGet("adminMessage"){ r-> if(r.isNotBlank() && r!="null") adminMsg=r.replace("\"","") }
+        fbGet("offer"){ r-> if(r.isNotBlank() && r!="null") offerMsg=r.replace("\"","") }
+        fbGet("rates"){ r-> if(r.isNotBlank() && r!="null") ratesText=r.replace("\"","").replace("|","\n") }
+        fbGet("liveControl"){ r-> if(r.contains("STOP")){ isLive=false; toast("Admin STOPPED Live") } ; if(r.contains("MUTE")){ isMicOn=false; toast("Admin MUTED you") }; if(r.contains("BAN") && r.contains(username)){ isBanned=true; toast("You are BANNED by Admin") } }
+        if(myKey.isNotBlank()){ fbGet("users/$myKey"){ r-> try{ if(r.isNotBlank() && r!="null"){ val o=JSONObject(r); isUnlocked=o.optBoolean("isUnlocked"); isBanned=o.optBoolean("banned"); myExpiry=o.optString("expiry"); myPlan=o.optString("plan") } }catch(e:Exception){} } }
     }
-}
+    LaunchedEffect(screen){ if(screen=="DASH" || screen=="LIVE"){ checkAdmin() } }
 
-@Composable
-fun RealCamera2(modifier: Modifier = Modifier, isFront: Boolean) {
-    val lifecycle = LocalLifecycleOwner.current
-    AndroidView(factory = { c ->
-        val pv = PreviewView(c)
-        val fut = ProcessCameraProvider.getInstance(c)
-        fut.addListener({
-            val provider = fut.get()
-            val preview = Preview.Builder().build().also { it.setSurfaceProvider(pv.surfaceProvider) }
-            try { provider.unbindAll(); provider.bindToLifecycle(lifecycle, if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, preview) } catch (e: Exception) {}
-        }, ContextCompat.getMainExecutor(c))
-        pv
-    }, modifier = modifier)
-}
-
-@Composable
-fun BroadcasterApp() {
-    val ctx = LocalContext.current
-    var hasPerm by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
-    val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res -> hasPerm = res.values.all { it } }
-    LaunchedEffect(Unit) { if (!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }
-
-    var screen by remember { mutableStateOf("ROLE") }
-    var role by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var whatsapp by remember { mutableStateOf("") }
-    var pin by remember { mutableStateOf("") }
-    var roomCode by remember { mutableStateOf("") }
-    var isLinked by remember { mutableStateOf(false) }
-
-    var isLive by remember { mutableStateOf(false) }
-    var liveSeconds by remember { mutableStateOf(0) }
-    var isSubscribed by remember { mutableStateOf(false) }
-    var isFront by remember { mutableStateOf(true) }
-    var isMicOn by remember { mutableStateOf(true) }
-    var channelName by remember { mutableStateOf("JSTV") }
-    var ticker by remember { mutableStateOf("Welcome to JSTV") }
-    var verse by remember { mutableStateOf("John 3:16") }
-    var showTicker by remember { mutableStateOf(true) }
-    var showVerse by remember { mutableStateOf(true) }
-    var showLogo by remember { mutableStateOf(true) }
-    var logoX by remember { mutableStateOf(20f) }; var logoY by remember { mutableStateOf(20f) }
-    var tickerX by remember { mutableStateOf(0f) }; var tickerY by remember { mutableStateOf(400f) }
-    var verseX by remember { mutableStateOf(20f) }; var verseY by remember { mutableStateOf(300f) }
-
-    var payPlan by remember { mutableStateOf("Monthly") }
-    var payPhone by remember { mutableStateOf("") }
-    var payAmount by remember { mutableStateOf("1000") }
-    var payStatus by remember { mutableStateOf("") }
-    var receiptCode by remember { mutableStateOf("") }
-    var expiry by remember { mutableStateOf("") }
-
-    // ===== TWO POPS =====
-    var showPremiumPopup by remember { mutableStateOf(false) }
-    var showPayMethodPopup by remember { mutableStateOf(false) }
-    var payMethod by remember { mutableStateOf("") }
-
-    val inbox = remember { mutableStateListOf<String>() }
-    var unread by remember { mutableStateOf(0) }
-
-    fun toast(m: String) { Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show() }
-    fun openWhatsApp(num: String, msg: String) {
-        val n = if (num.startsWith("0")) "254" + num.substring(1) else num.replace("+", "")
-        try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$n?text=" + Uri.encode(msg)))) } catch (e: Exception) { toast("WhatsApp not found") }
-    }
-    fun priceFor(p: String) = when (p) { "Daily" -> "200"; "Monthly" -> "1000"; "3 Months" -> "2500"; else -> "8000" }
-    fun daysFor(p: String) = when (p) { "Daily" -> 1; "Monthly" -> 30; "3 Months" -> 90; else -> 365 }
-
-    LaunchedEffect(isLive) {
-        if (isLive && !isSubscribed) {
-            liveSeconds = 0
-            while (isLive && liveSeconds < 30) { delay(1000); liveSeconds++ }
-            if (isLive && !isSubscribed) { isLive = false; showPremiumPopup = true }
-        }
-    }
-
-    if (screen == "ROLE") {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(modifier = Modifier.fillMaxWidth().background(Color.Cyan).padding(10.dp), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("BROADCASTER STUDIO", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold); Text("CYAN + GREEN", color = Color.Black, fontWeight = FontWeight.Bold) }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("CYAN + GREEN = BROADCASTER STUDIO", color = Color.Cyan, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            Text(if (hasPerm) "Camera + Mic: ALLOWED" else "Camera + Mic: NOT ALLOWED YET", color = if (hasPerm) Color.Green else Color.Red, fontSize = 12.sp)
-            if (!hasPerm) Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("ALLOW CAMERA + MIC") }
-            Text("Time: ${SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())}", color = Color.Gray)
-            Text("Choose Your Phone Role:", color = Color.White, fontSize = 20.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(onClick = { role = "MAIN STUDIO"; screen = "SIGNUP" }, modifier = Modifier.fillMaxWidth().height(72.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("MAIN STUDIO", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold); Text("Goes LIVE - Controlled by ADMIN", color = Color.Black, fontSize = 12.sp) } }
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = { role = "REMOTE CONTROL"; screen = "SIGNUP" }, modifier = Modifier.fillMaxWidth().height(72.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("REMOTE CONTROL", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold); Text("Control Main From Far", color = Color.Black, fontSize = 12.sp) } }
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = { role = "WIRELESS CAMERA"; screen = "SIGNUP" }, modifier = Modifier.fillMaxWidth().height(72.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.White)) { Column(horizontalAlignment = Alignment.CenterHorizontally) { Text("WIRELESS CAMERA", color = Color.Black, fontSize = 20.sp, fontWeight = FontWeight.Bold); Text("2nd Phone As Camera", color = Color.Black, fontSize = 12.sp) } }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("LINK TO JSTV STUDIO ADMIN (RED LOGO)", color = Color.Yellow, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            OutlinedTextField(value = roomCode, onValueChange = { roomCode = it }, label = { Text("Room Code from ADMIN") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { if (roomCode.isBlank()) toast("Enter Room Code given by Admin") else { isLinked = true; toast("Linked to ADMIN: $roomCode") } }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text(if (isLinked) "LINKED - $roomCode" else "LINK TO ADMIN", color = Color.Black, fontWeight = FontWeight.Bold) }
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(onClick = { openWhatsApp("254763052911", "Hi Admin, I want to link. Room: $roomCode") }, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text("WHATSAPP ADMIN - 0763052911", color = Color.White) }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { screen = "INBOX"; unread = 0 }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("📩 INBOX ${if (unread > 0) "($unread NEW)" else ""}") }
-        }
-    }
-
-    if (screen == "SIGNUP") {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("JSTV BROADCASTER - $role", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(if (isLinked) "Linked: $roomCode" else "Not Linked - Enter Room Code on First Page", color = if (isLinked) Color.Green else Color.Red, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Create Username + WhatsApp + PIN (6 chars)", color = Color.White, fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Create Username") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = whatsapp, onValueChange = { whatsapp = it; if (payPhone.isBlank()) payPhone = it }, label = { Text("WhatsApp Number") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = pin, onValueChange = { if (it.length <= 6) pin = it }, label = { Text("Create PIN - 6 chars") }, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = { if (username.isBlank() || whatsapp.isBlank() || pin.length != 6) toast("Need Username + WhatsApp + 6-char PIN") else { screen = "MAIN"; toast("Welcome $username - Role: $role") } }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)) { Text("CONTINUE TO STUDIO", color = Color.Black, fontWeight = FontWeight.Bold) }
-            Button(onClick = { screen = "ROLE" }, modifier = Modifier.fillMaxWidth()) { Text("BACK TO ROLES") }
-        }
-    }
-
-    if (screen == "MAIN") {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-            Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("JSTV - $role", color = Color.Yellow, fontWeight = FontWeight.Bold)
-                Button(onClick = { screen = "INBOX"; unread = 0 }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("📩 INBOX ${if (unread > 0) "($unread)" else ""}", fontSize = 11.sp) }
-            }
-            Text("Welcome $username | ${if (isSubscribed) "PREMIUM - Until $expiry" else "FREE PREVIEW - 30 sec FREE LIVE"} | Linked: $roomCode", color = Color.White, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 10.dp))
-            if (isLive) Text("● LIVE - ${30 - liveSeconds} sec left FREE", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 10.dp))
-            Box(modifier = Modifier.fillMaxWidth().weight(1f).background(Color.Black)) {
-                if (hasPerm) RealCamera2(modifier = Modifier.fillMaxSize(), isFront = isFront)
-                else Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }) { Text("ALLOW CAMERA TO SEE YOURSELF") } }
-                if (showLogo) Box(modifier = Modifier.offset { IntOffset(logoX.roundToInt(), logoY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> logoX += d.x; logoY += d.y } }.background(Color.Red).padding(6.dp)) { Text("JSTV $channelName", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                if (showVerse) Box(modifier = Modifier.offset { IntOffset(verseX.roundToInt(), verseY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> verseX += d.x; verseY += d.y } }.background(Color.Black).padding(6.dp)) { Text("Verse: $verse", color = Color.Yellow, fontSize = 11.sp) }
-                if (showTicker) Box(modifier = Modifier.offset { IntOffset(tickerX.roundToInt(), tickerY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> tickerX += d.x; tickerY += d.y } }.fillMaxWidth().background(Color.Yellow).padding(6.dp)) { Text("Ticker: $ticker", color = Color.Black, fontSize = 11.sp) }
-                Text(if (isLive) "● LIVE" else "○ PREVIEW - NOT LIVE YET", color = if (isLive) Color.Red else Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
-            }
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text("Drag Logo / Verse / Ticker to move. Do all settings BEFORE Go Live.", color = Color.Gray, fontSize = 11.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                if (isLive) Button(onClick = { isLive = false; toast("Live Ended") }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("END LIVE", color = Color.White, fontWeight = FontWeight.Bold) }
-                else Button(onClick = { if (!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) else { isLive = true; toast("You are LIVE! 30 sec FREE") } }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("GO LIVE - 30 SEC FREE", color = Color.White, fontWeight = FontWeight.Bold) }
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(onClick = { screen = "SETUP" }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)) { Text("LIVE SETUP", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp) }
-                    Button(onClick = { screen = "ROLE" }, modifier = Modifier.weight(1f)) { Text("BACK", fontSize = 11.sp) }
+    if(screen=="LOGIN"){
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment=Alignment.CenterHorizontally){
+            Text("JSTV BROADCASTER", color=Color.Yellow, fontSize=26.sp, fontWeight=FontWeight.Bold)
+            Text("Sign Up = Create User + WhatsApp + PIN\nSign In = Username + PIN", color=Color.White, fontSize=12.sp)
+            if(adminMsg.isNotBlank()) Text("📩 ADMIN: $adminMsg", color=Color.Cyan, fontWeight=FontWeight.Bold)
+            if(offerMsg.isNotBlank()) Text("💰 OFFER: $offerMsg", color=Color.Green, fontWeight=FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(value=username, onValueChange={username=it}, label={Text("Username")}, modifier=Modifier.fillMaxWidth())
+            OutlinedTextField(value=whatsapp, onValueChange={whatsapp=it}, label={Text("WhatsApp Number e.g. 0712345678")}, modifier=Modifier.fillMaxWidth())
+            OutlinedTextField(value=pin, onValueChange={pin=it}, label={Text("PIN / Password")}, modifier=Modifier.fillMaxWidth())
+            Spacer(Modifier.height(10.dp))
+            Button(onClick={
+                if(username.isBlank() || whatsapp.isBlank() || pin.length<4) toast("Enter Username + WhatsApp + PIN 4+ digits")
+                else { // SIGN UP - AUTO SAVE TO ADMIN VIA FIREBASE
+                    val key=username.lowercase().replace(" ","_")
+                    val j=JSONObject(); j.put("username",username); j.put("whatsapp",whatsapp); j.put("pin",pin); j.put("plan",myPlan); j.put("amount",1000); j.put("expiry","Not set yet"); j.put("isUnlocked",false); j.put("receipt",""); j.put("banned",false); j.put("muted",false)
+                    fbPut("users/$key", j.toString()); myKey=key; toast("Signed Up! Details sent to Admin. Wait for Admin to Unlock."); screen="WAITING"
                 }
+            }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("SIGN UP - CREATE ACCOUNT", color=Color.White, fontWeight=FontWeight.Bold) }
+            Button(onClick={
+                if(username.isBlank() || pin.isBlank()) toast("Enter Username + PIN")
+                else { val key=username.lowercase().replace(" ","_"); fbGet("users/$key"){ r-> if(r.isBlank() || r=="null") toast("User not found - Sign Up first") else { try{ val o=JSONObject(r); if(o.optString("pin")==pin){ myKey=key; whatsapp=o.optString("whatsapp"); myPlan=o.optString("plan"); myExpiry=o.optString("expiry"); isUnlocked=o.optBoolean("isUnlocked"); isBanned=o.optBoolean("banned"); if(isBanned) toast("You are BANNED by Admin") else if(!isUnlocked) screen="WAITING" else screen="DASH" } else toast("Wrong PIN") }catch(e:Exception){ toast("Login error") } } } }
+            }, Modifier.fillMaxWidth().height(54.dp)){ Text("SIGN IN - USERNAME + PIN", fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(10.dp))
+            Text("RATES:\n$ratesText", color=Color.Yellow, fontSize=12.sp)
+            Text("Pay: Paybill 516600 Acc 5600935001\nThen send Receipt to Admin to Unlock", color=Color.Gray, fontSize=11.sp)
+        }
+    }
+    if(screen=="WAITING"){
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp), horizontalAlignment=Alignment.CenterHorizontally){
+            Text("WAITING FOR ADMIN", color=Color.Yellow, fontSize=24.sp, fontWeight=FontWeight.Bold)
+            Text("Hi $username\nYour details are saved in Admin.\nPay then send Receipt to Admin.\nAdmin will Unlock you.", color=Color.White)
+            Text("Plan: $myPlan | Expiry: $myExpiry", color=Color.Cyan)
+            Button(onClick={ checkAdmin(); if(isUnlocked && !isBanned) screen="DASH" else toast("Still locked - Wait for Admin") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("CHECK IF ADMIN UNLOCKED ME") }
+            Button(onClick={ screen="LOGIN" }, Modifier.fillMaxWidth()){ Text("BACK TO LOGIN") }
+        }
+    }
+    if(screen=="DASH"){
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
+            Text("Welcome $username", color=Color.Yellow, fontSize=24.sp, fontWeight=FontWeight.Bold)
+            Text("Status: ${if(isBanned)"BANNED" else if(isUnlocked)"UNLOCKED until $myExpiry" else "LOCKED"} | Plan: $myPlan", color=if(isUnlocked) Color.Green else Color.Red)
+            if(adminMsg.isNotBlank()) Text("📩 ADMIN MESSAGE: $adminMsg", color=Color.Cyan, fontWeight=FontWeight.Bold)
+            if(offerMsg.isNotBlank()) Text("💰 OFFER: $offerMsg", color=Color.Green, fontWeight=FontWeight.Bold)
+            Button(onClick={ checkAdmin(); screen="LIVE" }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("📹 GO TO LIVE STUDIO", color=Color.White, fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(value=reportText, onValueChange={reportText=it}, label={Text("Report hate / illegal stream...")}, modifier=Modifier.fillMaxWidth(), minLines=2)
+            Button(onClick={ if(reportText.isNotBlank()){ fbPut("alerts", JSONObject.quote("REPORT from $username: $reportText")); fbPut("chat", JSONObject.quote(reportText)); toast("Report sent to Admin"); reportText="" } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("REPORT TO ADMIN", color=Color.Black) }
+            Button(onClick={ screen="LOGIN" }, Modifier.fillMaxWidth()){ Text("LOG OUT") }
+        }
+    }
+    if(screen=="LIVE"){
+        if(isBanned){ Column(Modifier.fillMaxSize().background(Color.Red).padding(20.dp), horizontalAlignment=Alignment.CenterHorizontally){ Text("YOU ARE BANNED BY ADMIN", color=Color.White, fontWeight=FontWeight.Bold, fontSize=22.sp); Button(onClick={screen="DASH"}){ Text("BACK") } } }
+        else Box(Modifier.fillMaxSize().background(Color.Black)){
+            if(hasPerm) RealCam(Modifier.fillMaxSize(), isFront) else Box(Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment=Alignment.Center){ Button(onClick={ permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }){ Text("ALLOW CAMERA + MIC - REAL CAMERA") } }
+            if(hasPerm){
+                if(showLogo) Box(Modifier.offset{IntOffset(logoX.roundToInt(), logoY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> logoX+=d.x; logoY+=d.y}}.background(Color.Red).padding(8.dp)){ Text("JSTV $channelName", color=Color.White, fontWeight=FontWeight.Bold) }
+                if(showVerse) Box(Modifier.offset{IntOffset(verseX.roundToInt(), verseY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> verseX+=d.x; verseY+=d.y}}.background(Color.Black).padding(8.dp)){ Text("Verse: $verse", color=Color.Yellow) }
+                if(showTicker) Box(Modifier.offset{IntOffset(tickerX.roundToInt(), tickerY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> tickerX+=d.x; tickerY+=d.y}}.fillMaxWidth().background(Color.Yellow).padding(8.dp)){ Text("Ticker: $ticker", color=Color.Black) }
+            }
+            Column(Modifier.align(Alignment.TopEnd).padding(10.dp)){ Text(if(isLive)"● LIVE" else "○ NOT LIVE", color=if(isLive) Color.Red else Color.White, fontWeight=FontWeight.Bold); Text("Mic: ${if(isMicOn)"ON" else "MUTED"}", color=Color.White, fontSize=11.sp) }
+            Column(Modifier.align(Alignment.BottomCenter).padding(12.dp)){
+                if(isLive) Button(onClick={ isLive=false; toast("Live Ended") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("END LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
+                else Button(onClick={ if(!isUnlocked){ toast("LOCKED - Wait for Admin to Unlock"); screen="WAITING" } else if(!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) else { isLive=true; checkAdmin(); toast("You are LIVE!") } }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("GO LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={screen="SETUP"}, Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("LIVE SETUP", color=Color.Black, fontWeight=FontWeight.Bold) }; Button(onClick={screen="DASH"}, Modifier.weight(1f)){ Text("BACK") } }
             }
         }
     }
-
-    if (screen == "SETUP") {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("LIVE SETUP", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Set here > OK > Items appear on Main Screen > Drag them", color = Color.Gray, fontSize = 12.sp)
-            OutlinedTextField(value = channelName, onValueChange = { channelName = it }, label = { Text("Channel Name") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = ticker, onValueChange = { ticker = it }, label = { Text("Ticker") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = verse, onValueChange = { verse = it }, label = { Text("Verse") }, modifier = Modifier.fillMaxWidth())
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("Show Logo", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = showLogo, onCheckedChange = { showLogo = it }) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("Show Verse", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = showVerse, onCheckedChange = { showVerse = it }) }
-            Row(verticalAlignment = Alignment.CenterVertically) { Text("Show Ticker", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = showTicker, onCheckedChange = { showTicker = it }) }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { Button(onClick = { isFront = true }, modifier = Modifier.weight(1f)) { Text("FRONT CAM") }; Button(onClick = { isFront = false }, modifier = Modifier.weight(1f)) { Text("BACK CAM") } }
-            Button(onClick = { isMicOn = !isMicOn }, modifier = Modifier.fillMaxWidth()) { Text(if (isMicOn) "MIC ON" else "MIC OFF") }
-            if (!hasPerm) Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("ALLOW CAMERA + MIC PERMISSION") }
-            Spacer(modifier = Modifier.height(14.dp))
-            Text("PREMIUM - Subscribe to continue after 30 sec FREE:", color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Button(onClick = { showPayMethodPopup = true }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("PREMIUM - SUBSCRIBE NOW", color = Color.White, fontWeight = FontWeight.Bold) }
-            Text("Daily 200 | Monthly 1000 | 3 Months 2500 | Year 8000", color = Color.Yellow, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = { screen = "MAIN"; toast("Setup Saved") }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Yellow)) { Text("OK - APPLY TO MAIN SCREEN", color = Color.Black, fontWeight = FontWeight.Bold) }
-        }
-    }
-
-    // ===== POP 1 - AFTER 30 SEC =====
-    if (showPremiumPopup) {
-        AlertDialog(onDismissRequest = { showPremiumPopup = false },
-            title = { Text("30 Seconds Finished!") },
-            text = { Text("Your FREE 30 sec is over. Subscribe to Premium to continue LIVE.\n\nDaily 200 | Monthly 1000 | 3 Months 2500 | Year 8000\n\nPaybill 516600 Acc 5600935001") },
-            confirmButton = { Button(onClick = { showPremiumPopup = false; showPayMethodPopup = true }, colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("SUBSCRIBE NOW") } },
-            dismissButton = { Button(onClick = { showPremiumPopup = false }) { Text("LATER") } }
-        )
-    }
-
-    // ===== POP 2 - CHOOSE HOW TO PAY =====
-    if (showPayMethodPopup) {
-        AlertDialog(onDismissRequest = { showPayMethodPopup = false },
-            title = { Text("Choose How To Pay") },
-            text = { Text("TWO REAL WAYS:\n\n1. PAYBILL MANUAL - You pay yourself in M-PESA menu.\nPaybill 516600 Acc 5600935001\n\n2. STK PUSH - Admin pushes to your phone. A REAL Safaricom PIN popup will come on YOUR phone.") },
-            confirmButton = {
-                Column {
-                    Button(onClick = { payMethod = "PAYBILL"; showPayMethodPopup = false; screen = "PAYMENT" }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("1. PAYBILL MANUAL") }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Button(onClick = { payMethod = "STK"; showPayMethodPopup = false; screen = "PAYMENT"; openWhatsApp("254763052911", "Hi Admin, REQUEST STK PUSH\nName: $username\nPhone: $payPhone\nPlan: $payPlan - ${priceFor(payPlan)} KES\nPlease PUSH STK to my phone.") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("2. REQUEST STK PUSH") }
-                }
-            },
-            dismissButton = { Button(onClick = { showPayMethodPopup = false }) { Text("CANCEL") } }
-        )
-    }
-
-    if (screen == "PAYMENT") {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("PREMIUM - PAYMENT - REAL M-PESA", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(if (payMethod == "STK") "You chose: STK PUSH - Wait for REAL Safaricom PIN popup on your phone." else "You chose: PAYBILL MANUAL - Pay yourself in M-PESA menu.", color = if (payMethod == "STK") Color.Cyan else Color.Yellow, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
-            Button(onClick = { showPayMethodPopup = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text("CHANGE PAYMENT METHOD - SHOW POP 2 AGAIN") }
-            Spacer(modifier = Modifier.height(10.dp))
-            Column(modifier = Modifier.fillMaxWidth().background(Color(0xFF1B5E20)).padding(14.dp)) {
-                Text("PAYBILL: 516600", color = Color.Yellow, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-                Text("ACCOUNT: 5600935001", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text("CHOOSE PLAN:", color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("Daily", "Monthly", "3 Months", "Year").forEach { p -> Button(onClick = { payPlan = p; payAmount = priceFor(p) }, colors = ButtonDefaults.buttonColors(containerColor = if (payPlan == p) Color.Yellow else Color.DarkGray), modifier = Modifier.weight(1f)) { Text(p, fontSize = 10.sp, color = if (payPlan == p) Color.Black else Color.White) } } }
-            Text("Selected: $payPlan - ${priceFor(payPlan)} KES - ${daysFor(payPlan)} Days", color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
-            if (payMethod != "STK") {
-                Text("METHOD 1 - PAYBILL MANUAL:", color = Color.Yellow, fontWeight = FontWeight.Bold)
-                Text("1. Open M-PESA on your phone\n2. Lipa Na M-PESA > Paybill\n3. Business: 516600\n4. Account: 5600935001\n5. Amount: $payAmount\n6. Enter M-PESA PIN in M-PESA menu\n7. You will get SMS with Receipt Code", color = Color.White, fontSize = 14.sp)
-            }
-            if (payMethod == "STK") {
-                Text("METHOD 2 - STK PUSH:", color = Color.Cyan, fontWeight = FontWeight.Bold)
-                Text("1. Admin will PUSH STK to your phone\n2. A REAL Safaricom popup will appear on YOUR phone\n3. Enter YOUR M-PESA PIN on THAT Safaricom popup - NOT in this app\n4. You will get SMS with Receipt Code", color = Color.White, fontSize = 14.sp)
-                Button(onClick = { openWhatsApp("254763052911", "Hi Admin, REQUEST STK AGAIN\nName: $username\nPhone: $payPhone\nPlan: $payPlan - $payAmount KES") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text("REQUEST STK PUSH AGAIN") }
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text("STEP - ENTER REAL RECEIPT CODE:", color = Color.Yellow, fontWeight = FontWeight.Bold)
-            Text("Copy Code from YOUR M-PESA SMS. Do not invent a code.", color = Color.Gray, fontSize = 12.sp)
-            OutlinedTextField(value = receiptCode, onValueChange = { receiptCode = it.uppercase() }, label = { Text("Receipt Code from M-PESA SMS") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = payPhone, onValueChange = { payPhone = it }, label = { Text("Your M-PESA Number") }, modifier = Modifier.fillMaxWidth())
-            if (payStatus.isNotEmpty()) { Text(payStatus, color = Color.Yellow, fontWeight = FontWeight.Bold); Spacer(modifier = Modifier.height(8.dp)) }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = {
-                if (receiptCode.length < 6) toast("Enter REAL Receipt Code from M-PESA SMS")
-                else if (payPhone.length < 10) toast("Enter your M-PESA Number")
-                else {
-                    payStatus = "WAITING FOR ADMIN...\nMethod: $payMethod\nReceipt: $receiptCode\nPlan: $payPlan - $payAmount KES\nAdmin will check M-PESA and UNLOCK you."
-                    toast("Receipt sent to Admin!")
-                    openWhatsApp("254763052911", "Hi Admin, I PAID JSTV\nMethod: $payMethod\nName: $username\nPhone: $payPhone\nPlan: $payPlan - $payAmount KES\nReceipt: $receiptCode\nPlease verify and UNLOCK me.")
-                }
-            }, modifier = Modifier.fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("I HAVE PAID - SEND RECEIPT TO ADMIN", color = Color.White, fontWeight = FontWeight.Bold) }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("No auto-unlock. Admin must verify in M-PESA.", color = Color.Gray, fontSize = 12.sp)
-            Button(onClick = { screen = "MAIN" }, modifier = Modifier.fillMaxWidth()) { Text("BACK TO STUDIO") }
-        }
-    }
-
-    if (screen == "INBOX") {
-        Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("📩 INBOX - ADMIN NOTIFICATIONS", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Only Admin can send here. No messages yet means Admin has not sent any.", color = Color.Gray, fontSize = 12.sp)
-            Spacer(modifier = Modifier.height(10.dp))
-            if (inbox.isEmpty()) { Text("No messages yet.", color = Color.White) }
-            inbox.forEach { msg -> Column(modifier = Modifier.fillMaxWidth().background(Color.DarkGray).padding(12.dp)) { Text(msg, color = Color.White) }; Spacer(modifier = Modifier.height(6.dp)) }
-            Button(onClick = { openWhatsApp("254763052911", "Hi Admin, message from Broadcaster $username") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366))) { Text("REPLY TO ADMIN ON WHATSAPP") }
-            Button(onClick = { screen = "ROLE" }, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
+    if(screen=="SETUP"){
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
+            Text("LIVE SETUP - ALL SETTINGS HERE", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
+            OutlinedTextField(value=channelName, onValueChange={channelName=it}, label={Text("Channel Name")}, modifier=Modifier.fillMaxWidth())
+            OutlinedTextField(value=ticker, onValueChange={ticker=it}, label={Text("Ticker")}, modifier=Modifier.fillMaxWidth())
+            OutlinedTextField(value=verse, onValueChange={verse=it}, label={Text("Verse")}, modifier=Modifier.fillMaxWidth())
+            Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Logo", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showLogo, onCheckedChange={showLogo=it}) }
+            Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Verse", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showVerse, onCheckedChange={showVerse=it}) }
+            Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Ticker", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showTicker, onCheckedChange={showTicker=it}) }
+            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={isFront=true}, Modifier.weight(1f)){ Text("FRONT CAM") }; Button(onClick={isFront=false}, Modifier.weight(1f)){ Text("BACK CAM") } }
+            Button(onClick={isMicOn=!isMicOn}, Modifier.fillMaxWidth()){ Text(if(isMicOn)"MIC ON" else "MIC MUTED") }
+            Button(onClick={ permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("ALLOW CAMERA + MIC") }
+            Button(onClick={ screen="LIVE"; toast("Setup Saved - Drag items on Main Screen") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("OK - APPLY TO MAIN SCREEN", color=Color.White, fontWeight=FontWeight.Bold) }
+            Button(onClick={ screen="LIVE" }, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
 }
