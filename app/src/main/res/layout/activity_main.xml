@@ -1,85 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
+    android:background="#111111"
+    android:fillViewport="true">
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="JEHOVAH SHALOM"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:gravity="center" />
+        android:orientation="vertical"
+        android:padding="12dp">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="OUTREACH MINISTRY INTERNATIONAL"
-        android:gravity="center" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="JSTV BROADCASTER - MULTISTREAM"
+            android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold" android:gravity="center" />
 
-    <com.pedro.library.view.OpenGlView
-        android:id="@+id/openGlView"
-        android:layout_width="match_parent"
-        android:layout_height="320dp"
-        android:layout_marginTop="12dp" />
+        <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Offline - Ready" android:textColor="#FFEB3B" android:textSize="16sp" android:gravity="center"
+            android:padding="8dp" />
 
-    <EditText
-        android:id="@+id/youtubeKeyInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Paste YouTube Stream Key"
-        android:layout_marginTop="12dp" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="260dp" android:background="#000000">
+            <SurfaceView android:id="@+id/cameraView" android:layout_width="match_parent" android:layout_height="match_parent" />
+            <TextView android:id="@+id/tvBible" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_gravity="top" android:text="John 3:16 - For God so loved the world..."
+                android:textColor="#FFFFFF" android:textSize="14sp" android:background="#80000000" android:padding="6dp" />
+            <TextView android:id="@+id/tvTicker" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_gravity="bottom" android:text="Welcome to JSTV"
+                android:textColor="#FFFF00" android:textSize="14sp" android:background="#CCFF0000" android:padding="6dp" />
+        </FrameLayout>
 
-    <EditText
-        android:id="@+id/facebookKeyInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Paste Facebook Stream Key"
-        android:layout_marginTop="8dp" />
-    <EditText
-        android:id="@+id/tiktokKeyInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Paste TikTok RTMP URL + Key (full link)"
-        android:layout_marginTop="8dp" />
+        <EditText android:id="@+id/etBibleInput" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Type Bible Verse Here" android:textColor="#FFFFFF" android:textColorHint="#888888" />
+        <Button android:id="@+id/btnSetBible" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SET BIBLE VERSE" />
 
-   <EditText
-        android:id="@+id/jsomiTvKeyInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Paste JSOMI TV RTMP URL + Key (full link)"
-        android:layout_marginTop="8dp" />
+        <EditText android:id="@+id/etTicker" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Type Ticker / Announcement" android:textColor="#FFFFFF" android:textColorHint="#888888" />
 
-    <Button
-        android:id="@+id/goLiveButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="GO LIVE - MULTI STREAM"
-        android:layout_marginTop="16dp" />
+        <CheckBox android:id="@+id/cbYT" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="YouTube" android:textColor="#FFFFFF" android:checked="true" />
+        <EditText android:id="@+id/etYTKey" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="YouTube Stream Key" android:textColor="#FFFFFF" android:textColorHint="#888888" />
 
-    <Button
-        android:id="@+id/stopButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="STOP STREAM"
-        android:layout_marginTop="8dp" />
-        <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="✦ JEHOVAH SHALOM OUTREACH MINISTRY INTERNATIONAL ✦ JESUS IS LORD ✦ WELCOME TO THE HOUSE OF GOD ✦ "
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="#FFD700"
-        android:background="#000000"
-        android:padding="10dp"
-        android:gravity="center"
-        android:singleLine="true"
-        android:ellipsize="marquee"
-        android:marqueeRepeatLimit="marquee_forever"
-        android:scrollHorizontally="true"
-        android:focusable="true"
-        android:focusableInTouchMode="true"/>
+        <CheckBox android:id="@+id/cbFB" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Facebook" android:textColor="#FFFFFF" />
+        <EditText android:id="@+id/etFBKey" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Facebook Stream Key" android:textColor="#FFFFFF" android:textColorHint="#888888" />
 
-</LinearLayout>
+        <CheckBox android:id="@+id/cbTikTok" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="TikTok" android:textColor="#FFFFFF" />
+        <EditText android:id="@+id/etTikTokKey" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="TikTok RTMP URL + Key / Full URL" android:textColor="#FFFFFF" android:textColorHint="#888888" />
+
+        <CheckBox android:id="@+id/cbCustom" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Custom RTMP" android:textColor="#FFFFFF" />
+        <EditText android:id="@+id/etCustomUrl" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Custom RTMP URL - rtmp://..." android:textColor="#FFFFFF" android:textColorHint="#888888" />
+        <EditText android:id="@+id/etCustomKey" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Custom RTMP Key" android:textColor="#FFFFFF" android:textColorHint="#888888" />
+
+        <Button android:id="@+id/btnGoLive" android:layout_width="match_parent" android:layout_height="60dp"
+            android:text="GO LIVE - MULTISTREAM" android:textSize="18sp" android:backgroundTint="#FF0000" android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+</ScrollView>
