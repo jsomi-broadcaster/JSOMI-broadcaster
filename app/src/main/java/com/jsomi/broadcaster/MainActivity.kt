@@ -3,11 +3,13 @@ package com.jsomi.broadcaster
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
 import com.pedro.rtmp.rtmp.RtmpCamera1
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
 import android.view.SurfaceView
 
 class MainActivity : AppCompatActivity() {
@@ -18,19 +20,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvBible: TextView
     private lateinit var tvTicker: TextView
     private lateinit var etTicker: EditText
-
-    // 4 KEYS - Paste INSIDE App, Not GitHub
     private lateinit var etYTKey: EditText
     private lateinit var etFBKey: EditText
     private lateinit var etTikTokKey: EditText
     private lateinit var etCustomUrl: EditText
     private lateinit var etCustomKey: EditText
-
-    // 4 CHECKBOXES - Choose where to stream
     private lateinit var cbYT: CheckBox
     private lateinit var cbFB: CheckBox
     private lateinit var cbTikTok: CheckBox
     private lateinit var cbCustom: CheckBox
+    private lateinit var etBibleInput: EditText
+    private lateinit var btnSetBible: Button
 
     private var rtmpYT: RtmpCamera1? = null
     private var rtmpFB: RtmpCamera1? = null
@@ -38,11 +38,9 @@ class MainActivity : AppCompatActivity() {
     private var rtmpCustom: RtmpCamera1? = null
     private var isLive = false
 
-    // REAL RTMP URLs - DO NOT CHANGE
     private val YT_URL = "rtmp://a.rtmp.youtube.com/live2/"
     private val FB_URL = "rtmps://live-api-s.facebook.com:443/rtmp/"
-    private val TIKTOK_URL = "rtmp://rtmp-push.tiktok.com/live/" // TikTok gives you full URL in Live Studio
-    // Custom: Example rtmp://your-server.com/live/
+    private val TIKTOK_URL = "rtmp://rtmp-push.tiktok.com/live/"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,40 +52,40 @@ class MainActivity : AppCompatActivity() {
         tvBible = findViewById(R.id.tvBible)
         tvTicker = findViewById(R.id.tvTicker)
         etTicker = findViewById(R.id.etTicker)
-
         etYTKey = findViewById(R.id.etYTKey)
         etFBKey = findViewById(R.id.etFBKey)
         etTikTokKey = findViewById(R.id.etTikTokKey)
         etCustomUrl = findViewById(R.id.etCustomUrl)
         etCustomKey = findViewById(R.id.etCustomKey)
-
         cbYT = findViewById(R.id.cbYT)
         cbFB = findViewById(R.id.cbFB)
         cbTikTok = findViewById(R.id.cbTikTok)
         cbCustom = findViewById(R.id.cbCustom)
+        etBibleInput = findViewById(R.id.etBibleInput)
+        btnSetBible = findViewById(R.id.btnSetBible)
 
-        // Load saved keys - Safe on phone
         val prefs = getSharedPreferences("JSTV_KEYS", MODE_PRIVATE)
         etYTKey.setText(prefs.getString("YT", ""))
         etFBKey.setText(prefs.getString("FB", ""))
         etTikTokKey.setText(prefs.getString("TIKTOK", ""))
         etCustomUrl.setText(prefs.getString("CUSTOM_URL", ""))
         etCustomKey.setText(prefs.getString("CUSTOM_KEY", ""))
+        tvBible.text = prefs.getString("BIBLE", "John 3:16 - For God so loved the world...")
+        tvTicker.text = prefs.getString("TICKER", "Welcome to JSTV - Jesus Saves TV")
 
-        tvBible.text = "John 3:16 - For God so loved the world..."
-        etTicker.addTextChangedListener(object : android.text.TextWatcher {
-            override fun afterTextChanged(s: android.text.Editable?) { tvTicker.text = s.toString() }
+        etTicker.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) { tvTicker.text = s.toString(); prefs.edit().putString("TICKER", s.toString()).apply() }
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
         })
-
+        btnSetBible.setOnClickListener {
+            val v = etBibleInput.text.toString().trim()
+            if (v.isNotEmpty()) { tvBible.text = v; prefs.edit().putString("BIBLE", v).apply(); Toast.makeText(this, "Bible Updated", Toast.LENGTH_SHORT).show() }
+        }
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 100)
         }
-
-        btnGoLive.setOnClickListener {
-            if (!isLive) startMultiStream(prefs) else stopMultiStream()
-        }
+        btnGoLive.setOnClickListener { if (!isLive) startMultiStream(prefs) else stopMultiStream() }
     }
 
     private fun makeChecker(name: String): ConnectCheckerRtmp = object : ConnectCheckerRtmp {
@@ -100,17 +98,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMultiStream(prefs: android.content.SharedPreferences) {
-        // Save keys
         prefs.edit().putString("YT", etYTKey.text.toString().trim())
             .putString("FB", etFBKey.text.toString().trim())
             .putString("TIKTOK", etTikTokKey.text.toString().trim())
             .putString("CUSTOM_URL", etCustomUrl.text.toString().trim())
             .putString("CUSTOM_KEY", etCustomKey.text.toString().trim()).apply()
-
         var started = 0
-        val status = StringBuilder("🔴 LIVE TO: ")
-
-        // 1. YOUTUBE
+        val status = StringBuilder("LIVE TO: ")
         if (cbYT.isChecked) {
             val key = etYTKey.text.toString().trim()
             if (key.isNotEmpty()) {
@@ -120,42 +114,34 @@ class MainActivity : AppCompatActivity() {
                 rtmpYT!!.prepareAudio(32000, true, 128*1024)
                 rtmpYT!!.startAudio(); rtmpYT!!.startVideo()
                 rtmpYT!!.startStream(YT_URL + key)
-                status.append("YouTube ")
-                started++
-            } else Toast.makeText(this, "YouTube checked but Key empty", Toast.LENGTH_SHORT).show()
+                status.append("YouTube "); started++
+            }
         }
-        // 2. FACEBOOK
         if (cbFB.isChecked) {
             val key = etFBKey.text.toString().trim()
             if (key.isNotEmpty()) {
                 rtmpFB = RtmpCamera1(surfaceView, makeChecker("Facebook"))
-                // Facebook uses same preview - start only if YT not started
                 if (rtmpYT == null) rtmpFB!!.startPreview()
                 rtmpFB!!.prepareVideo(1280, 720, 30, 3000*1024, 0, 0)
                 rtmpFB!!.prepareAudio(32000, true, 128*1024)
                 rtmpFB!!.startAudio(); rtmpFB!!.startVideo()
                 rtmpFB!!.startStream(FB_URL + key)
-                status.append("Facebook ")
-                started++
+                status.append("Facebook "); started++
             }
         }
-        // 3. TIKTOK
         if (cbTikTok.isChecked) {
             val key = etTikTokKey.text.toString().trim()
             if (key.isNotEmpty()) {
-                // TikTok key is FULL URL sometimes - If it starts with rtmp:// use it directly
                 val fullUrl = if (key.startsWith("rtmp")) key else TIKTOK_URL + key
                 rtmpTikTok = RtmpCamera1(surfaceView, makeChecker("TikTok"))
                 if (rtmpYT == null && rtmpFB == null) rtmpTikTok!!.startPreview()
-                rtmpTikTok!!.prepareVideo(720, 1280, 30, 3000*1024, 0, 0) // TikTok is VERTICAL 9:16
+                rtmpTikTok!!.prepareVideo(720, 1280, 30, 3000*1024, 0, 0)
                 rtmpTikTok!!.prepareAudio(32000, true, 128*1024)
                 rtmpTikTok!!.startAudio(); rtmpTikTok!!.startVideo()
                 rtmpTikTok!!.startStream(fullUrl)
-                status.append("TikTok ")
-                started++
+                status.append("TikTok "); started++
             }
         }
-        // 4. CUSTOM RTMP - Church TV / Restream / Your Server
         if (cbCustom.isChecked) {
             val url = etCustomUrl.text.toString().trim()
             val key = etCustomKey.text.toString().trim()
@@ -167,33 +153,24 @@ class MainActivity : AppCompatActivity() {
                 rtmpCustom!!.prepareAudio(32000, true, 128*1024)
                 rtmpCustom!!.startAudio(); rtmpCustom!!.startVideo()
                 rtmpCustom!!.startStream(fullUrl)
-                status.append("Custom RTMP ")
-                started++
+                status.append("Custom "); started++
             }
         }
-
-        if (started == 0) {
-            Toast.makeText(this, "Tick at least 1 platform + Paste its Key!", Toast.LENGTH_LONG).show()
-            return
-        }
+        if (started == 0) { Toast.makeText(this, "Tick 1 platform + Paste its Key!", Toast.LENGTH_LONG).show(); return }
         tvStatus.text = status.toString()
-        btnGoLive.text = "⏹ STOP ALL STREAMS"
+        btnGoLive.text = "STOP ALL STREAMS"
         isLive = true
     }
 
     private fun stopMultiStream() {
         listOf(rtmpYT, rtmpFB, rtmpTikTok, rtmpCustom).forEach {
             if (it != null && it!!.isStreaming) it!!.stopStream()
-            if (it != null) { it!!.stopVideo(); it!!.stopAudio(); it!!.stopPreview() }
+            if (it != null) { try { it!!.stopVideo() } catch (e: Exception) {}; try { it!!.stopAudio() } catch (e: Exception) {}; try { it!!.stopPreview() } catch (e: Exception) {} }
         }
         rtmpYT = null; rtmpFB = null; rtmpTikTok = null; rtmpCustom = null
-        tvStatus.text = "Offline - Ready to Go Live"
-        btnGoLive.text = "🔴 GO LIVE - MULTISTREAM"
+        tvStatus.text = "Offline - Ready"
+        btnGoLive.text = "GO LIVE - MULTISTREAM"
         isLive = false
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        if (isLive) stopMultiStream()
-    }
+    override fun onDestroy() { super.onDestroy(); if (isLive) stopMultiStream() }
 }
