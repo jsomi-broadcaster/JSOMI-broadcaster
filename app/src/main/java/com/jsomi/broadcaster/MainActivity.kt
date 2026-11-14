@@ -32,10 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etBibleInput: EditText
     private lateinit var btnSetBible: Button
 
-    private var rtmpYT: RtmpCamera1? = null
-    private var rtmpFB: RtmpCamera1? = null
-    private var rtmpTikTok: RtmpCamera1? = null
-    private var rtmpCustom: RtmpCamera1? = null
+    private var rtmpCamera: RtmpCamera1? = null
     private var isLive = false
 
     private val YT_URL = "rtmp://a.rtmp.youtube.com/live2/"
@@ -70,111 +67,115 @@ class MainActivity : AppCompatActivity() {
         etTikTokKey.setText(prefs.getString("TIKTOK", ""))
         etCustomUrl.setText(prefs.getString("CUSTOM_URL", ""))
         etCustomKey.setText(prefs.getString("CUSTOM_KEY", ""))
-        tvBible.text = prefs.getString("BIBLE", "John 3:16 - For God so loved the world...")
+        tvBible.text = prefs.getString("BIBLE", "John 3:16 - For God so loved the world")
         tvTicker.text = prefs.getString("TICKER", "Welcome to JSTV - Jesus Saves TV")
 
         etTicker.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) { tvTicker.text = s.toString(); prefs.edit().putString("TICKER", s.toString()).apply() }
+            override fun afterTextChanged(s: Editable?) { tvTicker.text = s.toString() }
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
             override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
         })
+
         btnSetBible.setOnClickListener {
-            val v = etBibleInput.text.toString().trim()
-            if (v.isNotEmpty()) { tvBible.text = v; prefs.edit().putString("BIBLE", v).apply(); Toast.makeText(this, "Bible Updated", Toast.LENGTH_SHORT).show() }
+            val v = etBibleInput.text.toString()
+            if (v.isNotEmpty()) {
+                tvBible.text = v
+                prefs.edit().putString("BIBLE", v).apply()
+            }
         }
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 100)
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 123)
         }
-        btnGoLive.setOnClickListener { if (!isLive) startMultiStream(prefs) else stopMultiStream() }
+
+        btnGoLive.setOnClickListener {
+            if (!isLive) startMultiStream(prefs) else stopStream()
+        }
     }
 
-    private fun makeChecker(name: String): ConnectCheckerRtmp = object : ConnectCheckerRtmp {
-        override fun onConnectionSuccessRtmp() { runOnUiThread { Toast.makeText(this@MainActivity, "$name CONNECTED - LIVE!", Toast.LENGTH_SHORT).show() } }
-        override fun onConnectionFailedRtmp(reason: String) { runOnUiThread { Toast.makeText(this@MainActivity, "$name Failed: $reason", Toast.LENGTH_LONG).show() } }
-        override fun onNewBitrateRtmp(bitrate: Long) {}
-        override fun onDisconnectRtmp() {}
-        override fun onAuthErrorRtmp() { runOnUiThread { Toast.makeText(this@MainActivity, "$name Wrong Key!", Toast.LENGTH_LONG).show() } }
-        override fun onAuthSuccessRtmp() {}
+    private fun makeChecker(name: String): ConnectCheckerRtmp {
+        return object : ConnectCheckerRtmp {
+            override fun onConnectionSuccessRtmp() {
+                runOnUiThread { tvStatus.text = "LIVE TO: $name - Connected" }
+            }
+            override fun onConnectionFailedRtmp(reason: String) {
+                runOnUiThread { tvStatus.text = "Failed $name: $reason" }
+            }
+            override fun onNewBitrateRtmp(bitrate: Long) {}
+            override fun onDisconnectRtmp() {
+                runOnUiThread { tvStatus.text = "Disconnected" }
+            }
+            override fun onAuthErrorRtmp() {
+                runOnUiThread { tvStatus.text = "Auth Error $name - Check Stream Key" }
+            }
+            override fun onAuthSuccessRtmp() {}
+        }
     }
 
     private fun startMultiStream(prefs: android.content.SharedPreferences) {
-        prefs.edit().putString("YT", etYTKey.text.toString().trim())
-            .putString("FB", etFBKey.text.toString().trim())
-            .putString("TIKTOK", etTikTokKey.text.toString().trim())
-            .putString("CUSTOM_URL", etCustomUrl.text.toString().trim())
-            .putString("CUSTOM_KEY", etCustomKey.text.toString().trim()).apply()
-        var started = 0
-        val status = StringBuilder("LIVE TO: ")
-        if (cbYT.isChecked) {
-            val key = etYTKey.text.toString().trim()
-            if (key.isNotEmpty()) {
-                rtmpYT = RtmpCamera1(surfaceView, makeChecker("YouTube"))
-                rtmpYT!!.startPreview()
-                rtmpYT!!.prepareVideo(1280, 720, 30, 3000*1024, 0, 0)
-                rtmpYT!!.prepareAudio(32000, true, 128*1024)
-                rtmpYT!!.startAudio(); rtmpYT!!.startVideo()
-                rtmpYT!!.startStream(YT_URL + key)
-                status.append("YouTube "); started++
-            }
+        prefs.edit()
+            .putString("YT", etYTKey.text.toString())
+            .putString("FB", etFBKey.text.toString())
+            .putString("TIKTOK", etTikTokKey.text.toString())
+            .putString("CUSTOM_URL", etCustomUrl.text.toString())
+            .putString("CUSTOM_KEY", etCustomKey.text.toString())
+            .putString("BIBLE", tvBible.text.toString())
+            .putString("TICKER", tvTicker.text.toString())
+            .apply()
+
+        val dest = when {
+            cbYT.isChecked && etYTKey.text.toString().trim().isNotEmpty() ->
+                Pair(YT_URL + etYTKey.text.toString().trim(), "YouTube")
+            cbFB.isChecked && etFBKey.text.toString().trim().isNotEmpty() ->
+                Pair(FB_URL + etFBKey.text.toString().trim(), "Facebook")
+            cbTikTok.isChecked && etTikTokKey.text.toString().trim().isNotEmpty() ->
+                Pair(TIKTOK_URL + etTikTokKey.text.toString().trim(), "TikTok")
+            cbCustom.isChecked && etCustomKey.text.toString().trim().isNotEmpty() ->
+                Pair(etCustomUrl.text.toString().trim() + "/" + etCustomKey.text.toString().trim(), "Custom")
+            else -> null
         }
-        if (cbFB.isChecked) {
-            val key = etFBKey.text.toString().trim()
-            if (key.isNotEmpty()) {
-                rtmpFB = RtmpCamera1(surfaceView, makeChecker("Facebook"))
-                if (rtmpYT == null) rtmpFB!!.startPreview()
-                rtmpFB!!.prepareVideo(1280, 720, 30, 3000*1024, 0, 0)
-                rtmpFB!!.prepareAudio(32000, true, 128*1024)
-                rtmpFB!!.startAudio(); rtmpFB!!.startVideo()
-                rtmpFB!!.startStream(FB_URL + key)
-                status.append("Facebook "); started++
-            }
+
+        if (dest == null) {
+            Toast.makeText(this, "Tick one platform and enter its Stream Key", Toast.LENGTH_LONG).show()
+            return
         }
-        if (cbTikTok.isChecked) {
-            val key = etTikTokKey.text.toString().trim()
-            if (key.isNotEmpty()) {
-                val fullUrl = if (key.startsWith("rtmp")) key else TIKTOK_URL + key
-                rtmpTikTok = RtmpCamera1(surfaceView, makeChecker("TikTok"))
-                if (rtmpYT == null && rtmpFB == null) rtmpTikTok!!.startPreview()
-                rtmpTikTok!!.prepareVideo(720, 1280, 30, 3000*1024, 0, 0)
-                rtmpTikTok!!.prepareAudio(32000, true, 128*1024)
-                rtmpTikTok!!.startAudio(); rtmpTikTok!!.startVideo()
-                rtmpTikTok!!.startStream(fullUrl)
-                status.append("TikTok "); started++
-            }
+
+        val checkedCount = listOf(cbYT, cbFB, cbTikTok, cbCustom).count { it.isChecked }
+        if (checkedCount > 1) {
+            Toast.makeText(this, "Streaming to ${dest.second} only. For true multi-stream use Restream.io as Custom URL.", Toast.LENGTH_LONG).show()
         }
-        if (cbCustom.isChecked) {
-            val url = etCustomUrl.text.toString().trim()
-            val key = etCustomKey.text.toString().trim()
-            if (url.isNotEmpty()) {
-                val fullUrl = if (key.isEmpty()) url else if (url.endsWith("/")) url + key else "$url/$key"
-                rtmpCustom = RtmpCamera1(surfaceView, makeChecker("Custom RTMP"))
-                if (rtmpYT == null && rtmpFB == null && rtmpTikTok == null) rtmpCustom!!.startPreview()
-                rtmpCustom!!.prepareVideo(1280, 720, 30, 3000*1024, 0, 0)
-                rtmpCustom!!.prepareAudio(32000, true, 128*1024)
-                
-                rtmpCustom!!.startStream(fullUrl)
-                status.append("Custom "); started++
-            }
-        }
-        if (started == 0) { Toast.makeText(this, "Tick 1 platform + Paste its Key!", Toast.LENGTH_LONG).show(); return }
-        tvStatus.text = status.toString()
-        btnGoLive.text = "STOP ALL STREAMS"
-        isLive = true
-    }
-private fun stopMultiStream() {
-    val streams = listOf(rtmpYT, rtmpFB, rtmpTikTok, rtmpCustom)
-    for (stream in streams) {
-        if (stream != null && stream.isStreaming) {
-            try { stream.stopStream() } catch (e: Exception) {}
-            
-            try { stream.stopPreview() } catch (e: Exception) {}
+
+        rtmpCamera = RtmpCamera1(surfaceView, makeChecker(dest.second))
+        rtmpCamera?.startPreview()
+        if (rtmpCamera?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 2) == true &&
+            rtmpCamera?.prepareAudio(32000, true, 128 * 1024) == true) {
+            rtmpCamera?.startAudio()
+            rtmpCamera?.startVideo()
+            rtmpCamera?.startStream(dest.first)
+            isLive = true
+            btnGoLive.text = "STOP LIVE"
+            tvStatus.text = "LIVE TO: ${dest.second}"
+        } else {
+            tvStatus.text = "Failed to prepare camera"
         }
     }
-    rtmpYT = null; rtmpFB = null; rtmpTikTok = null; rtmpCustom = null
-    tvStatus.text = "Offline - Ready"
-    btnGoLive.text = "GO LIVE - MULTISTREAM"
-    isLive = false
-}
-    
-    override fun onDestroy() { super.onDestroy(); if (isLive) stopMultiStream() }
+
+    private fun stopStream() {
+        try {
+            rtmpCamera?.stopStream()
+            rtmpCamera?.stopAudio()
+            rtmpCamera?.stopVideo()
+            rtmpCamera?.stopPreview()
+        } catch (e: Exception) { }
+        rtmpCamera = null
+        isLive = false
+        btnGoLive.text = "GO LIVE"
+        tvStatus.text = "Offline"
+    }
+
+    override fun onDestroy() {
+        if (isLive) stopStream()
+        super.onDestroy()
+    }
 }
