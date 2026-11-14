@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔒 PREMIUM"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="#FFC107"
+            android:layout_marginTop="20dp" />
+
+        <TextView
+            android:id="@+id/tvPayInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pay to Unlock Premium"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:gravity="center"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="24dp" />
+
+        <EditText
+            android:id="@+id/etMpesaCode"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:hint="Enter M-PESA Code e.g. QK123ABC"
+            android:textColorHint="#888888"
+            android:textColor="#FFFFFF"
+            android:background="@android:drawable/editbox_background"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/btnConfirmPayment"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:text="CONFIRM PAYMENT - UNLOCK"
+            android:backgroundTint="#FFC107"
+            android:textColor="#000000"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnBackToMenu"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:text="BACK TO MENU"
+            android:backgroundTint="#333333"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Admin will verify your code in Admin App."
+            android:textSize="11sp"
+            android:textColor="#777777"
+            android:layout_marginTop="20dp" />
+
+    </LinearLayout>
+</ScrollView>
