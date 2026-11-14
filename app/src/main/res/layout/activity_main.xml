@@ -1,142 +1,254 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootStudio"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
 
+    <!-- CAMERA VIDEO - Full Screen -->
+    <FrameLayout
+        android:id="@+id/cameraContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="📷 CAMERA"
+            android:textColor="#555555"
+            android:layout_gravity="center" />
+    </FrameLayout>
+
+    <!-- INTRO VIDEO LOOP - Hidden until you tap Intro -->
+    <VideoView
+        android:id="@+id/videoIntro"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- LIVE INDICATOR - Top Left, Hidden until Go Live -->
     <LinearLayout
+        android:id="@+id/liveBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#CC0000"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp"
+        android:layout_margin="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="● LIVE"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvLiveTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" 00:00"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- LOGO - Top Right, Draggable -->
+    <TextView
+        android:id="@+id/tvLogo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="JSTV"
+        android:textColor="#FFC107"
+        android:textStyle="bold"
+        android:textSize="22sp"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp" />
+
+    <!-- MOVABLE TITLE - Drag Anywhere -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Welcome to JSTV Live"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:background="#80000000"
+        android:padding="8dp"
+        android:layout_gravity="center"
+        android:layout_marginTop="80dp" />
+
+    <!-- SCROLLING TEXT - Single Line, Draggable, Bottom -->
+    <TextView
+        android:id="@+id/tvTicker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Welcome to JSTV - God Bless You - Subscribe - Share - Like  •  "
+        android:textColor="#FFFF00"
+        android:textSize="16sp"
+        android:background="#AA000000"
+        android:padding="8dp"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="180dp" />
+
+    <!-- CONTROL PANEL - Hidden after Go Live -->
+    <LinearLayout
+        android:id="@+id/controlPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="12dp">
+        android:background="#CC000000"
+        android:padding="12dp"
+        android:layout_gravity="bottom">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="JSTV BROADCASTER"
-            android:textColor="#FFFF00"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <com.pedro.rtplibrary.view.OpenGlView
-            android:id="@+id/surfaceView"
-            android:layout_width="match_parent"
-            android:layout_height="220dp"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Offline"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:id="@+id/tvBible"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="John 3:16 - For God so loved the world"
-            android:textColor="#FFFF00"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:id="@+id/tvTicker"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Welcome to JSTV - Jesus Saves TV"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="4dp" />
-
-        <CheckBox
-            android:id="@+id/cbYT"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="YouTube"
-            android:textColor="#FFFFFF" />
-
-        <EditText
-            android:id="@+id/etYTKey"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="YouTube Stream Key"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#888888" />
+            android:orientation="horizontal">
 
-        <CheckBox
-            android:id="@+id/cbFB"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Facebook"
-            android:textColor="#FFFFFF" />
+            <EditText
+                android:id="@+id/etTitle"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:hint="Type Title..."
+                android:textColorHint="#888888"
+                android:textColor="#FFFFFF"
+                android:padding="8dp" />
 
-        <EditText
-            android:id="@+id/etFBKey"
+            <Button
+                android:id="@+id/btnSetTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="SET"
+                android:backgroundTint="#FFC107"
+                android:textColor="#000000" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Facebook Stream Key"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#888888" />
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
 
-        <CheckBox
-            android:id="@+id/cbTikTok"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="TikTok"
-            android:textColor="#FFFFFF" />
+            <EditText
+                android:id="@+id/etTicker"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:hint="Type Scrolling Text..."
+                android:textColorHint="#888888"
+                android:textColor="#FFFFFF"
+                android:padding="8dp" />
 
-        <EditText
-            android:id="@+id/etTikTokKey"
+            <Button
+                android:id="@+id/btnSetTicker"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="SET"
+                android:backgroundTint="#FFC107"
+                android:textColor="#000000" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="TikTok Stream Key"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#888888" />
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp">
 
-        <CheckBox
-            android:id="@+id/cbCustom"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Custom RTMP"
-            android:textColor="#FFFFFF" />
+            <Button
+                android:id="@+id/btnIntro"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="▶ INTRO"
+                android:backgroundTint="#333333"
+                android:textColor="#FFFFFF" />
 
-        <EditText
-            android:id="@+id/etCustomUrl"
+            <Button
+                android:id="@+id/btnLogo"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="🖼 LOGO"
+                android:backgroundTint="#333333"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp" />
+
+            <Button
+                android:id="@+id/btnRotate"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="↻ ROTATE"
+                android:backgroundTint="#333333"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/btnMute"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="🎤"
+                android:backgroundTint="#333333"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Custom RTMP URL e.g. rtmp://..."
-            android:textColor="#FFFFFF"
-            android:textColorHint="#888888" />
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
 
-        <EditText
-            android:id="@+id/etCustomKey"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Custom Stream Key"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#888888" />
+            <Button
+                android:id="@+id/btnMultiStream"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:text="📡 MULTI-STREAM"
+                android:backgroundTint="#2196F3"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etBibleInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Type Bible verse"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#888888"
-            android:layout_marginTop="12dp" />
-
-        <Button
-            android:id="@+id/btnSetBible"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="SET BIBLE VERSE" />
-
-        <Button
-            android:id="@+id/btnGoLive"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="GO LIVE"
-            android:layout_marginTop="12dp" />
-
+            <Button
+                android:id="@+id/btnGoLive"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:text="🔴 GO LIVE"
+                android:backgroundTint="#FF0000"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+
+    <!-- END BUTTON - Only shows after Go Live, Fullscreen -->
+    <Button
+        android:id="@+id/btnEndLive"
+        android:layout_width="wrap_content"
+        android:layout_height="50dp"
+        android:text="■ END"
+        android:backgroundTint="#FF0000"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="20dp"
+        android:visibility="gone" />
+
+</FrameLayout>
