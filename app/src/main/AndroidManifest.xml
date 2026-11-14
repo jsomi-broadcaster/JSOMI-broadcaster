@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- PERMISSIONS - ALL NEEDED FOR LIVESTREAMING -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -19,14 +18,13 @@
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/jstv_logo"
+        android:roundIcon="@mipmap/jstv_logo"
         android:label="JSTV Broadcaster"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.Light.NoActionBar"
         android:usesCleartextTraffic="true">
 
-        <!-- 0. FIRST SCREEN - LOGIN / SIGN UP -->
         <activity
             android:name=".AuthActivity"
             android:exported="true"
@@ -37,47 +35,13 @@
             </intent-filter>
         </activity>
 
-        <!-- 2nd SCREEN - HOME MENU WITH 5 BUTTONS -->
-        <activity
-            android:name=".HomeMenuActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- 1. MAIN STUDIO - LIVESTREAM CONTROL -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- 2. REMOTE CONTROL -->
-        <activity
-            android:name=".RemoteControlActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- 3. CAMERA -->
-        <activity
-            android:name=".CameraActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- 4. CHURCH SCREEN -->
-        <activity
-            android:name=".ChurchScreenActivity"
-            android:exported="false"
-            android:screenOrientation="landscape" />
-
-        <!-- 5. DEVELOPER ADMIN - MANAGE APP - VERY IMPORTANT -->
-        <activity
-            android:name=".DeveloperActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
-
-        <!-- PAYMENT -->
-        <activity
-            android:name=".PaymentActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
+        <activity android:name=".HomeMenuActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".MainActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".RemoteControlActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".CameraActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".ChurchScreenActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".DeveloperActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".PaymentActivity" android:exported="false" android:screenOrientation="portrait" />
 
     </application>
 </manifest>
