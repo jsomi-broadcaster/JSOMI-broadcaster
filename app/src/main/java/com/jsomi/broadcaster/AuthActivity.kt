@@ -1,4 +1,4 @@
-package com.jstv.app
+package com.jsomi.broadcaster
 
 import android.Manifest
 import android.content.Intent
