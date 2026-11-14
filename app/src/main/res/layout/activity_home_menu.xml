@@ -1,67 +1,110 @@
-package com.jsomi.broadcaster
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212">
 
-import android.content.Intent
-import android.content.pm.ActivityInfo
-import android.os.Bundle
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:gravity="center">
 
-class HomeMenuActivity : AppCompatActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_home_menu)
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="JSTV"
+            android:textColor="#FFC107"
+            android:textSize="48sp"
+            android:textStyle="bold" />
 
-        val tvWelcome = findViewById<TextView>(R.id.tvWelcome)
-        tvWelcome.text = "Welcome to JSTV - Choose What To Do"
+        <TextView
+            android:id="@+id/tvWelcome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome - Choose What To Do"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="30dp" />
 
-        fun openStudio() {
-            startActivity(Intent(this, MainActivity::class.java))
-        }
+        <Button
+            android:id="@+id/btnGoToStudio"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="🎥 GO TO MAIN STUDIO"
+            android:backgroundTint="#FF0000"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold" />
 
-        // MAIN STUDIO - Kept
-        findViewById<Button>(R.id.btnGoToStudio).setOnClickListener { openStudio() }
-        findViewById<Button>(R.id.btnMainStudio).setOnClickListener { openStudio() }
+        <Button
+            android:id="@+id/btnMainStudio"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="🎥 MAIN STUDIO"
+            android:backgroundTint="#FF0000"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp" />
 
-        // REMOTE CONTROL - Kept - Opens Studio in Remote Mode
-        findViewById<Button>(R.id.btnRemote).setOnClickListener {
-            Toast.makeText(this, "📱 Remote Control - Control Studio from Phone", Toast.LENGTH_LONG).show()
-            val i = Intent(this, MainActivity::class.java)
-            i.putExtra("mode", "remote")
-            startActivity(i)
-        }
+        <Button
+            android:id="@+id/btnRemote"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="📱 REMOTE CONTROL"
+            android:backgroundTint="#2196F3"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp" />
 
-        // WIRELESS CAMERA - Kept
-        findViewById<Button>(R.id.btnWireless).setOnClickListener {
-            Toast.makeText(this, "📶 Wireless Camera - Connect Second Phone as Camera", Toast.LENGTH_LONG).show()
-            val i = Intent(this, MainActivity::class.java)
-            i.putExtra("mode", "wireless")
-            startActivity(i)
-        }
+        <Button
+            android:id="@+id/btnWireless"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="📶 WIRELESS CAMERA"
+            android:backgroundTint="#9C27B0"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp" />
 
-        // BIG SCREEN MODE - Kept - Forces Landscape Studio
-        findViewById<Button>(R.id.btnBigScreen).setOnClickListener {
-            Toast.makeText(this, "🖥 Big Screen Mode - Landscape", Toast.LENGTH_SHORT).show()
-            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            val i = Intent(this, MainActivity::class.java)
-            i.putExtra("mode", "bigscreen")
-            startActivity(i)
-        }
+        <Button
+            android:id="@+id/btnBigScreen"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="🖥 BIG SCREEN MODE"
+            android:backgroundTint="#009688"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp" />
 
-        // PAYMENT / PREMIUM - Kept
-        findViewById<Button>(R.id.btnPayment).setOnClickListener {
-            startActivity(Intent(this, PaymentActivity::class.java))
-        }
-        findViewById<Button>(R.id.btnGoPremium).setOnClickListener {
-            startActivity(Intent(this, PaymentActivity::class.java))
-        }
+        <Button
+            android:id="@+id/btnPayment"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="💎 GO PREMIUM / PAYMENT"
+            android:backgroundTint="#FFC107"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp" />
 
-        // LOGOUT - Kept
-        findViewById<Button>(R.id.btnLogout).setOnClickListener {
-            Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
-            startActivity(Intent(this, AuthActivity::class.java))
-            finish()
-        }
-    }
-}
+        <Button
+            android:id="@+id/btnGoPremium"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="💎 GO PREMIUM"
+            android:backgroundTint="#FFC107"
+            android:textColor="#000000"
+            android:layout_marginTop="10dp" />
+
+        <Button
+            android:id="@+id/btnLogout"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:text="Logout"
+            android:backgroundTint="#333333"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="30dp" />
+
+    </LinearLayout>
+</ScrollView>
