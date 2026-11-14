@@ -8,8 +8,8 @@ import android.text.TextWatcher
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.pedro.rtmp.rtmp.RtmpCamera1
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import com.pedro.rtplibrary.rtmp.RtmpCamera1
+import com.pedro.rtplibrary.base.ConnectCheckerRtmp
 import android.view.SurfaceView
 
 class MainActivity : AppCompatActivity() {
