@@ -13,44 +13,42 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 
 class AuthActivity : AppCompatActivity() {
-
-    private val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            Toast.makeText(this, "Permission allowed", Toast.LENGTH_SHORT).show()
-        }
-    }
-
+    private val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auth)
-
         val etName = findViewById<EditText>(R.id.etName)
+        val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
         val btnSignUp = findViewById<Button>(R.id.btnSignUp)
+        val btnSignIn = findViewById<Button>(R.id.btnSignIn)
 
-        // Ask for Notification permission - THIS IS THE PERMISSION POPUP
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+        val prefs = getSharedPreferences("JSTV", MODE_PRIVATE)
 
-        // SIGN UP - Goes to Home, does NOT open Files anymore
         btnSignUp.setOnClickListener {
             val name = etName.text.toString().trim()
+            val email = etEmail.text.toString().trim()
             val pass = etPassword.text.toString().trim()
-
-            if (name.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Fill name and password", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            val prefs = getSharedPreferences("JSTV", MODE_PRIVATE)
-            prefs.edit().putString("name", name).apply()
-
+            if (name.isEmpty() || email.isEmpty() || pass.isEmpty()) { Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+            prefs.edit().putString("name", name).putString("email", email).putString("pass", pass).apply()
             Toast.makeText(this, "Welcome $name", Toast.LENGTH_SHORT).show()
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
+            startActivity(Intent(this, HomeMenuActivity::class.java)); finish()
+        }
+        btnSignIn.setOnClickListener {
+            val email = etEmail.text.toString().trim()
+            val pass = etPassword.text.toString().trim()
+            if (email.isEmpty() || pass.isEmpty()) { Toast.makeText(this, "Enter Email and Password", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+            val savedEmail = prefs.getString("email", "")
+            val savedPass = prefs.getString("pass", "")
+            if (savedEmail.isNullOrEmpty() || (email == savedEmail && pass == savedPass)) {
+                Toast.makeText(this, "Signed In", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, HomeMenuActivity::class.java)); finish()
+            } else Toast.makeText(this, "Wrong Email or Password. Tap SIGN UP first.", Toast.LENGTH_LONG).show()
         }
     }
 }
