@@ -9,7 +9,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.pedro.rtplibrary.rtmp.RtmpCamera1
-import com.pedro.rtplibrary.base.ConnectCheckerRtmp
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
 import android.view.SurfaceView
 
 class MainActivity : AppCompatActivity() {
@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         rtmpCamera = RtmpCamera1(surfaceView, makeChecker(dest.second))
         rtmpCamera?.startPreview()
         if (rtmpCamera?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 2) == true &&
-            rtmpCamera?.prepareAudio(32000, true, 128 * 1024) == true) {
+            rtmpCamera?.prepareAudio(128 * 1024, 32000, true, false, false) == true) {
             rtmpCamera?.startStream(dest.first)
             isLive = true
             btnGoLive.text = "STOP LIVE"
