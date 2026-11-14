@@ -9,7 +9,6 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -24,8 +23,19 @@ class MainActivity : AppCompatActivity() {
     private var isIntroPlaying = false
     private var isLandscape = false
     private var seconds = 0
+    private var autoTimerOn = false
+    private var programIndex = -1
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var liveRunnable: Runnable
+
+    // PROGRAM LIST - Time in seconds, Title, Ticker
+    private val programs = listOf(
+        Triple(0, "🎬 INTRO", "Welcome to JSTV - Intro Playing"),
+        Triple(30, "🎵 WORSHIP", "Worship Time - Sing Along - God Bless You"),
+        Triple(120, "📖 SERMON - Pastor John", "Sermon: Faith That Moves Mountains"),
+        Triple(300, "💰 OFFERING", "Offering Time - Give With Joy - M-PESA 123456"),
+        Triple(420, "🙏 CLOSING & PRAYER", "Thank You For Watching - See You Next Time")
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,17 +51,19 @@ class MainActivity : AppCompatActivity() {
         val btnLogo = findViewById<Button>(R.id.btnLogo)
         val btnRotate = findViewById<Button>(R.id.btnRotate)
         val btnMute = findViewById<Button>(R.id.btnMute)
+        val btnAutoTimer = findViewById<Button>(R.id.btnAutoTimer)
 
         val tvTitle = findViewById<TextView>(R.id.tvTitle)
         val tvTicker = findViewById<TextView>(R.id.tvTicker)
         val tvLogo = findViewById<TextView>(R.id.tvLogo)
+        val tvProgram = findViewById<TextView>(R.id.tvProgram)
         val etTitle = findViewById<EditText>(R.id.etTitle)
         val etTicker = findViewById<EditText>(R.id.etTicker)
         val btnSetTitle = findViewById<Button>(R.id.btnSetTitle)
         val btnSetTicker = findViewById<Button>(R.id.btnSetTicker)
         val videoIntro = findViewById<VideoView>(R.id.videoIntro)
 
-        // Make Title, Logo, Ticker DRAGGABLE - Touch and Move
+        // Make Title, Logo, Ticker DRAGGABLE
         makeDraggable(tvTitle)
         makeDraggable(tvLogo)
         makeDraggable(tvTicker)
@@ -80,22 +92,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // INTRO VIDEO LOOP
+        // INTRO VIDEO LOOP - No file needed
         btnIntro.setOnClickListener {
             if (!isIntroPlaying) {
-                // If you add intro.mp4 to res/raw, it will play. If not, we show message
-                try {
-                    val uri = android.net.Uri.parse("android.resource://" + packageName + "/" + R.raw.intro)
-                    videoIntro.setVideoURI(uri)
-                    videoIntro.visibility = View.VISIBLE
-                    videoIntro.setOnPreparedListener { mp -> mp.isLooping = true }
-                    videoIntro.start()
-                    isIntroPlaying = true
-                    btnIntro.text = "■ STOP INTRO"
-                    Toast.makeText(this, "Intro Playing - Loop", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Add intro.mp4 to res/raw to play Intro", Toast.LENGTH_LONG).show()
-                }
+                tvTitle.text = "🎬 JSTV INTRO PLAYING..."
+                tvTitle.visibility = View.VISIBLE
+                isIntroPlaying = true
+                btnIntro.text = "■ STOP INTRO"
+                Toast.makeText(this, "Intro Playing - Loop", Toast.LENGTH_SHORT).show()
             } else {
                 videoIntro.stopPlayback()
                 videoIntro.visibility = View.GONE
@@ -141,6 +145,21 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // AUTO-TIMER FOR PROGRAM CHANGING
+        btnAutoTimer.setOnClickListener {
+            autoTimerOn = !autoTimerOn
+            if (autoTimerOn) {
+                programIndex = -1
+                seconds = 0
+                btnAutoTimer.text = "⏱ AUTO ON"
+                Toast.makeText(this, "Auto-Timer ON - Programs will change automatically", Toast.LENGTH_LONG).show()
+                tvProgram.visibility = View.VISIBLE
+            } else {
+                btnAutoTimer.text = "⏱ AUTO"
+                Toast.makeText(this, "Auto-Timer OFF", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // MULTI-STREAM - YouTube + Facebook + TikTok + Custom RTMP
         btnMultiStream.setOnClickListener {
             val platforms = arrayOf("YouTube Live", "Facebook Live", "TikTok Live", "Custom RTMP", "Church Website")
@@ -160,19 +179,35 @@ class MainActivity : AppCompatActivity() {
         btnGoLive.setOnClickListener {
             isLive = true
             seconds = 0
+            programIndex = -1
             controlPanel.visibility = View.GONE
             liveBadge.visibility = View.VISIBLE
             btnEndLive.visibility = View.VISIBLE
-            // Fullscreen - Hide status bar
             window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
-            // Live Timer
             liveRunnable = Runnable {
                 seconds++
                 val m = seconds / 60
                 val s = seconds % 60
                 tvLiveTime.text = String.format(" %02d:%02d", m, s)
+
+                // AUTO CHANGE PROGRAM
+                if (autoTimerOn) {
+                    for (i in programs.indices) {
+                        if (seconds >= programs[i].first && (i == programs.size - 1 || seconds < programs[i + 1].first)) {
+                            if (programIndex != i) {
+                                programIndex = i
+                                tvTitle.text = programs[i].second
+                                tvTicker.text = programs[i].third + "  •  "
+                                tvTicker.isSelected = true
+                                tvProgram.text = "PROGRAM: ${programs[i].second}"
+                                Toast.makeText(this, "Now: ${programs[i].second}", Toast.LENGTH_SHORT).show()
+                            }
+                            break
+                        }
+                    }
+                }
                 handler.postDelayed(liveRunnable, 1000)
             }
             handler.post(liveRunnable)
@@ -188,7 +223,7 @@ class MainActivity : AppCompatActivity() {
             btnEndLive.visibility = View.GONE
             window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
             window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
-            Toast.makeText(this, "Live Ended - ${seconds/60} min", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Live Ended", Toast.LENGTH_LONG).show()
         }
     }
 
