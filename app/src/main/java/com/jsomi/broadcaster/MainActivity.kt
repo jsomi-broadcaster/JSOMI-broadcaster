@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity() {
         etCustomUrl.setText(prefs.getString("CUSTOM_URL", ""))
         etCustomKey.setText(prefs.getString("CUSTOM_KEY", ""))
         tvBible.text = prefs.getString("BIBLE", "John 3:16 - For God so loved the world")
-        tvTicker.text = "Welcome to JSTV - Jesus Saves TV"
+        tvTicker.text = "Welcome to JSTV - Jehovah Shalom TV"
 
         btnSetBible.setOnClickListener {
             val v = etBibleInput.text.toString()
