@@ -36,8 +36,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var etCustomKey: EditText
     private lateinit var etBibleInput: EditText
     private lateinit var btnSetBible: Button
-    private lateinit var etTickerInput: EditText
-    private lateinit var btnSetTicker: Button
 
     private val YT_URL = "rtmp://a.rtmp.youtube.com/live2/"
     private val FB_URL = "rtmps://live-api-s.facebook.com:443/rtmp/"
@@ -64,8 +62,6 @@ class MainActivity : AppCompatActivity() {
         etCustomKey = findViewById(R.id.etCustomKey)
         etBibleInput = findViewById(R.id.etBibleInput)
         btnSetBible = findViewById(R.id.btnSetBible)
-        etTickerInput = findViewById(R.id.etTickerInput)
-        btnSetTicker = findViewById(R.id.btnSetTicker)
 
         etYTKey.setText(prefs.getString("YT", ""))
         etFBKey.setText(prefs.getString("FB", ""))
@@ -73,21 +69,13 @@ class MainActivity : AppCompatActivity() {
         etCustomUrl.setText(prefs.getString("CUSTOM_URL", ""))
         etCustomKey.setText(prefs.getString("CUSTOM_KEY", ""))
         tvBible.text = prefs.getString("BIBLE", "John 3:16 - For God so loved the world")
-        tvTicker.text = prefs.getString("TICKER", "Welcome to JSTV - Jesus Saves TV")
+        tvTicker.text = "Welcome to JSTV - Jesus Saves TV"
 
         btnSetBible.setOnClickListener {
             val v = etBibleInput.text.toString()
             if (v.isNotEmpty()) {
                 tvBible.text = v
                 prefs.edit().putString("BIBLE", v).apply()
-            }
-        }
-
-        btnSetTicker.setOnClickListener {
-            val v = etTickerInput.text.toString()
-            if (v.isNotEmpty()) {
-                tvTicker.text = v
-                prefs.edit().putString("TICKER", v).apply()
             }
         }
 
@@ -100,6 +88,7 @@ class MainActivity : AppCompatActivity() {
             if (!isLive) startMultiStream(prefs) else stopStream()
         }
     }
+
     private fun makeChecker(name: String): ConnectCheckerRtmp {
         return object : ConnectCheckerRtmp {
             override fun onConnectionStartedRtmp(rtmpUrl: String) {
@@ -116,7 +105,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { tvStatus.text = "Disconnected $name" }
             }
             override fun onAuthErrorRtmp() {
-                runOnUiThread { tvStatus.text = "Auth Error $name" }
+                runOnUiThread { tvStatus.text = "Auth Error $name - Check Stream Key" }
             }
             override fun onAuthSuccessRtmp() {
                 runOnUiThread { tvStatus.text = "Auth OK $name" }
@@ -132,7 +121,6 @@ class MainActivity : AppCompatActivity() {
             .putString("CUSTOM_URL", etCustomUrl.text.toString())
             .putString("CUSTOM_KEY", etCustomKey.text.toString())
             .putString("BIBLE", tvBible.text.toString())
-            .putString("TICKER", tvTicker.text.toString())
             .apply()
 
         val dest = when {
@@ -152,15 +140,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val checkedCount = listOf(cbYT, cbFB, cbTikTok, cbCustom).count { it.isChecked }
-        if (checkedCount > 1) {
-            Toast.makeText(this, "Streaming to ${dest.second} - For true multi-stream use Restream.io as Custom URL", Toast.LENGTH_LONG).show()
-        }
-
         rtmpCamera = RtmpCamera1(surfaceView, makeChecker(dest.second))
         rtmpCamera?.startPreview()
-        if (rtmpCamera?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 0, 0) == true &&
-            rtmpCamera?.prepareAudio(128 * 1024, 32000, true, false) == true) {
+        // 2.2.6 - no-arg prepare is the safe one for this version
+        if (rtmpCamera?.prepareVideo() == true && rtmpCamera?.prepareAudio() == true) {
             rtmpCamera?.startStream(dest.first)
             isLive = true
             btnGoLive.text = "STOP LIVE"
