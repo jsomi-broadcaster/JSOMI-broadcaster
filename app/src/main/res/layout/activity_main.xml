@@ -10,59 +10,133 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <SurfaceView
-            android:id="@+id/cameraView"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="JSTV BROADCASTER"
+            android:textColor="#FFFF00"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <com.pedro.rtplibrary.view.OpenGlView
+            android:id="@+id/surfaceView"
             android:layout_width="match_parent"
-            android:layout_height="240dp"
-            android:background="#222222" />
+            android:layout_height="220dp"
+            android:layout_marginTop="8dp" />
 
         <TextView
             android:id="@+id/tvStatus"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Offline"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:paddingTop="8dp" />
+            android:layout_marginTop="8dp" />
 
         <TextView
             android:id="@+id/tvBible"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="John 3:16 - For God so loved the world"
-            android:textColor="#FFEB3B"
-            android:textSize="16sp" />
+            android:textColor="#FFFF00"
+            android:layout_marginTop="8dp" />
 
         <TextView
             android:id="@+id/tvTicker"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Welcome to JSTV - Jesus Saves TV"
             android:textColor="#FFFFFF"
-            android:textSize="14sp" />
+            android:layout_marginTop="4dp" />
 
-        <EditText android:id="@+id/etTicker" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Ticker text" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
-        <EditText android:id="@+id/etBibleInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Bible verse" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
-        <Button android:id="@+id/btnSetBible" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SET BIBLE" />
+        <CheckBox
+            android:id="@+id/cbYT"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="YouTube"
+            android:textColor="#FFFFFF" />
 
-        <CheckBox android:id="@+id/cbYT" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="YouTube" android:textColor="#FFFFFF" />
-        <EditText android:id="@+id/etYTKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="YouTube Stream Key" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
+        <EditText
+            android:id="@+id/etYTKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="YouTube Stream Key"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
 
-        <CheckBox android:id="@+id/cbFB" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Facebook" android:textColor="#FFFFFF" />
-        <EditText android:id="@+id/etFBKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Facebook Stream Key" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
+        <CheckBox
+            android:id="@+id/cbFB"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Facebook"
+            android:textColor="#FFFFFF" />
 
-        <CheckBox android:id="@+id/cbTikTok" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="TikTok" android:textColor="#FFFFFF" />
-        <EditText android:id="@+id/etTikTokKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="TikTok Stream Key" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
+        <EditText
+            android:id="@+id/etFBKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Facebook Stream Key"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
 
-        <CheckBox android:id="@+id/cbCustom" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Custom / Restream" android:textColor="#FFFFFF" />
-        <EditText android:id="@+id/etCustomUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Custom RTMP URL" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
-        <EditText android:id="@+id/etCustomKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Custom Stream Key" android:textColorHint="#AAAAAA" android:textColor="#FFFFFF" />
+        <CheckBox
+            android:id="@+id/cbTikTok"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TikTok"
+            android:textColor="#FFFFFF" />
+
+        <EditText
+            android:id="@+id/etTikTokKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="TikTok Stream Key"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <CheckBox
+            android:id="@+id/cbCustom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Custom RTMP"
+            android:textColor="#FFFFFF" />
+
+        <EditText
+            android:id="@+id/etCustomUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Custom RTMP URL e.g. rtmp://..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/etCustomKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Custom Stream Key"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888" />
+
+        <EditText
+            android:id="@+id/etBibleInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Type Bible verse"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/btnSetBible"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SET BIBLE VERSE" />
 
         <Button
             android:id="@+id/btnGoLive"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:text="GO LIVE"
-            android:backgroundTint="#FF0000" />
+            android:layout_marginTop="12dp" />
+
     </LinearLayout>
 </ScrollView>
