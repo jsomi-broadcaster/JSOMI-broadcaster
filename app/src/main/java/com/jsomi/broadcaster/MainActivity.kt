@@ -151,7 +151,7 @@ class MainActivity : AppCompatActivity() {
                 if (rtmpYT == null && rtmpFB == null && rtmpTikTok == null) rtmpCustom!!.startPreview()
                 rtmpCustom!!.prepareVideo(1280, 720, 30, 3000*1024, 0, 0)
                 rtmpCustom!!.prepareAudio(32000, true, 128*1024)
-                rtmpCustom!!.startAudio(); rtmpCustom!!.startVideo()
+                
                 rtmpCustom!!.startStream(fullUrl)
                 status.append("Custom "); started++
             }
@@ -166,8 +166,7 @@ private fun stopMultiStream() {
     for (stream in streams) {
         if (stream != null && stream.isStreaming) {
             try { stream.stopStream() } catch (e: Exception) {}
-            try { stream.stopAudio() } catch (e: Exception) {}
-            try { stream.stopVideo() } catch (e: Exception) {}
+            
             try { stream.stopPreview() } catch (e: Exception) {}
         }
     }
