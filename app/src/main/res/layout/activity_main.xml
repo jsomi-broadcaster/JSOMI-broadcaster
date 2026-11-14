@@ -1,44 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
 
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🎬 MAIN STUDIO - LIVESTREAM CONTROL" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="18sp" android:gravity="center" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🎬 MAIN STUDIO" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="20sp" android:gravity="center"/>
+<TextView android:id="@+id/tvPlan" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Plan: FREE" android:textColor="#FFD700" android:gravity="center" android:padding="6dp"/>
+<TextView android:id="@+id/adBanner" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📢 ADVERTISEMENT - Upgrade to Premium to Remove Ads - Paybill 516600" android:textColor="#000000" android:background="#FFD700" android:gravity="center" android:padding="10dp"/>
 
-    <androidx.camera.view.PreviewView android:id="@+id/previewView" android:layout_width="match_parent" android:layout_height="220dp" android:layout_marginTop="12dp" android:background="#222222" />
+<FrameLayout android:layout_width="match_parent" android:layout_height="280dp" android:layout_marginTop="10dp">
+<androidx.camera.view.PreviewView android:id="@+id/previewView" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#222222"/>
+<TextView android:id="@+id/tvOverlayTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔴 JSTV LIVE" android:textColor="#FFFF00" android:textSize="22sp" android:textStyle="bold" android:layout_margin="10dp"/>
+<ImageView android:id="@+id/imgOverlayLogo" android:layout_width="70dp" android:layout_height="70dp" android:src="@mipmap/jstv_logo" android:layout_gravity="top|end" android:layout_margin="10dp"/>
+<TextView android:id="@+id/tvScrolling" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📢 Welcome to JSTV • " android:textColor="#FFFFFF" android:background="#80000000" android:layout_gravity="bottom" android:singleLine="true" android:ellipsize="marquee" android:marqueeRepeatLimit="marquee_forever" android:focusable="true" android:focusableInTouchMode="true"/>
+</FrameLayout>
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="LIVE SETTINGS" android:textColor="#FF0000" android:textStyle="bold" android:layout_marginTop="16dp" />
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📡 CHOOSE PLATFORM - RTMP Built-in" android:textColor="#FF0000" android:textStyle="bold" android:layout_marginTop="14dp"/>
+<Spinner android:id="@+id/spPlatform" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333"/>
+<TextView android:id="@+id/tvRtmp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="RTMP: ..." android:textColor="#AAAAAA" android:padding="6dp"/>
+<EditText android:id="@+id/etStreamKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Paste Stream Key ONLY here" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp"/>
+<EditText android:id="@+id/etStreamTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream Title" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="8dp"/>
 
-    <EditText android:id="@+id/etStreamTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream Title" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="8dp" />
-    <EditText android:id="@+id/etRtmpUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="RTMP URL - rtmp://... / YouTube / Facebook" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="8dp" />
-    <EditText android:id="@+id/etStreamKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream Key" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="8dp" />
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎨 TITLE / SCROLLING / LOGO - Drag on Preview to Move" android:textColor="#FFFFFF" android:layout_marginTop="12dp"/>
+<EditText android:id="@+id/etScrollText" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Scrolling text - e.g. Sunday Service 10AM" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="6dp"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<Button android:id="@+id/btnTitleStyle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="✨ TITLE STYLE"/>
+<Button android:id="@+id/btnScrollText" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📜 SET SCROLL"/>
+</LinearLayout>
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Resolution" android:textColor="#FFFFFF" android:layout_marginTop="12dp" />
-    <Spinner android:id="@+id/spResolution" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" />
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🖼 GALLERY / LOOP / INTRO / TIMER" android:textColor="#FFFFFF" android:layout_marginTop="12dp"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<Button android:id="@+id/btnGallery" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🖼 GALLERY"/>
+<Button android:id="@+id/btnLoop" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔁 LOOP"/>
+</LinearLayout>
+<Spinner android:id="@+id/spIntro" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<EditText android:id="@+id/etTimerMins" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:hint="Program Timer Mins e.g. 30" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333"/>
+<Button android:id="@+id/btnProgramTimer" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⏱ START TIMER"/>
+</LinearLayout>
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bitrate" android:textColor="#FFFFFF" android:layout_marginTop="12dp" />
-    <Spinner android:id="@+id/spBitrate" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" />
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚙️ SETTINGS" android:textColor="#FFFFFF" android:layout_marginTop="12dp"/>
+<Spinner android:id="@+id/spOrientation" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+<Spinner android:id="@+id/spResolution" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+<Spinner android:id="@+id/spBitrate" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+<Spinner android:id="@+id/spFps" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
 
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="FPS" android:textColor="#FFFFFF" android:layout_marginTop="12dp" />
-    <Spinner android:id="@+id/spFps" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" />
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp">
+<Button android:id="@+id/btnSwitchCamera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔄 CAM"/>
+<Button android:id="@+id/btnFlash" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚡ FLASH"/>
+<Button android:id="@+id/btnMic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎤 MIC"/>
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<Button android:id="@+id/btnAudioOnly" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔊 AUDIO ONLY"/>
+<Button android:id="@+id/btnRecord" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⏺ RECORD"/>
+</LinearLayout>
 
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="12dp">
-        <Button android:id="@+id/btnSwitchCamera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔄 CAM" />
-        <Button android:id="@+id/btnFlash" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚡ FLASH" />
-        <Button android:id="@+id/btnMic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎤 MIC ON" />
-    </LinearLayout>
-
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
-        <Button android:id="@+id/btnAudioOnly" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔊 AUDIO ONLY" />
-        <Button android:id="@+id/btnRecord" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⏺ RECORD" />
-    </LinearLayout>
-
-    <TextView android:id="@+id/tvLiveStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="● OFFLINE" android:textColor="#FFFFFF" android:gravity="center" android:padding="10dp" android:layout_marginTop="12dp" />
-    <TextView android:id="@+id/tvViewers" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="👁 0 viewers | ⏱ 00:00" android:textColor="#FFFFFF" android:gravity="center" />
-
-    <Button android:id="@+id/btnGoLive" android:layout_width="match_parent" android:layout_height="65dp" android:layout_marginTop="12dp" android:text="🔴 GO LIVE" android:textColor="#FFFFFF" android:backgroundTint="#FF0000" />
-    <Button android:id="@+id/btnChurchScreen" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="⛪ SEND TO CHURCH SCREEN" />
-    <Button android:id="@+id/btnPayment" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="💰 PAYMENT / SUPPORT" />
-    <Button android:id="@+id/btnBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="⬅ BACK TO MENU" />
+<TextView android:id="@+id/tvLiveStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="● OFFLINE" android:textColor="#FFFFFF" android:gravity="center" android:padding="10dp" android:layout_marginTop="10dp"/>
+<TextView android:id="@+id/tvViewers" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="👁 0 viewers | ⏱ 00:00" android:textColor="#FFFFFF" android:gravity="center"/>
+<Button android:id="@+id/btnGoLive" android:layout_width="match_parent" android:layout_height="65dp" android:layout_marginTop="10dp" android:text="🔴 GO LIVE TO SOCIAL MEDIA" android:textColor="#FFFFFF" android:backgroundTint="#FF0000"/>
+<Button android:id="@+id/btnChurchScreen" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="⛪ SEND TO CHURCH SCREEN"/>
+<Button android:id="@+id/btnPayment" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="💰 UPGRADE PREMIUM"/>
+<Button android:id="@+id/btnWhatsApp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="💬 WHATSAPP 0763052911"/>
+<Button android:id="@+id/btnBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="⬅ BACK"/>
 </LinearLayout>
 </ScrollView>
