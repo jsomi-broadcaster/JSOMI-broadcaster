@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSetBible: Button
 
     private var rtmpCamera: RtmpCamera1? = null
-    private var isLive = false
+private var isLive = false
 
     private val YT_URL = "rtmp://a.rtmp.youtube.com/live2/"
     private val FB_URL = "rtmps://live-api-s.facebook.com:443/rtmp/"
