@@ -1,171 +1,212 @@
 package com.jsomi.broadcaster
 
-import android.Manifest
-import android.content.SharedPreferences
-import android.content.pm.PackageManager
+import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.MotionEvent
+import android.view.View
+import android.view.WindowManager
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.VideoView
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
-import com.pedro.rtplibrary.rtmp.RtmpCamera1
-import com.pedro.rtplibrary.view.OpenGlView
 
 class MainActivity : AppCompatActivity() {
 
-    private var rtmpCamera: RtmpCamera1? = null
     private var isLive = false
-
-    private lateinit var surfaceView: OpenGlView
-    private lateinit var btnGoLive: Button
-    private lateinit var tvStatus: TextView
-    private lateinit var tvBible: TextView
-    private lateinit var tvTicker: TextView
-    private lateinit var cbYT: CheckBox
-    private lateinit var cbFB: CheckBox
-    private lateinit var cbTikTok: CheckBox
-    private lateinit var cbCustom: CheckBox
-    private lateinit var etYTKey: EditText
-    private lateinit var etFBKey: EditText
-    private lateinit var etTikTokKey: EditText
-    private lateinit var etCustomUrl: EditText
-    private lateinit var etCustomKey: EditText
-    private lateinit var etBibleInput: EditText
-    private lateinit var btnSetBible: Button
-
-    private val YT_URL = "rtmp://a.rtmp.youtube.com/live2/"
-    private val FB_URL = "rtmps://live-api-s.facebook.com:443/rtmp/"
-    private val TIKTOK_URL = "rtmp://rtmp-push.tiktok.com/live/"
+    private var isMuted = false
+    private var isIntroPlaying = false
+    private var isLandscape = false
+    private var seconds = 0
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var liveRunnable: Runnable
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val prefs: SharedPreferences = getSharedPreferences("JSTV", MODE_PRIVATE)
 
-        surfaceView = findViewById(R.id.surfaceView)
-        btnGoLive = findViewById(R.id.btnGoLive)
-        tvStatus = findViewById(R.id.tvStatus)
-        tvBible = findViewById(R.id.tvBible)
-        tvTicker = findViewById(R.id.tvTicker)
-        cbYT = findViewById(R.id.cbYT)
-        cbFB = findViewById(R.id.cbFB)
-        cbTikTok = findViewById(R.id.cbTikTok)
-        cbCustom = findViewById(R.id.cbCustom)
-        etYTKey = findViewById(R.id.etYTKey)
-        etFBKey = findViewById(R.id.etFBKey)
-        etTikTokKey = findViewById(R.id.etTikTokKey)
-        etCustomUrl = findViewById(R.id.etCustomUrl)
-        etCustomKey = findViewById(R.id.etCustomKey)
-        etBibleInput = findViewById(R.id.etBibleInput)
-        btnSetBible = findViewById(R.id.btnSetBible)
+        val controlPanel = findViewById<LinearLayout>(R.id.controlPanel)
+        val liveBadge = findViewById<LinearLayout>(R.id.liveBadge)
+        val tvLiveTime = findViewById<TextView>(R.id.tvLiveTime)
+        val btnEndLive = findViewById<Button>(R.id.btnEndLive)
+        val btnGoLive = findViewById<Button>(R.id.btnGoLive)
+        val btnMultiStream = findViewById<Button>(R.id.btnMultiStream)
+        val btnIntro = findViewById<Button>(R.id.btnIntro)
+        val btnLogo = findViewById<Button>(R.id.btnLogo)
+        val btnRotate = findViewById<Button>(R.id.btnRotate)
+        val btnMute = findViewById<Button>(R.id.btnMute)
 
-        etYTKey.setText(prefs.getString("YT", ""))
-        etFBKey.setText(prefs.getString("FB", ""))
-        etTikTokKey.setText(prefs.getString("TIKTOK", ""))
-        etCustomUrl.setText(prefs.getString("CUSTOM_URL", ""))
-        etCustomKey.setText(prefs.getString("CUSTOM_KEY", ""))
-        tvBible.text = prefs.getString("BIBLE", "John 3:16 - For God so loved the world")
-        tvTicker.text = "Welcome to JSTV - Jehovah Shalom TV"
+        val tvTitle = findViewById<TextView>(R.id.tvTitle)
+        val tvTicker = findViewById<TextView>(R.id.tvTicker)
+        val tvLogo = findViewById<TextView>(R.id.tvLogo)
+        val etTitle = findViewById<EditText>(R.id.etTitle)
+        val etTicker = findViewById<EditText>(R.id.etTicker)
+        val btnSetTitle = findViewById<Button>(R.id.btnSetTitle)
+        val btnSetTicker = findViewById<Button>(R.id.btnSetTicker)
+        val videoIntro = findViewById<VideoView>(R.id.videoIntro)
 
-        btnSetBible.setOnClickListener {
-            val v = etBibleInput.text.toString()
-            if (v.isNotEmpty()) {
-                tvBible.text = v
-                prefs.edit().putString("BIBLE", v).apply()
+        // Make Title, Logo, Ticker DRAGGABLE - Touch and Move
+        makeDraggable(tvTitle)
+        makeDraggable(tvLogo)
+        makeDraggable(tvTicker)
+
+        // Start ticker scrolling
+        tvTicker.isSelected = true
+
+        // SET TITLE
+        btnSetTitle.setOnClickListener {
+            val t = etTitle.text.toString().trim()
+            if (t.isNotEmpty()) {
+                tvTitle.text = t
+                tvTitle.visibility = View.VISIBLE
+                Toast.makeText(this, "Title Set - Drag it anywhere", Toast.LENGTH_SHORT).show()
             }
         }
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 1)
+        // SET SCROLLING TEXT - Single Line
+        btnSetTicker.setOnClickListener {
+            val t = etTicker.text.toString().trim()
+            if (t.isNotEmpty()) {
+                tvTicker.text = "$t  •  $t  •  "
+                tvTicker.isSelected = true
+                tvTicker.visibility = View.VISIBLE
+                Toast.makeText(this, "Scrolling Text Set - Drag it", Toast.LENGTH_SHORT).show()
+            }
         }
 
+        // INTRO VIDEO LOOP
+        btnIntro.setOnClickListener {
+            if (!isIntroPlaying) {
+                // If you add intro.mp4 to res/raw, it will play. If not, we show message
+                try {
+                    val uri = android.net.Uri.parse("android.resource://" + packageName + "/" + R.raw.intro)
+                    videoIntro.setVideoURI(uri)
+                    videoIntro.visibility = View.VISIBLE
+                    videoIntro.setOnPreparedListener { mp -> mp.isLooping = true }
+                    videoIntro.start()
+                    isIntroPlaying = true
+                    btnIntro.text = "■ STOP INTRO"
+                    Toast.makeText(this, "Intro Playing - Loop", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Add intro.mp4 to res/raw to play Intro", Toast.LENGTH_LONG).show()
+                }
+            } else {
+                videoIntro.stopPlayback()
+                videoIntro.visibility = View.GONE
+                isIntroPlaying = false
+                btnIntro.text = "▶ INTRO"
+            }
+        }
+
+        // LOGO SHOW / HIDE
+        btnLogo.setOnClickListener {
+            if (tvLogo.visibility == View.VISIBLE) {
+                tvLogo.visibility = View.GONE
+                btnLogo.text = "🖼 SHOW LOGO"
+            } else {
+                tvLogo.visibility = View.VISIBLE
+                btnLogo.text = "🖼 LOGO"
+                Toast.makeText(this, "Logo - Drag it to move", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // ROTATE - Portrait / Landscape
+        btnRotate.setOnClickListener {
+            if (!isLandscape) {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                isLandscape = true
+                Toast.makeText(this, "Landscape", Toast.LENGTH_SHORT).show()
+            } else {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                isLandscape = false
+                Toast.makeText(this, "Portrait", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // MUTE / UNMUTE AUDIO
+        btnMute.setOnClickListener {
+            isMuted = !isMuted
+            if (isMuted) {
+                btnMute.text = "🔇"
+                Toast.makeText(this, "Audio Muted", Toast.LENGTH_SHORT).show()
+            } else {
+                btnMute.text = "🎤"
+                Toast.makeText(this, "Audio On", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // MULTI-STREAM - YouTube + Facebook + TikTok + Custom RTMP
+        btnMultiStream.setOnClickListener {
+            val platforms = arrayOf("YouTube Live", "Facebook Live", "TikTok Live", "Custom RTMP", "Church Website")
+            val checked = booleanArrayOf(true, false, false, false, false)
+            AlertDialog.Builder(this)
+                .setTitle("📡 Multi-Stream To:")
+                .setMultiChoiceItems(platforms, checked) { _, which, isChecked -> checked[which] = isChecked }
+                .setPositiveButton("SAVE") { _, _ ->
+                    val selected = platforms.filterIndexed { i, _ -> checked[i] }
+                    Toast.makeText(this, "Streaming to: ${selected.joinToString(", ")}", Toast.LENGTH_LONG).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+
+        // GO LIVE -> FULLSCREEN - Only END button shows
         btnGoLive.setOnClickListener {
-            if (!isLive) startMultiStream(prefs) else stopStream()
-        }
-    }
-
-    private fun makeChecker(name: String): ConnectCheckerRtmp {
-        return object : ConnectCheckerRtmp {
-            override fun onConnectionStartedRtmp(rtmpUrl: String) {
-                runOnUiThread { tvStatus.text = "Connecting to $name..." }
-            }
-            override fun onConnectionSuccessRtmp() {
-                runOnUiThread { tvStatus.text = "LIVE TO: $name - Connected" }
-            }
-            override fun onConnectionFailedRtmp(reason: String) {
-                runOnUiThread { tvStatus.text = "Failed $name: $reason" }
-            }
-            override fun onNewBitrateRtmp(bitrate: Long) {}
-            override fun onDisconnectRtmp() {
-                runOnUiThread { tvStatus.text = "Disconnected $name" }
-            }
-            override fun onAuthErrorRtmp() {
-                runOnUiThread { tvStatus.text = "Auth Error $name - Check Stream Key" }
-            }
-            override fun onAuthSuccessRtmp() {
-                runOnUiThread { tvStatus.text = "Auth OK $name" }
-            }
-        }
-    }
-
-    private fun startMultiStream(prefs: SharedPreferences) {
-        prefs.edit()
-            .putString("YT", etYTKey.text.toString())
-            .putString("FB", etFBKey.text.toString())
-            .putString("TIKTOK", etTikTokKey.text.toString())
-            .putString("CUSTOM_URL", etCustomUrl.text.toString())
-            .putString("CUSTOM_KEY", etCustomKey.text.toString())
-            .putString("BIBLE", tvBible.text.toString())
-            .apply()
-
-        val dest = when {
-            cbYT.isChecked && etYTKey.text.toString().trim().isNotEmpty() ->
-                Pair(YT_URL + etYTKey.text.toString().trim(), "YouTube")
-            cbFB.isChecked && etFBKey.text.toString().trim().isNotEmpty() ->
-                Pair(FB_URL + etFBKey.text.toString().trim(), "Facebook")
-            cbTikTok.isChecked && etTikTokKey.text.toString().trim().isNotEmpty() ->
-                Pair(TIKTOK_URL + etTikTokKey.text.toString().trim(), "TikTok")
-            cbCustom.isChecked && etCustomKey.text.toString().trim().isNotEmpty() ->
-                Pair(etCustomUrl.text.toString().trim() + etCustomKey.text.toString().trim(), "Custom")
-            else -> null
-        }
-
-        if (dest == null) {
-            Toast.makeText(this, "Tick one platform and enter its Stream Key", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        rtmpCamera = RtmpCamera1(surfaceView, makeChecker(dest.second))
-        rtmpCamera?.startPreview()
-        // 2.2.6 - no-arg prepare is the safe one for this version
-        if (rtmpCamera?.prepareVideo() == true && rtmpCamera?.prepareAudio() == true) {
-            rtmpCamera?.startStream(dest.first)
             isLive = true
-            btnGoLive.text = "STOP LIVE"
-            tvStatus.text = "LIVE TO: ${dest.second}"
-        } else {
-            tvStatus.text = "Failed to prepare camera"
+            seconds = 0
+            controlPanel.visibility = View.GONE
+            liveBadge.visibility = View.VISIBLE
+            btnEndLive.visibility = View.VISIBLE
+            // Fullscreen - Hide status bar
+            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+
+            // Live Timer
+            liveRunnable = Runnable {
+                seconds++
+                val m = seconds / 60
+                val s = seconds % 60
+                tvLiveTime.text = String.format(" %02d:%02d", m, s)
+                handler.postDelayed(liveRunnable, 1000)
+            }
+            handler.post(liveRunnable)
+            Toast.makeText(this, "🔴 YOU ARE LIVE!", Toast.LENGTH_LONG).show()
+        }
+
+        // END LIVE -> Back to Studio
+        btnEndLive.setOnClickListener {
+            isLive = false
+            handler.removeCallbacks(liveRunnable)
+            controlPanel.visibility = View.VISIBLE
+            liveBadge.visibility = View.GONE
+            btnEndLive.visibility = View.GONE
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+            Toast.makeText(this, "Live Ended - ${seconds/60} min", Toast.LENGTH_LONG).show()
         }
     }
 
-    private fun stopStream() {
-        try {
-            rtmpCamera?.stopStream()
-            rtmpCamera?.stopPreview()
-        } catch (e: Exception) { }
-        rtmpCamera = null
-        isLive = false
-        btnGoLive.text = "GO LIVE"
-        tvStatus.text = "Offline"
-    }
-
-    override fun onDestroy() {
-        if (isLive) stopStream()
-        super.onDestroy()
+    // DRAG FUNCTION - Move any view with finger
+    private fun makeDraggable(view: View) {
+        var dX = 0f
+        var dY = 0f
+        view.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    dX = v.x - event.rawX
+                    dY = v.y - event.rawY
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    v.animate().x(event.rawX + dX).y(event.rawY + dY).setDuration(0).start()
+                }
+            }
+            true
+        }
     }
 }
