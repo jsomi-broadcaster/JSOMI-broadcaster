@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun makeChecker(name: String): ConnectCheckerRtmp {
+        private fun makeChecker(name: String): ConnectCheckerRtmp {
         return object : ConnectCheckerRtmp {
             override fun onConnectionSuccessRtmp() {
                 runOnUiThread { tvStatus.text = "LIVE TO: $name - Connected" }
@@ -103,6 +103,12 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { tvStatus.text = "Failed $name: $reason" }
             }
             override fun onNewBitrateRtmp(bitrate: Long) {}
+            override fun onAuthErrorRtmp() {
+                runOnUiThread { tvStatus.text = "Auth Error $name" }
+            }
+            override fun onAuthSuccessRtmp() {
+                runOnUiThread { tvStatus.text = "Auth OK $name" }
+            }
         }
     }
 
