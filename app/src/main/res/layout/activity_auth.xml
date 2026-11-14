@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="JSTV"
+            android:textSize="52sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="40dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="JSOMI BROADCASTER"
+            android:textSize="14sp"
+            android:textColor="#FFC107"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="For Streamers Only - Sign In To Stream"
+            android:textSize="13sp"
+            android:textColor="#AAAAAA"
+            android:layout_marginBottom="32dp" />
+
+        <EditText
+            android:id="@+id/etName"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:hint="Full Name"
+            android:textColorHint="#888888"
+            android:textColor="#FFFFFF"
+            android:background="@android:drawable/editbox_background"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/etPhone"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:hint="Phone e.g. 0712345678"
+            android:inputType="phone"
+            android:textColorHint="#888888"
+            android:textColor="#FFFFFF"
+            android:background="@android:drawable/editbox_background"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:hint="Password"
+            android:inputType="textPassword"
+            android:textColorHint="#888888"
+            android:textColor="#FFFFFF"
+            android:background="@android:drawable/editbox_background"
+            android:padding="12dp"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/btnSignUp"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:text="SIGN UP - NEW STREAMER"
+            android:backgroundTint="#FFC107"
+            android:textColor="#000000"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnSignIn"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:text="SIGN IN - I HAVE ACCOUNT"
+            android:backgroundTint="#333333"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="12dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="After Sign In, Camera Opens. Pay to Unlock Full Features."
+            android:textSize="11sp"
+            android:textColor="#777777"
+            android:gravity="center"
+            android:layout_marginTop="24dp" />
+
+    </LinearLayout>
+</ScrollView>
