@@ -161,16 +161,21 @@ class MainActivity : AppCompatActivity() {
         btnGoLive.text = "STOP ALL STREAMS"
         isLive = true
     }
-
-    private fun stopMultiStream() {
-        listOf(rtmpYT, rtmpFB, rtmpTikTok, rtmpCustom).forEach {
-            if (it != null && it!!.isStreaming) it!!.stopStream()
-            if (it != null) { try { it!!.stopVideo() } catch (e: Exception) {}; try { it!!.stopAudio() } catch (e: Exception) {}; try { it!!.stopPreview() } catch (e: Exception) {} }
+private fun stopMultiStream() {
+    val streams = listOf(rtmpYT, rtmpFB, rtmpTikTok, rtmpCustom)
+    for (stream in streams) {
+        if (stream != null && stream.isStreaming) {
+            try { stream.stopStream() } catch (e: Exception) {}
+            try { stream.stopAudio() } catch (e: Exception) {}
+            try { stream.stopVideo() } catch (e: Exception) {}
+            try { stream.stopPreview() } catch (e: Exception) {}
         }
-        rtmpYT = null; rtmpFB = null; rtmpTikTok = null; rtmpCustom = null
-        tvStatus.text = "Offline - Ready"
-        btnGoLive.text = "GO LIVE - MULTISTREAM"
-        isLive = false
     }
+    rtmpYT = null; rtmpFB = null; rtmpTikTok = null; rtmpCustom = null
+    tvStatus.text = "Offline - Ready"
+    btnGoLive.text = "GO LIVE - MULTISTREAM"
+    isLive = false
+}
+    
     override fun onDestroy() { super.onDestroy(); if (isLive) stopMultiStream() }
 }
