@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" android:background="#0A0A0A">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📱 REMOTE CONTROL" android:textColor="#FFFFFF" android:textSize="20sp" android:gravity="center" android:padding="16dp"/>
+<Button android:id="@+id/btnRemoteGoLive" android:layout_width="match_parent" android:layout_height="70dp" android:text="🔴 REMOTE GO LIVE" android:backgroundTint="#FF0000" android:layout_marginBottom="10dp"/>
+<Button android:id="@+id/btnRemoteEnd" android:layout_width="match_parent" android:layout_height="70dp" android:text="⏹ REMOTE END LIVE" android:layout_marginBottom="10dp"/>
+<Button android:id="@+id/btnRemoteSwitch" android:layout_width="match_parent" android:layout_height="70dp" android:text="🔄 SWITCH CAMERA" android:layout_marginBottom="10dp"/>
+<Button android:id="@+id/btnRemoteMic" android:layout_width="match_parent" android:layout_height="70dp" android:text="🎤 MUTE / UNMUTE MIC"/>
+</LinearLayout>
