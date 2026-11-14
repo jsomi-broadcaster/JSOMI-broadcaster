@@ -1,110 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#121212">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp"
-        android:gravity="center">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="JSTV"
-            android:textColor="#FFC107"
-            android:textSize="48sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvWelcome"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Welcome - Choose What To Do"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="30dp" />
-
-        <Button
-            android:id="@+id/btnGoToStudio"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="🎥 GO TO MAIN STUDIO"
-            android:backgroundTint="#FF0000"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnMainStudio"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="🎥 MAIN STUDIO"
-            android:backgroundTint="#FF0000"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:layout_marginTop="10dp" />
-
-        <Button
-            android:id="@+id/btnRemote"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="📱 REMOTE CONTROL"
-            android:backgroundTint="#2196F3"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:layout_marginTop="10dp" />
-
-        <Button
-            android:id="@+id/btnWireless"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="📶 WIRELESS CAMERA"
-            android:backgroundTint="#9C27B0"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:layout_marginTop="10dp" />
-
-        <Button
-            android:id="@+id/btnBigScreen"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="🖥 BIG SCREEN MODE"
-            android:backgroundTint="#009688"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:layout_marginTop="10dp" />
-
-        <Button
-            android:id="@+id/btnPayment"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="💎 GO PREMIUM / PAYMENT"
-            android:backgroundTint="#FFC107"
-            android:textColor="#000000"
-            android:textStyle="bold"
-            android:layout_marginTop="10dp" />
-
-        <Button
-            android:id="@+id/btnGoPremium"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="💎 GO PREMIUM"
-            android:backgroundTint="#FFC107"
-            android:textColor="#000000"
-            android:layout_marginTop="10dp" />
-
-        <Button
-            android:id="@+id/btnLogout"
-            android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:text="Logout"
-            android:backgroundTint="#333333"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="30dp" />
-
-    </LinearLayout>
-</ScrollView>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#0A0A0A" android:padding="16dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JSTV - BROADCASTER" android:textColor="#FFFFFF" android:textSize="22sp" android:textStyle="bold" android:gravity="center" android:padding="16dp" />
+    <TextView android:id="@+id/tvWelcome" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Welcome" android:textColor="#AAAAAA" android:gravity="center" android:paddingBottom="16dp" />
+    <Button android:id="@+id/btnMainStudio" android:layout_width="match_parent" android:layout_height="80dp" android:layout_marginBottom="10dp" android:text="🎬  1. MAIN STUDIO" android:textSize="16sp" android:backgroundTint="#FF0000" android:textColor="#FFFFFF" />
+    <Button android:id="@+id/btnRemote" android:layout_width="match_parent" android:layout_height="80dp" android:layout_marginBottom="10dp" android:text="📱  2. REMOTE CONTROL" android:textSize="16sp" android:backgroundTint="#1E88E5" android:textColor="#FFFFFF" />
+    <Button android:id="@+id/btnCamera" android:layout_width="match_parent" android:layout_height="80dp" android:layout_marginBottom="10dp" android:text="📷  3. CAMERA" android:textSize="16sp" android:backgroundTint="#43A047" android:textColor="#FFFFFF" />
+    <Button android:id="@+id/btnChurch" android:layout_width="match_parent" android:layout_height="80dp" android:layout_marginBottom="10dp" android:text="⛪  4. CHURCH SCREEN" android:textSize="16sp" android:backgroundTint="#FF9800" android:textColor="#FFFFFF" />
+    <Button android:id="@+id/btnDeveloper" android:layout_width="match_parent" android:layout_height="60dp" android:layout_marginBottom="10dp" android:text="🛠 DEVELOPER ADMIN" android:backgroundTint="#333333" android:textColor="#FFFFFF" />
+    <Button android:id="@+id/btnLogout" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="LOGOUT" />
+</LinearLayout>
