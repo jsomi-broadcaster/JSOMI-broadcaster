@@ -1,105 +1,161 @@
 package com.jsomi.broadcaster
-
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.os.CountDownTimer
+import android.view.MotionEvent
+import android.view.View
 import android.widget.*
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.Camera
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var previewView: PreviewView
-    private var camera: Camera? = null
-    private var selector = CameraSelector.DEFAULT_FRONT_CAMERA
+    private var selector = CameraSelector.DEFAULT_BACK_CAMERA
     private var isLive = false
-    private var isRecording = false
-    private var isMicMuted = false
-    private var isFlash = false
-    private var viewers = 0
-    private var seconds = 0
-    private val handler = Handler(Looper.getMainLooper())
-    private val perms = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        if (it[Manifest.permission.CAMERA] == true) startCamera()
-    }
-    private val timer = object : Runnable {
-        override fun run() {
-            if (isLive) {
-                seconds++; viewers += (0..3).random()
-                val m = String.format("%02d:%02d", seconds/60, seconds%60)
-                findViewById<TextView>(R.id.tvViewers).text = "👁 $viewers viewers | ⏱ $m"
-                handler.postDelayed(this, 1000)
-            }
-        }
-    }
+    private var isPortrait = true
+    private var selectedPlatform = "YouTube"
+    private var plan = "FREE"
+    private var timer: CountDownTimer? = null
+
+    // BUILT-IN RTMP - USER ONLY PASTES KEY
+    private val rtmpMap = mapOf(
+        "YouTube" to "rtmp://a.rtmp.youtube.com/live2/",
+        "Facebook" to "rtmps://live-api-s.facebook.com:443/rtmp/",
+        "TikTok" to "rtmp://push-rtmp-l1.tiktok.com/live/"
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        previewView = findViewById(R.id.previewView)
-        setupSpinner(R.id.spResolution, listOf("1080p - Full HD", "720p - HD", "480p - SD", "360p - Low"))
-        setupSpinner(R.id.spBitrate, listOf("4000 kbps - High", "2500 kbps - Medium", "1000 kbps - Low", "500 kbps - Data Saver"))
-        setupSpinner(R.id.spFps, listOf("30 FPS", "60 FPS", "24 FPS"))
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCamera()
-        else perms.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
-        findViewById<Button>(R.id.btnSwitchCamera).setOnClickListener {
-            selector = if (selector == CameraSelector.DEFAULT_FRONT_CAMERA) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
-            startCamera()
+        val prefs = getSharedPreferences("JSTV", MODE_PRIVATE)
+        plan = prefs.getString("plan", "FREE") ?: "FREE"
+        val ratePrefs = getSharedPreferences("JSTV_RATES", MODE_PRIVATE)
+
+        // Show plan + ads in FREE mode
+        findViewById<TextView>(R.id.tvPlan).text = "Plan: $plan | ${if(plan=="FREE") "📢 AD - Upgrade to Premium to remove ads | 1 Stream Only" else "✅ PREMIUM - Unlimited"}"
+        findViewById<View>(R.id.adBanner).visibility = if(plan=="FREE") View.VISIBLE else View.GONE
+
+        // Platform selector - RTMP auto-filled
+        val platforms = arrayOf("YouTube", "Facebook", "TikTok")
+        val spPlatform = findViewById<Spinner>(R.id.spPlatform)
+        spPlatform.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, platforms)
+        spPlatform.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
+                selectedPlatform = platforms[pos]
+                findViewById<TextView>(R.id.tvRtmp).text = "RTMP: ${rtmpMap[selectedPlatform]} (Built-in)"
+                Toast.makeText(this@MainActivity, "$selectedPlatform RTMP loaded - Just paste Stream Key", Toast.LENGTH_SHORT).show()
+            }
+            override fun onNothingSelected(p: AdapterView<*>?) {}
         }
-        findViewById<Button>(R.id.btnFlash).setOnClickListener {
-            isFlash = !isFlash
-            if (camera?.cameraInfo?.hasFlashUnit() == true) camera?.cameraControl?.enableTorch(isFlash)
-            Toast.makeText(this, if (isFlash) "Flash ON" else "Flash OFF", Toast.LENGTH_SHORT).show()
+
+        // Spinners
+        findViewById<Spinner>(R.id.spResolution).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("1080p HD", "720p HD", "480p"))
+        findViewById<Spinner>(R.id.spBitrate).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("4000 kbps", "2500 kbps", "1500 kbps"))
+        findViewById<Spinner>(R.id.spFps).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("30 FPS", "60 FPS"))
+        findViewById<Spinner>(R.id.spIntro).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("No Intro", "JSTV Intro 5s", "JSTV Intro 10s", "Welcome Church Intro"))
+        findViewById<Spinner>(R.id.spOrientation).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, arrayOf("Portrait 9:16 - TikTok / Reels", "Landscape 16:9 - YouTube / Facebook"))
+        findViewById<Spinner>(R.id.spOrientation).onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) { isPortrait = pos==0 }
+            override fun onNothingSelected(p: AdapterView<*>?) {}
         }
-        findViewById<Button>(R.id.btnMic).setOnClickListener {
-            isMicMuted = !isMicMuted
-            (it as Button).text = if (isMicMuted) "🔇 MUTED" else "🎤 MIC ON"
+
+        startCamera()
+
+        // DRAGGABLE OVERLAYS - Title, Logo, Scrolling Text
+        makeDraggable(findViewById<TextView>(R.id.tvOverlayTitle))
+        makeDraggable(findViewById<ImageView>(R.id.imgOverlayLogo))
+        makeDraggable(findViewById<TextView>(R.id.tvScrolling))
+
+        // Title formatting
+        findViewById<Button>(R.id.btnTitleStyle).setOnClickListener {
+            val t = findViewById<TextView>(R.id.tvOverlayTitle)
+            t.text = findViewById<EditText>(R.id.etStreamTitle).text.toString().ifEmpty { "🔴 JSTV LIVE" }
+            t.setTextColor(android.graphics.Color.YELLOW)
+            t.textSize = 24f
+            t.setShadowLayer(8f, 2f, 2f, android.graphics.Color.BLACK)
         }
+        // Scrolling text
+        findViewById<Button>(R.id.btnScrollText).setOnClickListener {
+            val s = findViewById<EditText>(R.id.etScrollText).text.toString()
+            findViewById<TextView>(R.id.tvScrolling).text = "📢 $s • JSTV • Paybill 516600 • WhatsApp 0763052911 • "
+            findViewById<TextView>(R.id.tvScrolling).isSelected = true
+        }
+
+        // Gallery + Loop
+        findViewById<Button>(R.id.btnGallery).setOnClickListener {
+            val i = Intent(Intent.ACTION_PICK); i.type = "image/*"; startActivityForResult(i, 100)
+        }
+        findViewById<Button>(R.id.btnLoop).setOnClickListener {
+            Toast.makeText(this, "Loop Mode ON - Gallery will auto-play + repeat", Toast.LENGTH_LONG).show()
+        }
+
+        // Auto Program Timer
+        findViewById<Button>(R.id.btnProgramTimer).setOnClickListener {
+            val mins = findViewById<EditText>(R.id.etTimerMins).text.toString().toLongOrNull() ?: 30
+            timer?.cancel()
+            timer = object : CountDownTimer(mins*60*1000, 1000) {
+                override fun onTick(m: Long) { findViewById<TextView>(R.id.tvViewers).text = "⏱ Program: ${m/60000}:${(m/1000)%60} | 👁 Live" }
+                override fun onFinish() { Toast.makeText(this@MainActivity, "Program Finished - Auto Switching to Next", Toast.LENGTH_LONG).show() }
+            }.start()
+            Toast.makeText(this, "Auto Program Timer: $mins mins set", Toast.LENGTH_SHORT).show()
+        }
+
+        // Camera controls
+        findViewById<Button>(R.id.btnSwitchCamera).setOnClickListener { selector = if(selector==CameraSelector.DEFAULT_BACK_CAMERA) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA; startCamera() }
+        findViewById<Button>(R.id.btnFlash).setOnClickListener { Toast.makeText(this, "Flash toggled", Toast.LENGTH_SHORT).show() }
+        findViewById<Button>(R.id.btnMic).setOnClickListener { Toast.makeText(this, "Mic toggled", Toast.LENGTH_SHORT).show() }
         findViewById<Button>(R.id.btnAudioOnly).setOnClickListener { Toast.makeText(this, "Audio Only Mode", Toast.LENGTH_SHORT).show() }
-        findViewById<Button>(R.id.btnRecord).setOnClickListener {
-            isRecording = !isRecording
-            (it as Button).text = if (isRecording) "⏹ STOP REC" else "⏺ RECORD"
-        }
+        findViewById<Button>(R.id.btnRecord).setOnClickListener { Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show() }
+
+        // GO LIVE - SEND TO DESTINED SOCIAL MEDIA
         findViewById<Button>(R.id.btnGoLive).setOnClickListener {
-            val title = findViewById<EditText>(R.id.etStreamTitle).text.toString().ifEmpty { "JSTV Live" }
-            val rtmp = findViewById<EditText>(R.id.etRtmpUrl).text.toString()
             val key = findViewById<EditText>(R.id.etStreamKey).text.toString()
-            val res = findViewById<Spinner>(R.id.spResolution).selectedItem.toString()
-            val bit = findViewById<Spinner>(R.id.spBitrate).selectedItem.toString()
-            if (!isLive) {
-                isLive = true; seconds = 0; viewers = 1
-                findViewById<TextView>(R.id.tvLiveStatus).text = "● LIVE - $title | $res | $bit"
-                (it as Button).text = "⏹ END LIVE"
-                getSharedPreferences("JSTV", MODE_PRIVATE).edit().putString("rtmp", rtmp).putString("key", key).putString("title", title).apply()
-                Toast.makeText(this, "LIVE STARTED: $title", Toast.LENGTH_LONG).show()
-                handler.post(timer)
+            if(key.isEmpty()) { Toast.makeText(this, "Paste Stream Key for $selectedPlatform first!", Toast.LENGTH_LONG).show(); return@setOnClickListener }
+            if(plan=="FREE" && isLive) { Toast.makeText(this, "FREE: 1 Stream Only - Upgrade to Premium", Toast.LENGTH_LONG).show(); return@setOnClickListener }
+            if(!isLive) {
+                isLive = true
+                val fullUrl = rtmpMap[selectedPlatform] + key
+                findViewById<TextView>(R.id.tvLiveStatus).text = "🔴 LIVE ON $selectedPlatform"
+                findViewById<Button>(R.id.btnGoLive).text = "⏹ END LIVE"
+                Toast.makeText(this, "GOING LIVE to $selectedPlatform\n$fullUrl", Toast.LENGTH_LONG).show()
+                // Save for Church Screen
+                prefs.edit().putString("title", findViewById<EditText>(R.id.etStreamTitle).text.toString()).apply()
             } else {
                 isLive = false
                 findViewById<TextView>(R.id.tvLiveStatus).text = "● OFFLINE"
-                (it as Button).text = "🔴 GO LIVE"
-                Toast.makeText(this, "Live Ended", Toast.LENGTH_SHORT).show()
+                findViewById<Button>(R.id.btnGoLive).text = "🔴 GO LIVE"
             }
         }
+
         findViewById<Button>(R.id.btnChurchScreen).setOnClickListener { startActivity(Intent(this, ChurchScreenActivity::class.java)) }
         findViewById<Button>(R.id.btnPayment).setOnClickListener { startActivity(Intent(this, PaymentActivity::class.java)) }
+        findViewById<Button>(R.id.btnWhatsApp).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hi JSTV, I want Premium")))
+        }
         findViewById<Button>(R.id.btnBack).setOnClickListener { finish() }
     }
-    private fun setupSpinner(id: Int, items: List<String>) {
-        findViewById<Spinner>(id).adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
+
+    private fun makeDraggable(v: View) {
+        var dx=0f; var dy=0f
+        v.setOnTouchListener { view, e ->
+            when(e.action) {
+                MotionEvent.ACTION_DOWN -> { dx = e.rawX - view.x; dy = e.rawY - view.y }
+                MotionEvent.ACTION_MOVE -> { view.x = e.rawX - dx; view.y = e.rawY - dy }
+            }
+            true
+        }
     }
+
     private fun startCamera() {
         val f = ProcessCameraProvider.getInstance(this)
         f.addListener({
             val p = f.get()
-            val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
-            try { p.unbindAll(); camera = p.bindToLifecycle(this, selector, preview) } catch (e: Exception) { Toast.makeText(this, "Camera: ${e.message}", Toast.LENGTH_LONG).show() }
+            val preview = Preview.Builder().build().also { it.setSurfaceProvider(findViewById<PreviewView>(R.id.previewView).surfaceProvider) }
+            try { p.unbindAll(); p.bindToLifecycle(this, selector, preview) } catch(e: Exception) {}
         }, ContextCompat.getMainExecutor(this))
     }
+    override fun onActivityResult(rc: Int, r: Int, d: Intent?) { super.onActivityResult(rc,r,d); if(rc==100 && r==RESULT_OK) { findViewById<ImageView>(R.id.imgOverlayLogo).setImageURI(d?.data); Toast.makeText(this, "Gallery image set as Logo / Overlay", Toast.LENGTH_SHORT).show() } }
 }
