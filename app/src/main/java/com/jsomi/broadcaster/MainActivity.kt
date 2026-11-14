@@ -103,13 +103,6 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { tvStatus.text = "Failed $name: $reason" }
             }
             override fun onNewBitrateRtmp(bitrate: Long) {}
-            override fun onDisconnectRtmp() {
-                runOnUiThread { tvStatus.text = "Disconnected" }
-            }
-            override fun onAuthErrorRtmp() {
-                runOnUiThread { tvStatus.text = "Auth Error $name - Check Stream Key" }
-            }
-            override fun onAuthSuccessRtmp() {}
         }
     }
 
@@ -148,8 +141,8 @@ class MainActivity : AppCompatActivity() {
 
         rtmpCamera = RtmpCamera1(surfaceView, makeChecker(dest.second))
         rtmpCamera?.startPreview()
-                if (rtmpCamera?.prepareVideo(1280, 720, 30, 2500 * 1024, false, 0) == true &&
-            rtmpCamera?.prepareAudio(128 * 1024, 32000, true, false, false) == true) {
+        if (rtmpCamera?.prepareVideo(1280, 720, 30, 2500 * 1024, 0, 2) == true &&
+            rtmpCamera?.prepareAudio(32000, true, 128 * 1024) == true) {
             rtmpCamera?.startStream(dest.first)
             isLive = true
             btnGoLive.text = "STOP LIVE"
@@ -160,7 +153,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopStream() {
-                try {
+        try {
             rtmpCamera?.stopStream()
             rtmpCamera?.stopPreview()
         } catch (e: Exception) { }
