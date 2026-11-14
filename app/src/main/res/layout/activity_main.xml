@@ -5,13 +5,11 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- CAMERA VIDEO - Full Screen -->
     <FrameLayout
         android:id="@+id/cameraContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000000">
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -20,14 +18,12 @@
             android:layout_gravity="center" />
     </FrameLayout>
 
-    <!-- INTRO VIDEO LOOP - Hidden until you tap Intro -->
     <VideoView
         android:id="@+id/videoIntro"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <!-- LIVE INDICATOR - Top Left, Hidden until Go Live -->
     <LinearLayout
         android:id="@+id/liveBadge"
         android:layout_width="wrap_content"
@@ -40,7 +36,6 @@
         android:paddingBottom="5dp"
         android:layout_margin="12dp"
         android:visibility="gone">
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -48,7 +43,6 @@
             android:textColor="#FFFFFF"
             android:textStyle="bold"
             android:textSize="14sp" />
-
         <TextView
             android:id="@+id/tvLiveTime"
             android:layout_width="wrap_content"
@@ -58,7 +52,19 @@
             android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- LOGO - Top Right, Draggable -->
+    <TextView
+        android:id="@+id/tvProgram"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="PROGRAM: WAITING..."
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:background="#80008000"
+        android:padding="8dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="12dp" />
+
     <TextView
         android:id="@+id/tvLogo"
         android:layout_width="wrap_content"
@@ -72,7 +78,6 @@
         android:layout_gravity="top|end"
         android:layout_margin="12dp" />
 
-    <!-- MOVABLE TITLE - Drag Anywhere -->
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
@@ -86,7 +91,6 @@
         android:layout_gravity="center"
         android:layout_marginTop="80dp" />
 
-    <!-- SCROLLING TEXT - Single Line, Draggable, Bottom -->
     <TextView
         android:id="@+id/tvTicker"
         android:layout_width="match_parent"
@@ -102,9 +106,8 @@
         android:focusable="true"
         android:focusableInTouchMode="true"
         android:layout_gravity="bottom"
-        android:layout_marginBottom="180dp" />
+        android:layout_marginBottom="200dp" />
 
-    <!-- CONTROL PANEL - Hidden after Go Live -->
     <LinearLayout
         android:id="@+id/controlPanel"
         android:layout_width="match_parent"
@@ -118,7 +121,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
-
             <EditText
                 android:id="@+id/etTitle"
                 android:layout_width="0dp"
@@ -128,7 +130,6 @@
                 android:textColorHint="#888888"
                 android:textColor="#FFFFFF"
                 android:padding="8dp" />
-
             <Button
                 android:id="@+id/btnSetTitle"
                 android:layout_width="wrap_content"
@@ -143,7 +144,6 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp">
-
             <EditText
                 android:id="@+id/etTicker"
                 android:layout_width="0dp"
@@ -153,7 +153,6 @@
                 android:textColorHint="#888888"
                 android:textColor="#FFFFFF"
                 android:padding="8dp" />
-
             <Button
                 android:id="@+id/btnSetTicker"
                 android:layout_width="wrap_content"
@@ -168,7 +167,6 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="10dp">
-
             <Button
                 android:id="@+id/btnIntro"
                 android:layout_width="0dp"
@@ -177,7 +175,6 @@
                 android:text="▶ INTRO"
                 android:backgroundTint="#333333"
                 android:textColor="#FFFFFF" />
-
             <Button
                 android:id="@+id/btnLogo"
                 android:layout_width="0dp"
@@ -188,7 +185,6 @@
                 android:textColor="#FFFFFF"
                 android:layout_marginStart="6dp"
                 android:layout_marginEnd="6dp" />
-
             <Button
                 android:id="@+id/btnRotate"
                 android:layout_width="0dp"
@@ -197,7 +193,15 @@
                 android:text="↻ ROTATE"
                 android:backgroundTint="#333333"
                 android:textColor="#FFFFFF" />
-
+            <Button
+                android:id="@+id/btnAutoTimer"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="1"
+                android:text="⏱ AUTO"
+                android:backgroundTint="#4CAF50"
+                android:textColor="#FFFFFF"
+                android:layout_marginStart="6dp" />
             <Button
                 android:id="@+id/btnMute"
                 android:layout_width="0dp"
@@ -214,7 +218,6 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:layout_marginTop="8dp">
-
             <Button
                 android:id="@+id/btnMultiStream"
                 android:layout_width="0dp"
@@ -224,7 +227,6 @@
                 android:backgroundTint="#2196F3"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
-
             <Button
                 android:id="@+id/btnGoLive"
                 android:layout_width="0dp"
@@ -238,7 +240,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- END BUTTON - Only shows after Go Live, Fullscreen -->
     <Button
         android:id="@+id/btnEndLive"
         android:layout_width="wrap_content"
