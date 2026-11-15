@@ -5,27 +5,25 @@
     android:orientation="vertical"
     android:background="#000000">
 
+    <!-- TOP BAR -->
     <TextView
-        android:id="@+id/tvPlan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="MAIN STUDIO - Main Event Camera | Plan: FREE"
         android:textColor="#FFFFFF"
+        android:textSize="14sp"
         android:textStyle="bold"
-        android:textSize="13sp"
-        android:padding="8dp"
-        android:background="#222222" />
+        android:padding="8dp" />
 
     <TextView
-        android:id="@+id/adBanner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="AD - Upgrade to Premium to remove ads - Paybill 516600"
         android:textColor="#000000"
-        android:background="#FFEB3B"
+        android:background="#FFFF00"
         android:gravity="center"
         android:padding="6dp"
-        android:textSize="12sp" />
+        android:textSize="13sp" />
 
     <TextView
         android:id="@+id/tvLiveStatus"
@@ -33,14 +31,14 @@
         android:layout_height="wrap_content"
         android:text="OFFLINE"
         android:textColor="#FF5252"
-        android:textStyle="bold"
         android:gravity="center"
-        android:padding="4dp" />
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
+    <!-- CAMERA PREVIEW - FIXED, OUTSIDE SCROLLVIEW, THIS IS THE FIX -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="320dp"
         android:background="#000000">
 
         <com.pedro.rtplibrary.view.OpenGlView
@@ -56,81 +54,47 @@
             android:textColor="#FFFF00"
             android:textSize="24sp"
             android:textStyle="bold"
-            android:layout_gravity="top|center_horizontal"
+            android:layout_gravity="center"
             android:padding="8dp" />
 
         <ImageView
             android:id="@+id/imgOverlayLogo"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             android:layout_gravity="top|end"
-            android:contentDescription="Logo" />
-
-        <TextView
-            android:id="@+id/tvScrolling"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Welcome to JSTV - Paybill 516600 - WhatsApp 0763052911"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:layout_gravity="bottom"
-            android:background="#80000000"
-            android:padding="6dp"
-            android:singleLine="true"
-            android:ellipsize="marquee"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:focusable="true"
-            android:focusableInTouchMode="true" />
+            android:layout_margin="8dp" />
 
     </FrameLayout>
 
+    <TextView
+        android:id="@+id/tvScrolling"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Welcome to JSTV - Paybill 516600 - WhatsApp 0763052911"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee"
+        android:singleLine="true"
+        android:selected="true" />
+
+    <!-- CONTROLS - SCROLLABLE -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="320dp"
-        android:background="#111111">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="12dp">
 
             <TextView
-                android:id="@+id/tvViewers"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Viewers: 0 | Program: Not Started"
-                android:textColor="#FFFFFF"
-                android:paddingBottom="8dp" />
-
-            <TextView
-                android:id="@+id/tvRtmp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="RTMP: rtmps://live-api-s.facebook.com:443/rtmp/ + YOUR KEY"
-                android:textColor="#AAAAAA"
-                android:textSize="11sp"
-                android:paddingBottom="8dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Platform:"
-                android:textColor="#FFFFFF" />
-
-            <Spinner
-                android:id="@+id/spPlatform"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF" />
-
-            <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Stream Title:"
-                android:textColor="#FFFFFF"
-                android:layout_marginTop="8dp" />
+                android:textColor="#FFFFFF" />
 
             <EditText
                 android:id="@+id/etStreamTitle"
@@ -138,48 +102,40 @@
                 android:layout_height="wrap_content"
                 android:hint="Enter Stream Title"
                 android:textColor="#FFFFFF"
-                android:textColorHint="#888888"
-                android:background="#333333"
-                android:padding="8dp" />
+                android:textColorHint="#888888" />
 
             <Button
                 android:id="@+id/btnTitleStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="SET TITLE ON SCREEN"
-                android:layout_marginTop="4dp" />
+                android:text="SET TITLE" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Scrolling Text:"
-                android:textColor="#FFFFFF"
-                android:layout_marginTop="8dp" />
+                android:text="Scroll Text:"
+                android:textColor="#FFFFFF" />
 
             <EditText
                 android:id="@+id/etScrollText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Type announcement..."
+                android:hint="Enter scroll text"
                 android:textColor="#FFFFFF"
-                android:textColorHint="#888888"
-                android:background="#333333"
-                android:padding="8dp" />
+                android:textColorHint="#888888" />
 
             <Button
                 android:id="@+id/btnScrollText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="SET SCROLL TEXT"
-                android:layout_marginTop="4dp" />
+                android:text="SET SCROLL TEXT" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Stream Key - PASTE KEY ONLY HERE:"
-                android:textColor="#FFEB3B"
-                android:textStyle="bold"
-                android:layout_marginTop="10dp" />
+                android:textColor="#FFFF00"
+                android:textStyle="bold" />
 
             <EditText
                 android:id="@+id/etStreamKey"
@@ -187,183 +143,87 @@
                 android:layout_height="wrap_content"
                 android:hint="Paste Stream Key ONLY here"
                 android:textColor="#FFFFFF"
-                android:textColorHint="#888888"
-                android:background="#333333"
-                android:padding="10dp" />
+                android:textColorHint="#888888" />
+
+            <TextView
+                android:id="@+id/tvRtmp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="RTMP: Not Connected"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvViewers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Viewers: 0 | Program: Stopped"
+                android:textColor="#FFFFFF" />
 
             <Button
                 android:id="@+id/btnGoLive"
                 android:layout_width="match_parent"
-                android:layout_height="60dp"
+                android:layout_height="wrap_content"
                 android:text="GO LIVE TO SOCIAL MEDIA"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:backgroundTint="#D32F2F"
-                android:layout_marginTop="8dp" />
+                android:background="#FF0000"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="8dp">
-
-                <Button
-                    android:id="@+id/btnSwitchCamera"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="CAMERA" />
-
-                <Button
-                    android:id="@+id/btnFlash"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="FLASH" />
-
-                <Button
-                    android:id="@+id/btnMic"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="MIC ON" />
-
+                android:weightSum="3">
+                <Button android:id="@+id/btnSwitchCamera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="CAMERA" />
+                <Button android:id="@+id/btnFlash" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="FLASH" />
+                <Button android:id="@+id/btnMic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="MIC ON" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="4dp">
-
-                <Button
-                    android:id="@+id/btnAudioOnly"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="AUDIO ONLY" />
-
-                <Button
-                    android:id="@+id/btnRecord"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="RECORD" />
-
-                <Button
-                    android:id="@+id/btnGallery"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="LOGO" />
-
+                android:weightSum="3">
+                <Button android:id="@+id/btnAudioOnly" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="VIDEO OFF" />
+                <Button android:id="@+id/btnRecord" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="RECORD" />
+                <Button android:id="@+id/btnGallery" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="LOGO" />
             </LinearLayout>
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Quality Settings:"
+                android:textColor="#FFFFFF" />
+
+            <Spinner android:id="@+id/spPlatform" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <Spinner android:id="@+id/spResolution" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <Spinner android:id="@+id/spBitrate" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <Spinner android:id="@+id/spFps" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <Spinner android:id="@+id/spIntro" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <Spinner android:id="@+id/spOrientation" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Program Timer (mins):"
+                android:textColor="#FFFFFF" />
+
+            <EditText
+                android:id="@+id/etTimerMins"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="e.g. 30"
+                android:inputType="number"
                 android:textColor="#FFFFFF"
-                android:layout_marginTop="10dp" />
+                android:textColorHint="#888888" />
 
-            <Spinner
-                android:id="@+id/spResolution"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF" />
-
-            <Spinner
-                android:id="@+id/spBitrate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF"
-                android:layout_marginTop="4dp" />
-
-            <Spinner
-                android:id="@+id/spFps"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF"
-                android:layout_marginTop="4dp" />
-
-            <Spinner
-                android:id="@+id/spIntro"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF"
-                android:layout_marginTop="4dp" />
-
-            <Spinner
-                android:id="@+id/spOrientation"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#FFFFFF"
-                android:layout_marginTop="4dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="8dp">
-
-                <EditText
-                    android:id="@+id/etTimerMins"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:hint="Minutes e.g. 30"
-                    android:inputType="number"
-                    android:textColor="#FFFFFF"
-                    android:textColorHint="#888888"
-                    android:background="#333333"
-                    android:padding="8dp" />
-
-                <Button
-                    android:id="@+id/btnProgramTimer"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="START TIMER" />
-
-            </LinearLayout>
-
-            <Button
-                android:id="@+id/btnLoop"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="LOOP MODE"
-                android:layout_marginTop="4dp" />
-
-            <Button
-                android:id="@+id/btnChurchScreen"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="OPEN CHURCH SCREEN"
-                android:layout_marginTop="4dp" />
-
-            <Button
-                android:id="@+id/btnPayment"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="UPGRADE TO PREMIUM"
-                android:layout_marginTop="8dp" />
-
-            <Button
-                android:id="@+id/btnWhatsApp"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="WHATSAPP SUPPORT"
-                android:layout_marginTop="4dp" />
-
-            <Button
-                android:id="@+id/btnBack"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="BACK"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="20dp" />
+            <Button android:id="@+id/btnProgramTimer" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="START TIMER" />
+            <Button android:id="@+id/btnLoop" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="LOOP MODE" />
+            <Button android:id="@+id/btnChurchScreen" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="CHURCH SCREEN" />
+            <Button android:id="@+id/btnPayment" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="UPGRADE TO PREMIUM - PAYBILL 516600" />
+            <Button android:id="@+id/btnWhatsApp" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="WHATSAPP SUPPORT" />
+            <Button android:id="@+id/btnBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="BACK" />
 
         </LinearLayout>
     </ScrollView>
-
 </LinearLayout>
