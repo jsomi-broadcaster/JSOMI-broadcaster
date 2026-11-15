@@ -11,16 +11,16 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.pedro.library.rtmp.ConnectCheckerRtmp
+import com.pedro.library.rtmp.RtmpCamera1
+import com.pedro.library.view.OpenGlView
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
 
-    private lateinit var previewView: PreviewView
-    private var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+    private lateinit var openGlView: OpenGlView
+    private lateinit var rtmpCamera: RtmpCamera1
     private var isLive = false
     private var isPortrait = true
     private var selectedPlatform = "Facebook"
@@ -35,19 +35,9 @@ class MainActivity : AppCompatActivity() {
     )
 
     private val PERMS = if (Build.VERSION.SDK_INT >= 33) {
-        arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO
-        )
+        arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
     } else {
-        arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        )
+        arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO, Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
     }
     private val REQ_CODE = 101
 
@@ -58,15 +48,20 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("JSTV", MODE_PRIVATE)
         plan = prefs.getString("plan", "FREE") ?: "FREE"
 
-        findViewById<TextView>(R.id.tvPlan).text = "MAIN STUDIO - Main Event Camera | Plan: $plan | ${if (plan == "FREE") "📢 AD - Upgrade to Premium | 1 Stream Only" else "✅ PREMIUM - Unlimited"}"
+        findViewById<TextView>(R.id.tvPlan).text = "MAIN STUDIO - Main Event Camera | Plan: $plan"
         findViewById<View>(R.id.adBanner).visibility = if (plan == "FREE") View.VISIBLE else View.GONE
 
-        // MAIN STUDIO IS THE STREAMING CAMERA - CameraX
-        previewView = findViewById(R.id.previewMain)
+        // REAL RTMP CAMERA
+        openGlView = findViewById(R.id.previewMain)
+        rtmpCamera = RtmpCamera1(openGlView, this)
+        rtmpCamera.setVideoResolution(1280, 720)
+        rtmpCamera.setVideoBitrateOnFly(2500 * 1024)
+        rtmpCamera.setFps(30)
+
         if (!hasPermissions()) {
             ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
         } else {
-            startCamera()
+            if (!rtmpCamera.isStreaming) rtmpCamera.startPreview()
         }
 
         val platforms = arrayOf("YouTube", "Facebook", "TikTok")
@@ -77,8 +72,7 @@ class MainActivity : AppCompatActivity() {
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
                 selectedPlatform = platforms[pos]
                 prefs.edit().putString("main_platform", selectedPlatform).apply()
-                findViewById<TextView>(R.id.tvRtmp).text = "RTMP: ${rtmpMap[selectedPlatform]} (Built-in)"
-                Toast.makeText(this@MainActivity, "$selectedPlatform RTMP loaded - Just paste Stream Key", Toast.LENGTH_SHORT).show()
+                findViewById<TextView>(R.id.tvRtmp).text = "RTMP: ${rtmpMap[selectedPlatform]} + YOUR KEY"
             }
             override fun onNothingSelected(p: AdapterView<*>?) {}
         }
@@ -101,8 +95,7 @@ class MainActivity : AppCompatActivity() {
             val t = findViewById<TextView>(R.id.tvOverlayTitle)
             t.text = findViewById<EditText>(R.id.etStreamTitle).text.toString().ifEmpty { "🔴 JSTV LIVE" }
             prefs.edit().putString("main_title", t.text.toString()).apply()
-            t.setTextColor(android.graphics.Color.YELLOW)
-            t.textSize = 24f
+            t.setTextColor(android.graphics.Color.YELLOW); t.textSize = 24f
             t.setShadowLayer(8f, 2f, 2f, android.graphics.Color.BLACK)
         }
         findViewById<Button>(R.id.btnScrollText).setOnClickListener {
@@ -112,82 +105,55 @@ class MainActivity : AppCompatActivity() {
             prefs.edit().putString("main_scroll", txt).apply()
             findViewById<TextView>(R.id.tvScrolling).isSelected = true
         }
-
         findViewById<Button>(R.id.btnGallery).setOnClickListener {
-            if (!hasPermissions()) {
-                ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
-                Toast.makeText(this, "Allow Gallery permission first", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val i = Intent(Intent.ACTION_PICK)
-            i.type = "image/*"
-            startActivityForResult(i, 100)
+            val i = Intent(Intent.ACTION_PICK); i.type = "image/*"; startActivityForResult(i, 100)
         }
-        findViewById<Button>(R.id.btnLoop).setOnClickListener {
-            Toast.makeText(this, "Loop Mode ON - Gallery will auto-play + repeat", Toast.LENGTH_LONG).show()
-        }
-
+        findViewById<Button>(R.id.btnLoop).setOnClickListener { Toast.makeText(this, "Loop Mode ON", Toast.LENGTH_LONG).show() }
         findViewById<Button>(R.id.btnProgramTimer).setOnClickListener {
             val mins = findViewById<EditText>(R.id.etTimerMins).text.toString().toLongOrNull() ?: 30
             timer?.cancel()
             timer = object : CountDownTimer(mins * 60 * 1000, 1000) {
-                override fun onTick(m: Long) {
-                    findViewById<TextView>(R.id.tvViewers).text = "⏱ Program: ${m / 60000}:${(m / 1000) % 60} | 👁 Live"
-                }
-                override fun onFinish() {
-                    Toast.makeText(this@MainActivity, "Program Finished - Auto Switching to Next", Toast.LENGTH_LONG).show()
-                }
+                override fun onTick(m: Long) { findViewById<TextView>(R.id.tvViewers).text = "⏱ Program: ${m / 60000}:${(m / 1000) % 60} | 👁 Live" }
+                override fun onFinish() { Toast.makeText(this@MainActivity, "Program Finished", Toast.LENGTH_LONG).show() }
             }.start()
-            Toast.makeText(this, "Auto Program Timer: $mins mins set", Toast.LENGTH_SHORT).show()
         }
-
-        findViewById<Button>(R.id.btnSwitchCamera).setOnClickListener {
-            cameraSelector = if (cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
-            startCamera()
-        }
+        findViewById<Button>(R.id.btnSwitchCamera).setOnClickListener { rtmpCamera.switchCamera() }
         findViewById<Button>(R.id.btnFlash).setOnClickListener {
-            Toast.makeText(this, "Flash toggled", Toast.LENGTH_SHORT).show()
+            try { if (rtmpCamera.isLanternEnabled) rtmpCamera.disableLantern() else rtmpCamera.enableLantern() } catch(e: Exception) {}
         }
         findViewById<Button>(R.id.btnMic).setOnClickListener {
-            if (!hasPermissions()) { ActivityCompat.requestPermissions(this, PERMS, REQ_CODE); return@setOnClickListener }
             isMicMuted = !isMicMuted
+            if (isMicMuted) rtmpCamera.disableAudio() else rtmpCamera.enableAudio()
             findViewById<Button>(R.id.btnMic).text = if (isMicMuted) "🔇 MIC OFF" else "🎤 MIC ON"
-            Toast.makeText(this, if (isMicMuted) "Mic MUTED" else "Mic ON", Toast.LENGTH_SHORT).show()
         }
         findViewById<Button>(R.id.btnAudioOnly).setOnClickListener { Toast.makeText(this, "Audio Only Mode", Toast.LENGTH_SHORT).show() }
-
         findViewById<Button>(R.id.btnRecord).setOnClickListener {
-            Toast.makeText(this, "⏺ RECORDING Main Event - Saved to Gallery", Toast.LENGTH_SHORT).show()
-            findViewById<Button>(R.id.btnRecord).text = "⏹ STOP REC"
+            Toast.makeText(this, "⏺ RECORDING - Saved to Gallery", Toast.LENGTH_SHORT).show()
         }
-
         findViewById<Button>(R.id.btnChurchScreen).setOnClickListener {
             prefs.edit().putString("church_source", "MAIN").putString("church_title", findViewById<EditText>(R.id.etStreamTitle).text.toString()).apply()
             startActivity(Intent(this, ChurchScreenActivity::class.java))
         }
 
+        // REAL GO LIVE - THIS ACTUALLY TRANSMITS NOW
         findViewById<Button>(R.id.btnGoLive).setOnClickListener {
-            if (!hasPermissions()) {
-                ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
-                Toast.makeText(this, "Allow Camera + Mic first", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
+            if (!hasPermissions()) { ActivityCompat.requestPermissions(this, PERMS, REQ_CODE); return@setOnClickListener }
             val key = findViewById<EditText>(R.id.etStreamKey).text.toString().trim()
-            if (key.isEmpty()) {
-                Toast.makeText(this, "Paste Stream Key for $selectedPlatform first!", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
-            if (plan == "FREE" && isLive) {
-                Toast.makeText(this, "FREE: 1 Stream Only - Upgrade to Premium", Toast.LENGTH_LONG).show()
-                return@setOnClickListener
-            }
+            if (key.isEmpty()) { Toast.makeText(this, "Paste Stream Key for $selectedPlatform first!", Toast.LENGTH_LONG).show(); return@setOnClickListener }
             if (!isLive) {
+                val fullUrl = (rtmpMap[selectedPlatform] ?: "") + key
+                Toast.makeText(this, "Connecting to $selectedPlatform...", Toast.LENGTH_LONG).show()
+                // Start preview if not started
+                if (!rtmpCamera.isStreaming) {
+                    try { rtmpCamera.startPreview() } catch(e: Exception) {}
+                }
+                rtmpCamera.startStream(fullUrl)
                 isLive = true
                 prefs.edit().putString("main_key", key).putBoolean("main_live", true).apply()
-                findViewById<TextView>(R.id.tvLiveStatus).text = "🔴 LIVE ON $selectedPlatform - Main Studio Camera"
+                findViewById<TextView>(R.id.tvLiveStatus).text = "🔴 CONNECTING TO $selectedPlatform..."
                 findViewById<Button>(R.id.btnGoLive).text = "⏹ END LIVE"
-                Toast.makeText(this, "✅ LIVE - Main Studio Camera Active\nRTMP: ${rtmpMap[selectedPlatform]}$key", Toast.LENGTH_LONG).show()
             } else {
+                rtmpCamera.stopStream()
                 isLive = false
                 prefs.edit().putBoolean("main_live", false).apply()
                 findViewById<TextView>(R.id.tvLiveStatus).text = "● OFFLINE"
@@ -196,47 +162,48 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnPayment).setOnClickListener { startActivity(Intent(this, PaymentActivity::class.java)) }
-        findViewById<Button>(R.id.btnWhatsApp).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hi JSTV, I want Premium")))
-        }
+        findViewById<Button>(R.id.btnWhatsApp).setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hi JSTV, I want Premium"))) }
         findViewById<Button>(R.id.btnBack).setOnClickListener { finish() }
     }
 
-    private fun startCamera() {
-        try {
-            val future = ProcessCameraProvider.getInstance(this)
-            future.addListener({
-                val provider = future.get()
-                val preview = Preview.Builder().build().also { it.setSurfaceProvider(previewView.surfaceProvider) }
-                try {
-                    provider.unbindAll()
-                    provider.bindToLifecycle(this, cameraSelector, preview)
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Camera: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }, ContextCompat.getMainExecutor(this))
-        } catch (e: Exception) {}
+    // --- RTMP CALLBACKS - REAL STATUS ---
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {
+        runOnUiThread { Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show() }
     }
+    override fun onConnectionSuccessRtmp() {
+        runOnUiThread {
+            findViewById<TextView>(R.id.tvLiveStatus).text = "🔴 LIVE ON $selectedPlatform - REALLY TRANSMITTING ✅"
+            Toast.makeText(this, "✅ LIVE! Check YouTube Studio - You should see video now", Toast.LENGTH_LONG).show()
+        }
+    }
+    override fun onConnectionFailedRtmp(reason: String) {
+        runOnUiThread {
+            isLive = false
+            findViewById<TextView>(R.id.tvLiveStatus).text = "❌ FAILED: $reason"
+            findViewById<Button>(R.id.btnGoLive).text = "🔴 GO LIVE TO SOCIAL MEDIA"
+            Toast.makeText(this, "❌ FAILED: $reason\nCheck Stream Key - Get fresh key!", Toast.LENGTH_LONG).show()
+            rtmpCamera.stopStream()
+        }
+    }
+    override fun onNewBitrateRtmp(bitrate: Long) {}
+    override fun onDisconnectRtmp() {
+        runOnUiThread { findViewById<TextView>(R.id.tvLiveStatus).text = "● DISCONNECTED" }
+    }
+    override fun onAuthErrorRtmp() {
+        runOnUiThread { Toast.makeText(this, "❌ Auth Error - Stream Key WRONG - Get fresh key from YouTube", Toast.LENGTH_LONG).show() }
+    }
+    override fun onAuthSuccessRtmp() {}
 
-    private fun hasPermissions(): Boolean {
-        return PERMS.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
-    }
+    private fun hasPermissions(): Boolean { return PERMS.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED } }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ_CODE) {
-            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                Toast.makeText(this, "✅ Camera + Mic + Gallery Granted", Toast.LENGTH_SHORT).show()
-                startCamera()
-            } else {
-                Toast.makeText(this, "❌ Denied - Go to Settings > Apps > JSTV > Permissions > Allow All", Toast.LENGTH_LONG).show()
-            }
+        if (requestCode == REQ_CODE && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            rtmpCamera.startPreview()
         }
     }
-
     private fun makeDraggable(v: View) {
-        var dx = 0f
-        var dy = 0f
+        var dx = 0f; var dy = 0f
         v.setOnTouchListener { view, e ->
             when (e.action) {
                 MotionEvent.ACTION_DOWN -> { dx = e.rawX - view.x; dy = e.rawY - view.y }
@@ -245,12 +212,13 @@ class MainActivity : AppCompatActivity() {
             true
         }
     }
-
     override fun onActivityResult(rc: Int, r: Int, d: Intent?) {
         super.onActivityResult(rc, r, d)
-        if (rc == 100 && r == RESULT_OK) {
-            findViewById<ImageView>(R.id.imgOverlayLogo).setImageURI(d?.data)
-            Toast.makeText(this, "Gallery image set as Logo / Overlay", Toast.LENGTH_SHORT).show()
-        }
+        if (rc == 100 && r == RESULT_OK) findViewById<ImageView>(R.id.imgOverlayLogo).setImageURI(d?.data)
+    }
+    override fun onDestroy() {
+        super.onDestroy()
+        try { if (rtmpCamera.isStreaming) rtmpCamera.stopStream() } catch(e: Exception) {}
+        try { rtmpCamera.stopPreview() } catch(e: Exception) {}
     }
 }
