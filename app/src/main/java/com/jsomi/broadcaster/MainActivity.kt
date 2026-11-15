@@ -15,7 +15,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.jsomi.broadcaster.databinding.ActivityMainBinding
 import com.pedro.rtplibrary.rtmp.RtmpCamera1
-import com.pedro.rtplibrary.view.OpenGlView
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -24,8 +23,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private lateinit var rtmpCamera: RtmpCamera1
-    private lateinit var openGlView: OpenGlView
+    private var rtmpCamera: RtmpCamera1? = null
 
     private var isStreaming = false
     private var isRecording = false
@@ -39,57 +37,57 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            binding = ActivityMainBinding.inflate(layoutInflater)
+            setContentView(binding.root)
 
-        openGlView = binding.previewMain
-        // REAL RTMP CAMERA - no callback interface, to avoid version mismatch
-        rtmpCamera = RtmpCamera1(openGlView, null)
+            // DO NOT crash if camera fails - create it safely
+            try {
+                // Single-arg constructor - NO null callback, this fixes the crash
+                rtmpCamera = RtmpCamera1(binding.previewMain)
+            } catch (e: Exception) {
+                rtmpCamera = null
+                Toast.makeText(this, "Camera init failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
 
-        setupSpinners()
-        setupButtons()
-        checkPermissions()
+            setupSpinners()
+            setupButtons()
+            checkPermissions()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Main Studio failed to open: ${e.message}", Toast.LENGTH_LONG).show()
+            // Stay on screen, do not crash
+        }
     }
 
     private fun setupSpinners() {
-        val platforms = listOf("YouTube", "Facebook", "TikTok")
-        binding.spPlatform.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, platforms)
-
-        val resolutions = listOf("720p - 1280x720", "1080p - 1920x1080", "480p - 854x480")
-        binding.spResolution.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, resolutions)
-
-        val bitrates = listOf("2500 Kbps - Good", "4000 Kbps - HD", "1500 Kbps - Low Data")
-        binding.spBitrate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, bitrates)
-
-        val fpsList = listOf("30 FPS", "60 FPS", "24 FPS")
-        binding.spFps.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, fpsList)
-
-        val intros = listOf("No Intro", "JSTV Intro 1", "JSTV Intro 2")
-        binding.spIntro.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, intros)
-
-        val orientations = listOf("Portrait", "Landscape")
-        binding.spOrientation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, orientations)
+        try {
+            val platforms = listOf("YouTube", "Facebook", "TikTok")
+            binding.spPlatform.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, platforms)
+            val resolutions = listOf("720p - 1280x720", "1080p - 1920x1080", "480p - 854x480")
+            binding.spResolution.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, resolutions)
+            val bitrates = listOf("2500 Kbps - Good", "4000 Kbps - HD", "1500 Kbps - Low Data")
+            binding.spBitrate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, bitrates)
+            val fpsList = listOf("30 FPS", "60 FPS", "24 FPS")
+            binding.spFps.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, fpsList)
+            val intros = listOf("No Intro", "JSTV Intro 1", "JSTV Intro 2")
+            binding.spIntro.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, intros)
+            val orientations = listOf("Portrait", "Landscape")
+            binding.spOrientation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, orientations)
+        } catch (e: Exception) { }
     }
 
     private fun setupButtons() {
         binding.btnGoLive.setOnClickListener {
-            if (!isStreaming) {
-                startRealStream()
-            } else {
-                stopRealStream()
-            }
+            if (!isStreaming) startRealStream() else stopRealStream()
         }
 
         binding.btnSwitchCamera.setOnClickListener {
-            try {
-                rtmpCamera.switchCamera()
-            } catch (e: Exception) {
+            try { rtmpCamera?.switchCamera() } catch (e: Exception) {
                 Toast.makeText(this, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnFlash.setOnClickListener {
-            // Flash handled by phone camera app - toggle flag only, no broken API call
             isFlashOn = !isFlashOn
             binding.btnFlash.text = if (isFlashOn) "FLASH ON" else "FLASH"
             Toast.makeText(this, if (isFlashOn) "Flash ON" else "Flash OFF", Toast.LENGTH_SHORT).show()
@@ -97,18 +95,9 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnMic.setOnClickListener {
             try {
-                if (isMicOn) {
-                    rtmpCamera.disableAudio()
-                    isMicOn = false
-                    binding.btnMic.text = "MIC OFF"
-                } else {
-                    rtmpCamera.enableAudio()
-                    isMicOn = true
-                    binding.btnMic.text = "MIC ON"
-                }
-            } catch (e: Exception) {
-                Toast.makeText(this, "Mic error", Toast.LENGTH_SHORT).show()
-            }
+                if (isMicOn) { rtmpCamera?.disableAudio(); isMicOn = false; binding.btnMic.text = "MIC OFF" }
+                else { rtmpCamera?.enableAudio(); isMicOn = true; binding.btnMic.text = "MIC ON" }
+            } catch (e: Exception) { Toast.makeText(this, "Mic error", Toast.LENGTH_SHORT).show() }
         }
 
         binding.btnAudioOnly.setOnClickListener {
@@ -124,17 +113,13 @@ class MainActivity : AppCompatActivity() {
                     if (!folder.exists()) folder.mkdirs()
                     val time = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                     val file = File(folder, "JSTV_$time.mp4")
-                    rtmpCamera.startRecord(file.absolutePath)
+                    rtmpCamera?.startRecord(file.absolutePath)
                     isRecording = true
                     binding.btnRecord.text = "STOP REC"
                     Toast.makeText(this, "Recording started", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    Toast.makeText(this, "Record error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+                } catch (e: Exception) { Toast.makeText(this, "Record error: ${e.message}", Toast.LENGTH_SHORT).show() }
             } else {
-                try {
-                    rtmpCamera.stopRecord()
-                } catch (e: Exception) { }
+                try { rtmpCamera?.stopRecord() } catch (e: Exception) { }
                 isRecording = false
                 binding.btnRecord.text = "RECORD"
                 Toast.makeText(this, "Recording saved", Toast.LENGTH_SHORT).show()
@@ -142,64 +127,38 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnGallery.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = "image/*"
-            startActivityForResult(intent, GALLERY_CODE)
+            try {
+                val intent = Intent(Intent.ACTION_PICK)
+                intent.type = "image/*"
+                startActivityForResult(intent, GALLERY_CODE)
+            } catch (e: Exception) { }
         }
 
         binding.btnTitleStyle.setOnClickListener {
             val title = binding.etStreamTitle.text.toString().trim()
-            if (title.isNotEmpty()) {
-                binding.tvOverlayTitle.text = title
-                Toast.makeText(this, "Title set on screen", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Enter title first", Toast.LENGTH_SHORT).show()
-            }
+            if (title.isNotEmpty()) { binding.tvOverlayTitle.text = title; Toast.makeText(this, "Title set", Toast.LENGTH_SHORT).show() }
+            else Toast.makeText(this, "Enter title first", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnScrollText.setOnClickListener {
             val txt = binding.etScrollText.text.toString().trim()
-            if (txt.isNotEmpty()) {
-                binding.tvScrolling.text = txt
-                binding.tvScrolling.isSelected = true
-                Toast.makeText(this, "Scroll text set", Toast.LENGTH_SHORT).show()
-            }
+            if (txt.isNotEmpty()) { binding.tvScrolling.text = txt; binding.tvScrolling.isSelected = true }
         }
 
         binding.btnProgramTimer.setOnClickListener {
-            val minsStr = binding.etTimerMins.text.toString().trim()
-            val mins = minsStr.toIntOrNull() ?: 0
-            if (mins > 0) {
-                startProgramTimer(mins)
-            } else {
-                Toast.makeText(this, "Enter minutes e.g. 30", Toast.LENGTH_SHORT).show()
-            }
+            val mins = binding.etTimerMins.text.toString().trim().toIntOrNull() ?: 0
+            if (mins > 0) startProgramTimer(mins) else Toast.makeText(this, "Enter minutes e.g. 30", Toast.LENGTH_SHORT).show()
         }
 
-        binding.btnLoop.setOnClickListener {
-            Toast.makeText(this, "Loop Mode - Coming in Premium", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnChurchScreen.setOnClickListener {
-            Toast.makeText(this, "Church Screen - Opening...", Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnPayment.setOnClickListener {
-            Toast.makeText(this, "Paybill 516600 - Account: JSTV PREMIUM", Toast.LENGTH_LONG).show()
-        }
+        binding.btnLoop.setOnClickListener { Toast.makeText(this, "Loop Mode - Coming in Premium", Toast.LENGTH_SHORT).show() }
+        binding.btnChurchScreen.setOnClickListener { Toast.makeText(this, "Church Screen - Coming Soon", Toast.LENGTH_SHORT).show() }
+        binding.btnPayment.setOnClickListener { Toast.makeText(this, "Paybill 516600 - Account: JSTV PREMIUM", Toast.LENGTH_LONG).show() }
 
         binding.btnWhatsApp.setOnClickListener {
-            try {
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hello JSTV Support"))
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "WhatsApp not installed", Toast.LENGTH_SHORT).show()
-            }
+            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hello JSTV Support"))) }
+            catch (e: Exception) { Toast.makeText(this, "WhatsApp not installed", Toast.LENGTH_SHORT).show() }
         }
-
-        binding.btnBack.setOnClickListener {
-            finish()
-        }
+        binding.btnBack.setOnClickListener { finish() }
     }
 
     private fun getRtmpUrl(platform: String, key: String): String {
@@ -212,23 +171,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startRealStream() {
+        val cam = rtmpCamera
+        if (cam == null) {
+            Toast.makeText(this, "Camera not ready, restart app", Toast.LENGTH_LONG).show()
+            return
+        }
         val key = binding.etStreamKey.text.toString().trim()
-        if (key.isEmpty()) {
-            Toast.makeText(this, "Paste Stream Key ONLY first", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (key.contains("rtmp") || key.contains("://")) {
-            Toast.makeText(this, "Paste KEY ONLY, not full URL", Toast.LENGTH_LONG).show()
-            return
-        }
+        if (key.isEmpty()) { Toast.makeText(this, "Paste Stream Key ONLY first", Toast.LENGTH_LONG).show(); return }
+        if (key.contains("rtmp") || key.contains("://")) { Toast.makeText(this, "Paste KEY ONLY, not full URL", Toast.LENGTH_LONG).show(); return }
+
         val platform = binding.spPlatform.selectedItem?.toString() ?: "YouTube"
         val fullUrl = getRtmpUrl(platform, key)
 
         try {
             when (binding.spResolution.selectedItemPosition) {
-                0 -> rtmpCamera.setVideoBitrateOnFly(2500 * 1024)
-                1 -> rtmpCamera.setVideoBitrateOnFly(4000 * 1024)
-                2 -> rtmpCamera.setVideoBitrateOnFly(1500 * 1024)
+                0 -> cam.setVideoBitrateOnFly(2500 * 1024)
+                1 -> cam.setVideoBitrateOnFly(4000 * 1024)
+                2 -> cam.setVideoBitrateOnFly(1500 * 1024)
             }
         } catch (e: Exception) { }
 
@@ -236,10 +195,9 @@ class MainActivity : AppCompatActivity() {
         binding.tvLiveStatus.text = "CONNECTING..."
         binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
 
-        // REAL RTMP TRANSMISSION - This sends REAL video to YouTube / Facebook / TikTok
         try {
-            if (rtmpCamera.isStreaming) rtmpCamera.stopStream()
-            rtmpCamera.startStream(fullUrl)
+            if (cam.isStreaming) cam.stopStream()
+            cam.startStream(fullUrl)
             isStreaming = true
             binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
             binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
@@ -256,16 +214,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopRealStream() {
-        try {
-            if (rtmpCamera.isStreaming) rtmpCamera.stopStream()
-        } catch (e: Exception) { }
-        try {
-            if (isRecording) {
-                rtmpCamera.stopRecord()
-                isRecording = false
-                binding.btnRecord.text = "RECORD"
-            }
-        } catch (e: Exception) { }
+        try { if (rtmpCamera?.isStreaming == true) rtmpCamera?.stopStream() } catch (e: Exception) { }
+        try { if (isRecording) { rtmpCamera?.stopRecord(); isRecording = false; binding.btnRecord.text = "RECORD" } } catch (e: Exception) { }
         isStreaming = false
         binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
         binding.tvLiveStatus.text = "OFFLINE"
@@ -298,9 +248,7 @@ class MainActivity : AppCompatActivity() {
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE
         )
-        val need = perms.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
+        val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
         } else {
@@ -310,16 +258,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_CODE) {
-            startPreview()
-        }
+        if (requestCode == PERMISSION_CODE) startPreview()
     }
 
     private fun startPreview() {
         try {
-            if (!rtmpCamera.isOnPreview) {
-                rtmpCamera.startPreview()
-            }
+            val cam = rtmpCamera ?: return
+            if (!cam.isOnPreview) cam.startPreview()
         } catch (e: Exception) {
             Toast.makeText(this, "Preview error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -329,9 +274,7 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == GALLERY_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            try {
-                binding.imgOverlayLogo.setImageURI(data.data)
-            } catch (e: Exception) { }
+            try { binding.imgOverlayLogo.setImageURI(data.data) } catch (e: Exception) { }
         }
     }
 
@@ -339,8 +282,8 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         timer?.cancel()
         try {
-            if (rtmpCamera.isStreaming) rtmpCamera.stopStream()
-            if (rtmpCamera.isOnPreview) rtmpCamera.stopPreview()
+            if (rtmpCamera?.isStreaming == true) rtmpCamera?.stopStream()
+            if (rtmpCamera?.isOnPreview == true) rtmpCamera?.stopPreview()
         } catch (e: Exception) { }
     }
 }
