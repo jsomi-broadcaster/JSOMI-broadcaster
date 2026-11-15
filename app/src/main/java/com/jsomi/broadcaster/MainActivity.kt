@@ -24,23 +24,19 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var rtmpCamera: Any? = null
-
     private var isStreaming = false
     private var isRecording = false
     private var isMicOn = true
     private var isFlashOn = false
     private var isAudioOnly = false
     private var timer: CountDownTimer? = null
-
     private val PERMISSION_CODE = 100
     private val GALLERY_CODE = 101
 
-    // --- Reflection helpers - call RtmpCamera1 without importing its callback type ---
     private fun call(name: String, vararg args: Any?) {
         try {
             val cam = rtmpCamera ?: return
-            val clazz = cam.javaClass
-            val method = clazz.methods.firstOrNull { it.name == name && it.parameterCount == args.size } ?: return
+            val method = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == args.size } ?: return
             method.invoke(cam, *args)
         } catch (e: Exception) { }
     }
@@ -143,9 +139,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        binding.btnGoLive.setOnClickListener {
-            if (!isStreaming) startRealStream() else stopRealStream()
-        }
+        binding.btnGoLive.setOnClickListener { if (!isStreaming) startRealStream() else stopRealStream() }
         binding.btnSwitchCamera.setOnClickListener { call("switchCamera") }
         binding.btnFlash.setOnClickListener {
             isFlashOn = !isFlashOn
@@ -243,102 +237,4 @@ class MainActivity : AppCompatActivity() {
             binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
             binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
             binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
-            binding.tvViewers.text = "Viewers: 0 | Program: LIVE"
-            Toast.makeText(this, "Connecting to $platform...", Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            isStreaming = false
-            binding.tvLiveStatus.text = "FAILED: ${e.message}"
-            binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
-            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-            Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun stopRealStream() {
-        if (callBoolean("isStreaming")) call("stopStream")
-        if (isRecording) { call("stopRecord"); isRecording = false; binding.btnRecord.text = "RECORD" }
-        isStreaming = false
-        binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-        binding.tvLiveStatus.text = "OFFLINE"
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
-        binding.tvViewers.text = "Viewers: 0 | Program: Stopped"
-    }
-
-    private fun startProgramTimer(mins: Int) {
-        timer?.cancel()
-        val totalMillis = mins * 60 * 1000L
-        timer = object : CountDownTimer(totalMillis, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                val m = millisUntilFinished / 60000
-                val s = (millisUntilFinished / 1000) % 60
-                binding.tvViewers.text = "Viewers: 0 | Program: $m:$s remaining"
-            }
-            override fun onFinish() {
-                binding.tvViewers.text = "Viewers: 0 | Program: Finished"
-                Toast.makeText(this@MainActivity, "Program time finished", Toast.LENGTH_LONG).show()
-                if (isStreaming) stopRealStream()
-            }
-        }.start()
-        Toast.makeText(this, "Timer started: $mins mins", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun checkPermissions() {
-        val perms = mutableListOf<String>()
-        perms.add(Manifest.permission.CAMERA)
-        perms.add(Manifest.permission.RECORD_AUDIO)
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            perms.add(Manifest.permission.READ_MEDIA_IMAGES)
-            perms.add(Manifest.permission.READ_MEDIA_VIDEO)
-            perms.add(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-        val need = perms.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (need.isNotEmpty()) {
-            Toast.makeText(this, "JSTV needs Camera + Mic - Tap ALLOW", Toast.LENGTH_LONG).show()
-            ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
-        } else {
-            Toast.makeText(this, "Permissions OK - Starting Camera", Toast.LENGTH_SHORT).show()
-            startPreview()
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_CODE) {
-            val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-            if (cameraGranted && micGranted) {
-                Toast.makeText(this, "Thank you - Starting Camera", Toast.LENGTH_SHORT).show()
-                startPreview()
-            } else {
-                Toast.makeText(this, "Camera / Mic DENIED - Go to Settings > JSTV > Permissions > Allow", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    private fun startPreview() {
-    try {
-        val cam = rtmpCamera ?: return
-        if (callBoolean("isOnPreview")) return
-        // MUST PREPARE BEFORE PREVIEW - THIS WAS MISSING, CAUSED BLACK SCREEN
-        try {
-            val clazz = cam.javaClass
-            // prepareVideo(width, height, fps, bitrate, hardwareRotation, rotation, iFrameInterval)
-            val mVideo = clazz.methods.firstOrNull { it.name == "prepareVideo" }
-            mVideo?.invoke(cam, 1280, 720, 30, 2500 * 1024, false, 0, 2)
-            // prepareAudio(bitrate, sampleRate, isStereo, echoCanceler, noiseSuppressor)
-            val mAudio = clazz.methods.firstOrNull { it.name == "prepareAudio" }
-            mAudio?.invoke(cam, 128 * 1024, 44100, true, false, false)
-        } catch (e: Exception) {
-            Toast.makeText(this, "Prepare: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-        call("startPreview")
-        Toast.makeText(this, "Camera started", Toast.LENGTH_SHORT).show()
-    } catch (e: Exception) {
-        Toast.makeText(this, "Preview error: ${e.message}", Toast.LENGTH_SHORT).show()
-    }
-}
+            binding.tvViewers.text = "Viewers: 0 | Program:
