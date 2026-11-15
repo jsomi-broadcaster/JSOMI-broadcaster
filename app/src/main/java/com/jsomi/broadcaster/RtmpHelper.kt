@@ -36,9 +36,9 @@ object RtmpHelper {
         try {
             if (cam.isOnPreview) return "Already previewing"
             // THIS is the correct signature for this library version
-            val okVideo = cam.prepareVideo(1280, 720, 30, 2500 * 1024, false, 0, 2)
+            val okVideo = cam.prepareVideo(1280, 720, 30)
             if (!okVideo) return "prepareVideo FAILED - try 640x480"
-            val okAudio = cam.prepareAudio(128 * 1024, 44100, true, false, false)
+            val okAudio = cam.prepareAudio()
             if (!okAudio) return "prepareAudio FAILED"
             cam.startPreview()
             return "Preview STARTED"
