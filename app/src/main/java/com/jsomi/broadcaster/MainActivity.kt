@@ -14,8 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.jsomi.broadcaster.databinding.ActivityMainBinding
-import com.pedro.rtplibrary.rtmp.RtmpCamera1
-import com.pedro.rtplibrary.rtmp.ConnectCheckerRtmp
 import java.io.File
 import java.lang.reflect.Proxy
 import java.text.SimpleDateFormat
@@ -25,7 +23,7 @@ import java.util.Locale
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var rtmpCamera: RtmpCamera1? = null
+    private var rtmpCamera: Any? = null
 
     private var isStreaming = false
     private var isRecording = false
@@ -37,65 +35,91 @@ class MainActivity : AppCompatActivity() {
     private val PERMISSION_CODE = 100
     private val GALLERY_CODE = 101
 
-    // PROXY CALLBACK - No override names needed, works with ANY 2.2.6 method name
-    private fun createConnectChecker(): ConnectCheckerRtmp {
-        val handler = java.lang.reflect.InvocationHandler { _, method, _ ->
-            val name = method.name
-            runOnUiThread {
-                try {
-                    when {
-                        name.contains("Success") -> {
-                            binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
-                            binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
-                            binding.tvViewers.text = "Viewers: 0 | Program: LIVE"
+    // --- Reflection helpers - call RtmpCamera1 without importing its callback type ---
+    private fun call(name: String, vararg args: Any?) {
+        try {
+            val cam = rtmpCamera ?: return
+            val clazz = cam.javaClass
+            val method = clazz.methods.firstOrNull { it.name == name && it.parameterCount == args.size } ?: return
+            method.invoke(cam, *args)
+        } catch (e: Exception) { }
+    }
+    private fun callBoolean(name: String): Boolean {
+        return try {
+            val cam = rtmpCamera ?: return false
+            val method = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 0 } ?: return false
+            (method.invoke(cam) as? Boolean) ?: false
+        } catch (e: Exception) { false }
+    }
+    private fun callString(name: String, arg: String) {
+        try {
+            val cam = rtmpCamera ?: return
+            val method = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 1 } ?: return
+            method.invoke(cam, arg)
+        } catch (e: Exception) { }
+    }
+    private fun callInt(name: String, arg: Int) {
+        try {
+            val cam = rtmpCamera ?: return
+            val method = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 1 } ?: return
+            method.invoke(cam, arg)
+        } catch (e: Exception) { }
+    }
+
+    private fun createRtmpCamera(): Any? {
+        return try {
+            val clazz = Class.forName("com.pedro.rtplibrary.rtmp.RtmpCamera1")
+            val ctor = clazz.constructors.firstOrNull { it.parameterTypes.size == 2 } ?: return null
+            val callbackInterface = ctor.parameterTypes[1]
+            val handler = java.lang.reflect.InvocationHandler { _, method, _ ->
+                val name = method.name
+                runOnUiThread {
+                    try {
+                        when {
+                            name.contains("Success") -> {
+                                binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
+                                binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
+                                binding.tvViewers.text = "Viewers: 0 | Program: LIVE"
+                            }
+                            name.contains("Failed") -> {
+                                isStreaming = false
+                                binding.tvLiveStatus.text = "FAILED - Check Key / Internet"
+                                binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
+                                binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
+                            }
+                            name.contains("Disconnect") -> {
+                                isStreaming = false
+                                binding.tvLiveStatus.text = "OFFLINE"
+                                binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
+                                binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
+                            }
+                            name.contains("Started") -> {
+                                binding.tvLiveStatus.text = "CONNECTING..."
+                                binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
+                            }
                         }
-                        name.contains("Failed") -> {
-                            isStreaming = false
-                            binding.tvLiveStatus.text = "FAILED - Check Key / Internet"
-                            binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
-                            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-                        }
-                        name.contains("Disconnect") -> {
-                            isStreaming = false
-                            binding.tvLiveStatus.text = "OFFLINE"
-                            binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
-                            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-                        }
-                        name.contains("Started") -> {
-                            binding.tvLiveStatus.text = "CONNECTING..."
-                            binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
-                        }
-                    }
-                } catch (e: Exception) { }
+                    } catch (e: Exception) { }
+                }
+                when (method.returnType) {
+                    Boolean::class.javaPrimitiveType -> false
+                    Int::class.javaPrimitiveType -> 0
+                    Long::class.javaPrimitiveType -> 0L
+                    else -> null
+                }
             }
-            // Return default for any return type
-            when (method.returnType) {
-                Boolean::class.javaPrimitiveType -> false
-                Int::class.javaPrimitiveType -> 0
-                Long::class.javaPrimitiveType -> 0L
-                else -> null
-            }
+            val proxy = Proxy.newProxyInstance(callbackInterface.classLoader, arrayOf(callbackInterface), handler)
+            ctor.newInstance(binding.previewMain, proxy)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Camera init failed: ${e.message}", Toast.LENGTH_LONG).show()
+            null
         }
-        return Proxy.newProxyInstance(
-            ConnectCheckerRtmp::class.java.classLoader,
-            arrayOf(ConnectCheckerRtmp::class.java),
-            handler
-        ) as ConnectCheckerRtmp
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        try {
-            // CORRECT 2-arg constructor - OpenGlView + Proxy (never null)
-            rtmpCamera = RtmpCamera1(binding.previewMain, createConnectChecker())
-        } catch (e: Exception) {
-            rtmpCamera = null
-            Toast.makeText(this, "Camera init failed: ${e.message}", Toast.LENGTH_LONG).show()
-        }
-
+        rtmpCamera = createRtmpCamera()
         setupSpinners()
         setupButtons()
         checkPermissions()
@@ -122,21 +146,15 @@ class MainActivity : AppCompatActivity() {
         binding.btnGoLive.setOnClickListener {
             if (!isStreaming) startRealStream() else stopRealStream()
         }
-        binding.btnSwitchCamera.setOnClickListener {
-            try { rtmpCamera?.switchCamera() } catch (e: Exception) {
-                Toast.makeText(this, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
+        binding.btnSwitchCamera.setOnClickListener { call("switchCamera") }
         binding.btnFlash.setOnClickListener {
             isFlashOn = !isFlashOn
             binding.btnFlash.text = if (isFlashOn) "FLASH ON" else "FLASH"
             Toast.makeText(this, if (isFlashOn) "Flash ON" else "Flash OFF", Toast.LENGTH_SHORT).show()
         }
         binding.btnMic.setOnClickListener {
-            try {
-                if (isMicOn) { rtmpCamera?.disableAudio(); isMicOn = false; binding.btnMic.text = "MIC OFF" }
-                else { rtmpCamera?.enableAudio(); isMicOn = true; binding.btnMic.text = "MIC ON" }
-            } catch (e: Exception) { Toast.makeText(this, "Mic error", Toast.LENGTH_SHORT).show() }
+            if (isMicOn) { call("disableAudio"); isMicOn = false; binding.btnMic.text = "MIC OFF" }
+            else { call("enableAudio"); isMicOn = true; binding.btnMic.text = "MIC ON" }
         }
         binding.btnAudioOnly.setOnClickListener {
             isAudioOnly = !isAudioOnly
@@ -150,13 +168,13 @@ class MainActivity : AppCompatActivity() {
                     if (!folder.exists()) folder.mkdirs()
                     val time = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                     val file = File(folder, "JSTV_$time.mp4")
-                    rtmpCamera?.startRecord(file.absolutePath)
+                    callString("startRecord", file.absolutePath)
                     isRecording = true
                     binding.btnRecord.text = "STOP REC"
                     Toast.makeText(this, "Recording started", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) { Toast.makeText(this, "Record error: ${e.message}", Toast.LENGTH_SHORT).show() }
             } else {
-                try { rtmpCamera?.stopRecord() } catch (e: Exception) { }
+                call("stopRecord")
                 isRecording = false
                 binding.btnRecord.text = "RECORD"
                 Toast.makeText(this, "Recording saved", Toast.LENGTH_SHORT).show()
@@ -202,8 +220,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startRealStream() {
-        val cam = rtmpCamera
-        if (cam == null) { Toast.makeText(this, "Camera not ready, restart app", Toast.LENGTH_LONG).show(); return }
+        if (rtmpCamera == null) { Toast.makeText(this, "Camera not ready, restart app", Toast.LENGTH_LONG).show(); return }
         val key = binding.etStreamKey.text.toString().trim()
         if (key.isEmpty()) { Toast.makeText(this, "Paste Stream Key ONLY first", Toast.LENGTH_LONG).show(); return }
         if (key.contains("rtmp") || key.contains("://")) { Toast.makeText(this, "Paste KEY ONLY, not full URL", Toast.LENGTH_LONG).show(); return }
@@ -211,17 +228,17 @@ class MainActivity : AppCompatActivity() {
         val fullUrl = getRtmpUrl(platform, key)
         try {
             when (binding.spResolution.selectedItemPosition) {
-                0 -> cam.setVideoBitrateOnFly(2500 * 1024)
-                1 -> cam.setVideoBitrateOnFly(4000 * 1024)
-                2 -> cam.setVideoBitrateOnFly(1500 * 1024)
+                0 -> callInt("setVideoBitrateOnFly", 2500 * 1024)
+                1 -> callInt("setVideoBitrateOnFly", 4000 * 1024)
+                2 -> callInt("setVideoBitrateOnFly", 1500 * 1024)
             }
         } catch (e: Exception) { }
         binding.tvRtmp.text = "RTMP: $platform - Connecting..."
         binding.tvLiveStatus.text = "CONNECTING..."
         binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
         try {
-            if (cam.isStreaming) cam.stopStream()
-            cam.startStream(fullUrl)
+            if (callBoolean("isStreaming")) call("stopStream")
+            callString("startStream", fullUrl)
             isStreaming = true
             binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
             binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
@@ -238,8 +255,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopRealStream() {
-        try { if (rtmpCamera?.isStreaming == true) rtmpCamera?.stopStream() } catch (e: Exception) { }
-        try { if (isRecording) { rtmpCamera?.stopRecord(); isRecording = false; binding.btnRecord.text = "RECORD" } } catch (e: Exception) { }
+        if (callBoolean("isStreaming")) call("stopStream")
+        if (isRecording) { call("stopRecord"); isRecording = false; binding.btnRecord.text = "RECORD" }
         isStreaming = false
         binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
         binding.tvLiveStatus.text = "OFFLINE"
@@ -305,8 +322,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startPreview() {
         try {
-            val cam = rtmpCamera ?: return
-            if (!cam.isOnPreview) cam.startPreview()
+            if (!callBoolean("isOnPreview")) call("startPreview")
         } catch (e: Exception) {
             Toast.makeText(this, "Preview error: ${e.message}", Toast.LENGTH_SHORT).show()
         }
@@ -324,8 +340,8 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         timer?.cancel()
         try {
-            if (rtmpCamera?.isStreaming == true) rtmpCamera?.stopStream()
-            if (rtmpCamera?.isOnPreview == true) rtmpCamera?.stopPreview()
+            if (callBoolean("isStreaming")) call("stopStream")
+            if (callBoolean("isOnPreview")) call("stopPreview")
         } catch (e: Exception) { }
     }
 }
