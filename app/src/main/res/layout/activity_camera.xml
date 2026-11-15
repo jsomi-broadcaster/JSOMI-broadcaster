@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
-<androidx.camera.view.PreviewView android:id="@+id/previewViewCamera" android:layout_width="match_parent" android:layout_height="match_parent"/>
-<Button android:id="@+id/btnCamSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔄 SWITCH" android:layout_alignParentBottom="true" android:layout_alignParentStart="true" android:layout_margin="16dp"/>
-<Button android:id="@+id/btnCamFlash" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="⚡ FLASH" android:layout_alignParentBottom="true" android:layout_alignParentEnd="true" android:layout_margin="16dp"/>
-</RelativeLayout>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+<TextView android:id="@+id/tvCameraLabel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📷 CAMERA 2 - CONGREGATION" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="20sp" android:gravity="center"/>
+<androidx.camera.view.PreviewView android:id="@+id/previewCamera" android:layout_width="match_parent" android:layout_height="300dp" android:layout_marginTop="12dp" android:background="#222222"/>
+<Button android:id="@+id/btnSwitchCam" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="🔄 SWITCH CAMERA"/>
+<Button android:id="@+id/btnSendToChurch" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="⛪ SEND TO CHURCH SCREEN"/>
+<Button android:id="@+id/btnSendToMain" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="🔗 CONNECT TO MAIN STUDIO"/>
+<Button android:id="@+id/btnBackCam" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="⬅ BACK"/>
+</LinearLayout>
+</ScrollView>
