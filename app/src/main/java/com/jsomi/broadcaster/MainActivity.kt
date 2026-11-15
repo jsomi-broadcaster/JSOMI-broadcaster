@@ -14,8 +14,9 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.pedro.rtmp.RtmpCamera1
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
+// FIXED IMPORTS - THIS WAS THE ERROR
+import com.pedro.library.rtmp.RtmpCamera1
+import com.pedro.library.rtmp.utils.ConnectCheckerRtmp
 
 class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
 
@@ -28,14 +29,12 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
     private var timer: CountDownTimer? = null
     private var isMicMuted = false
 
-    // BUILT-IN RTMP - USER ONLY PASTES KEY
     private val rtmpMap = mapOf(
         "YouTube" to "rtmp://a.rtmp.youtube.com/live2/",
         "Facebook" to "rtmps://live-api-s.facebook.com:443/rtmp/",
         "TikTok" to "rtmp://push-rtmp-l1.tiktok.com/live/"
     )
 
-    // ALL PERMISSIONS - CAMERA + MIC + GALLERY
     private val PERMS = if (Build.VERSION.SDK_INT >= 33) {
         arrayOf(
             Manifest.permission.CAMERA,
@@ -63,23 +62,20 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         findViewById<TextView>(R.id.tvPlan).text = "MAIN STUDIO - Main Event Camera | Plan: $plan | ${if (plan == "FREE") "📢 AD - Upgrade to Premium | 1 Stream Only" else "✅ PREMIUM - Unlimited"}"
         findViewById<View>(R.id.adBanner).visibility = if (plan == "FREE") View.VISIBLE else View.GONE
 
-        // MAIN STUDIO IS THE STREAMING CAMERA
         surfaceView = findViewById(R.id.surfaceView)
         rtmpCamera = RtmpCamera1(surfaceView, this)
         rtmpCamera.setPreviewResolution(1280, 720)
 
-        // ASK PERMISSIONS IMMEDIATELY - CAMERA + MIC + GALLERY
         if (!hasPermissions()) {
             ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
         } else {
             try { rtmpCamera.startPreview() } catch (e: Exception) {}
         }
 
-        // PLATFORM - RTMP AUTO
         val platforms = arrayOf("YouTube", "Facebook", "TikTok")
         val spPlatform = findViewById<Spinner>(R.id.spPlatform)
         spPlatform.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, platforms)
-        spPlatform.setSelection(1) // Facebook default
+        spPlatform.setSelection(1)
         spPlatform.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, v: View?, pos: Int, id: Long) {
                 selectedPlatform = platforms[pos]
@@ -100,7 +96,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             override fun onNothingSelected(p: AdapterView<*>?) {}
         }
 
-        // DRAGGABLE OVERLAYS - Title, Logo, Scrolling Text
         makeDraggable(findViewById<TextView>(R.id.tvOverlayTitle))
         makeDraggable(findViewById<ImageView>(R.id.imgOverlayLogo))
         makeDraggable(findViewById<TextView>(R.id.tvScrolling))
@@ -121,7 +116,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             findViewById<TextView>(R.id.tvScrolling).isSelected = true
         }
 
-        // GALLERY - WITH PERMISSION CHECK
         findViewById<Button>(R.id.btnGallery).setOnClickListener {
             if (!hasPermissions()) {
                 ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
@@ -136,7 +130,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             Toast.makeText(this, "Loop Mode ON - Gallery will auto-play + repeat", Toast.LENGTH_LONG).show()
         }
 
-        // AUTO PROGRAM TIMER
         findViewById<Button>(R.id.btnProgramTimer).setOnClickListener {
             val mins = findViewById<EditText>(R.id.etTimerMins).text.toString().toLongOrNull() ?: 30
             timer?.cancel()
@@ -151,7 +144,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             Toast.makeText(this, "Auto Program Timer: $mins mins set", Toast.LENGTH_SHORT).show()
         }
 
-        // CAMERA CONTROLS - REAL
         findViewById<Button>(R.id.btnSwitchCamera).setOnClickListener {
             try { rtmpCamera.switchCamera() } catch (e: Exception) { Toast.makeText(this, "Camera: ${e.message}", Toast.LENGTH_SHORT).show() }
         }
@@ -160,7 +152,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
                 if (rtmpCamera.isLanternEnabled) rtmpCamera.disableLantern() else rtmpCamera.enableLantern()
             } catch (e: Exception) { Toast.makeText(this, "Flash not available", Toast.LENGTH_SHORT).show() }
         }
-        // MIC - REAL MUTE / UNMUTE
         findViewById<Button>(R.id.btnMic).setOnClickListener {
             if (!hasPermissions()) { ActivityCompat.requestPermissions(this, PERMS, REQ_CODE); return@setOnClickListener }
             if (isMicMuted) {
@@ -177,7 +168,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         }
         findViewById<Button>(R.id.btnAudioOnly).setOnClickListener { Toast.makeText(this, "Audio Only Mode", Toast.LENGTH_SHORT).show() }
 
-        // RECORDING - FUNCTION 2 OF MAIN STUDIO
         findViewById<Button>(R.id.btnRecord).setOnClickListener {
             try {
                 if (!rtmpCamera.isRecording) {
@@ -192,13 +182,11 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             } catch (e: Exception) { Toast.makeText(this, "Record: ${e.message}", Toast.LENGTH_SHORT).show() }
         }
 
-        // FUNCTION 2 - SEND TO CHURCH SCREEN
         findViewById<Button>(R.id.btnChurchScreen).setOnClickListener {
             prefs.edit().putString("church_source", "MAIN").putString("church_title", findViewById<EditText>(R.id.etStreamTitle).text.toString()).apply()
             startActivity(Intent(this, ChurchScreenActivity::class.java))
         }
 
-        // REAL GO LIVE - PUSHES TO FACEBOOK / YOUTUBE / TIKTOK
         findViewById<Button>(R.id.btnGoLive).setOnClickListener {
             if (!hasPermissions()) {
                 ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
@@ -241,7 +229,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         findViewById<Button>(R.id.btnBack).setOnClickListener { finish() }
     }
 
-    // PERMISSION HELPERS
     private fun hasPermissions(): Boolean {
         return PERMS.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
     }
@@ -258,7 +245,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         }
     }
 
-    // RTMP CALLBACKS - REAL STATUS FROM FACEBOOK - ALL REQUIRED FOR v2.2.7
     override fun onConnectionStartedRtmp(rtmpUrl: String) {
         runOnUiThread {
             findViewById<TextView>(R.id.tvLiveStatus).text = "🟡 STARTING: $rtmpUrl"
