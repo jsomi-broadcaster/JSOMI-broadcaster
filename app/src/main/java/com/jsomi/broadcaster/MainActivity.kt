@@ -51,7 +51,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         findViewById<TextView>(R.id.tvPlan).text = "MAIN STUDIO - Main Event Camera | Plan: $plan"
         findViewById<View>(R.id.adBanner).visibility = if (plan == "FREE") View.VISIBLE else View.GONE
 
-        // REAL RTMP CAMERA
         openGlView = findViewById(R.id.previewMain)
         rtmpCamera = RtmpCamera1(openGlView, this)
         rtmpCamera.setVideoResolution(1280, 720)
@@ -61,7 +60,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         if (!hasPermissions()) {
             ActivityCompat.requestPermissions(this, PERMS, REQ_CODE)
         } else {
-            if (!rtmpCamera.isStreaming) rtmpCamera.startPreview()
+            try { rtmpCamera.startPreview() } catch (e: Exception) {}
         }
 
         val platforms = arrayOf("YouTube", "Facebook", "TikTok")
@@ -119,7 +118,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         }
         findViewById<Button>(R.id.btnSwitchCamera).setOnClickListener { rtmpCamera.switchCamera() }
         findViewById<Button>(R.id.btnFlash).setOnClickListener {
-            try { if (rtmpCamera.isLanternEnabled) rtmpCamera.disableLantern() else rtmpCamera.enableLantern() } catch(e: Exception) {}
+            try { if (rtmpCamera.isLanternEnabled) rtmpCamera.disableLantern() else rtmpCamera.enableLantern() } catch (e: Exception) {}
         }
         findViewById<Button>(R.id.btnMic).setOnClickListener {
             isMicMuted = !isMicMuted
@@ -127,15 +126,12 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             findViewById<Button>(R.id.btnMic).text = if (isMicMuted) "🔇 MIC OFF" else "🎤 MIC ON"
         }
         findViewById<Button>(R.id.btnAudioOnly).setOnClickListener { Toast.makeText(this, "Audio Only Mode", Toast.LENGTH_SHORT).show() }
-        findViewById<Button>(R.id.btnRecord).setOnClickListener {
-            Toast.makeText(this, "⏺ RECORDING - Saved to Gallery", Toast.LENGTH_SHORT).show()
-        }
+        findViewById<Button>(R.id.btnRecord).setOnClickListener { Toast.makeText(this, "⏺ RECORDING - Saved to Gallery", Toast.LENGTH_SHORT).show() }
         findViewById<Button>(R.id.btnChurchScreen).setOnClickListener {
             prefs.edit().putString("church_source", "MAIN").putString("church_title", findViewById<EditText>(R.id.etStreamTitle).text.toString()).apply()
             startActivity(Intent(this, ChurchScreenActivity::class.java))
         }
 
-        // REAL GO LIVE - THIS ACTUALLY TRANSMITS NOW
         findViewById<Button>(R.id.btnGoLive).setOnClickListener {
             if (!hasPermissions()) { ActivityCompat.requestPermissions(this, PERMS, REQ_CODE); return@setOnClickListener }
             val key = findViewById<EditText>(R.id.etStreamKey).text.toString().trim()
@@ -143,10 +139,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             if (!isLive) {
                 val fullUrl = (rtmpMap[selectedPlatform] ?: "") + key
                 Toast.makeText(this, "Connecting to $selectedPlatform...", Toast.LENGTH_LONG).show()
-                // Start preview if not started
-                if (!rtmpCamera.isStreaming) {
-                    try { rtmpCamera.startPreview() } catch(e: Exception) {}
-                }
+                try { if (!rtmpCamera.isStreaming) rtmpCamera.startPreview() } catch (e: Exception) {}
                 rtmpCamera.startStream(fullUrl)
                 isLive = true
                 prefs.edit().putString("main_key", key).putBoolean("main_live", true).apply()
@@ -166,7 +159,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         findViewById<Button>(R.id.btnBack).setOnClickListener { finish() }
     }
 
-    // --- RTMP CALLBACKS - REAL STATUS ---
     override fun onConnectionStartedRtmp(rtmpUrl: String) {
         runOnUiThread { Toast.makeText(this, "Connecting...", Toast.LENGTH_SHORT).show() }
     }
@@ -181,8 +173,8 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             isLive = false
             findViewById<TextView>(R.id.tvLiveStatus).text = "❌ FAILED: $reason"
             findViewById<Button>(R.id.btnGoLive).text = "🔴 GO LIVE TO SOCIAL MEDIA"
-            Toast.makeText(this, "❌ FAILED: $reason\nCheck Stream Key - Get fresh key!", Toast.LENGTH_LONG).show()
-            rtmpCamera.stopStream()
+            Toast.makeText(this, "❌ FAILED: $reason - Check Stream Key - Get fresh key!", Toast.LENGTH_LONG).show()
+            try { rtmpCamera.stopStream() } catch (e: Exception) {}
         }
     }
     override fun onNewBitrateRtmp(bitrate: Long) {}
@@ -190,7 +182,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         runOnUiThread { findViewById<TextView>(R.id.tvLiveStatus).text = "● DISCONNECTED" }
     }
     override fun onAuthErrorRtmp() {
-        runOnUiThread { Toast.makeText(this, "❌ Auth Error - Stream Key WRONG - Get fresh key from YouTube", Toast.LENGTH_LONG).show() }
+        runOnUiThread { Toast.makeText(this, "❌ Auth Error - Stream Key WRONG - Get fresh key", Toast.LENGTH_LONG).show() }
     }
     override fun onAuthSuccessRtmp() {}
 
@@ -199,7 +191,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_CODE && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-            rtmpCamera.startPreview()
+            try { rtmpCamera.startPreview() } catch (e: Exception) {}
         }
     }
     private fun makeDraggable(v: View) {
@@ -218,7 +210,7 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
     }
     override fun onDestroy() {
         super.onDestroy()
-        try { if (rtmpCamera.isStreaming) rtmpCamera.stopStream() } catch(e: Exception) {}
-        try { rtmpCamera.stopPreview() } catch(e: Exception) {}
+        try { if (rtmpCamera.isStreaming) rtmpCamera.stopStream() } catch (e: Exception) {}
+        try { rtmpCamera.stopPreview() } catch (e: Exception) {}
     }
 }
