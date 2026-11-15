@@ -1,351 +1,378 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:background="#000000">
 
-<TextView
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="🎬 MAIN STUDIO"
-    android:textColor="#FFFFFF"
-    android:textStyle="bold"
-    android:textSize="20sp"
-    android:gravity="center"/>
+    <!-- TOP BAR -->
+    <TextView
+        android:id="@+id/tvPlan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MAIN STUDIO - Main Event Camera | Plan: FREE"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="13sp"
+        android:padding="8dp"
+        android:background="#222222" />
 
-<TextView
-    android:id="@+id/tvPlan"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="Plan: FREE"
-    android:textColor="#FFD700"
-    android:gravity="center"
-    android:padding="6dp"/>
+    <!-- AD BANNER - FREE PLAN ONLY -->
+    <TextView
+        android:id="@+id/adBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📢 AD - Upgrade to Premium to remove ads - Paybill 516600"
+        android:textColor="#000000"
+        android:background="#FFEB3B"
+        android:gravity="center"
+        android:padding="6dp"
+        android:textSize="12sp" />
 
-<TextView
-    android:id="@+id/adBanner"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="📢 ADVERTISEMENT - Upgrade to Premium to Remove Ads - Paybill 516600"
-    android:textColor="#000000"
-    android:background="#FFD700"
-    android:gravity="center"
-    android:padding="10dp"/>
+    <!-- LIVE STATUS -->
+    <TextView
+        android:id="@+id/tvLiveStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="● OFFLINE"
+        android:textColor="#FF5252"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:padding="4dp" />
 
-<!-- MAIN STUDIO CAMERA - MAIN EVENT - CameraX Preview -->
-<FrameLayout
-    android:layout_width="match_parent"
-    android:layout_height="280dp"
-    android:layout_marginTop="10dp">
-    <com.pedro.library.view.OpenGlView
-    android:id="@+id/previewMain"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="#222222"/>
-<TextView
-    android:id="@+id/tvOverlayTitle"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="🔴 JSTV LIVE"
-    android:textColor="#FFFF00"
-    android:textSize="22sp"
-    android:textStyle="bold"
-    android:layout_margin="10dp"/>
-<ImageView
-    android:id="@+id/imgOverlayLogo"
-    android:layout_width="70dp"
-    android:layout_height="70dp"
-    android:src="@mipmap/jstv_logo"
-    android:layout_gravity="top|end"
-    android:layout_margin="10dp"/>
-<TextView
-    android:id="@+id/tvScrolling"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="📢 Welcome to JSTV • "
-    android:textColor="#FFFFFF"
-    android:background="#80000000"
-    android:layout_gravity="bottom"
-    android:singleLine="true"
-    android:ellipsize="marquee"
-    android:marqueeRepeatLimit="marquee_forever"
-    android:focusable="true"
-    android:focusableInTouchMode="true"/>
-</FrameLayout>
+    <!-- CAMERA PREVIEW - REAL RTMP -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#000000">
 
-<TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="📡 CHOOSE PLATFORM - RTMP Built-in"
-    android:textColor="#FF0000"
-    android:textStyle="bold"
-    android:layout_marginTop="14dp"/>
+        <com.pedro.library.view.OpenGlView
+            android:id="@+id/previewMain"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
-<Spinner
-    android:id="@+id/spPlatform"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#333333"/>
+        <!-- OVERLAY TITLE - DRAGGABLE -->
+        <TextView
+            android:id="@+id/tvOverlayTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🔴 JSTV LIVE"
+            android:textColor="#FFFF00"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:layout_gravity="top|center_horizontal"
+            android:padding="8dp" />
 
-<TextView
-    android:id="@+id/tvRtmp"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="RTMP: ..."
-    android:textColor="#AAAAAA"
-    android:padding="6dp"/>
+        <!-- OVERLAY LOGO - DRAGGABLE -->
+        <ImageView
+            android:id="@+id/imgOverlayLogo"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="top|end"
+            android:contentDescription="Logo" />
 
-<EditText
-    android:id="@+id/etStreamKey"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:hint="Paste Stream Key ONLY here"
-    android:textColor="#FFFFFF"
-    android:textColorHint="#888888"
-    android:background="#333333"
-    android:padding="10dp"/>
+        <!-- SCROLLING TEXT - DRAGGABLE -->
+        <TextView
+            android:id="@+id/tvScrolling"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📢 Welcome to JSTV • Paybill 516600 • WhatsApp 0763052911 • "
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_gravity="bottom"
+            android:background="#80000000"
+            android:padding="6dp"
+            android:singleLine="true"
+            android:ellipsize="marquee"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:selected="true" />
 
-<EditText
-    android:id="@+id/etStreamTitle"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:hint="Stream Title"
-    android:textColor="#FFFFFF"
-    android:textColorHint="#888888"
-    android:background="#333333"
-    android:padding="10dp"
-    android:layout_marginTop="8dp"/>
+    </FrameLayout>
 
-<TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="🎨 TITLE / SCROLLING / LOGO - Drag on Preview to Move"
-    android:textColor="#FFFFFF"
-    android:layout_marginTop="12dp"/>
+    <!-- CONTROLS - SCROLLABLE -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:background="#111111">
 
-<EditText
-    android:id="@+id/etScrollText"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:hint="Scrolling text - e.g. Sunday Service 10AM"
-    android:textColor="#FFFFFF"
-    android:textColorHint="#888888"
-    android:background="#333333"
-    android:padding="10dp"
-    android:layout_marginTop="6dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="10dp">
 
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:layout_marginTop="6dp">
-<Button
-    android:id="@+id/btnTitleStyle"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="✨ TITLE STYLE"/>
-<Button
-    android:id="@+id/btnScrollText"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="📜 SET SCROLL"/>
+            <TextView
+                android:id="@+id/tvViewers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="👁 Viewers: 0 | ⏱ Program: Not Started"
+                android:textColor="#FFFFFF"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvRtmp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="RTMP: rtmps://live-api-s.facebook.com:443/rtmp/ + YOUR KEY"
+                android:textColor="#AAAAAA"
+                android:textSize="11sp"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Platform:"
+                android:textColor="#FFFFFF" />
+
+            <Spinner
+                android:id="@+id/spPlatform"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Stream Title:"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="8dp" />
+
+            <EditText
+                android:id="@+id/etStreamTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Enter Stream Title"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:background="#333333"
+                android:padding="8dp" />
+
+            <Button
+                android:id="@+id/btnTitleStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="✏️ SET TITLE ON SCREEN"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Scrolling Text:"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="8dp" />
+
+            <EditText
+                android:id="@+id/etScrollText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Type announcement..."
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:background="#333333"
+                android:padding="8dp" />
+
+            <Button
+                android:id="@+id/btnScrollText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📢 SET SCROLL TEXT"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Stream Key - PASTE KEY ONLY HERE:"
+                android:textColor="#FFEB3B"
+                android:textStyle="bold"
+                android:layout_marginTop="10dp" />
+
+            <EditText
+                android:id="@+id/etStreamKey"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Paste Stream Key ONLY here"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:background="#333333"
+                android:padding="10dp" />
+
+            <Button
+                android:id="@+id/btnGoLive"
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:text="🔴 GO LIVE TO SOCIAL MEDIA"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:backgroundTint="#D32F2F"
+                android:layout_marginTop="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <Button
+                    android:id="@+id/btnSwitchCamera"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🔄 CAMERA" />
+
+                <Button
+                    android:id="@+id/btnFlash"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="💡 FLASH" />
+
+                <Button
+                    android:id="@+id/btnMic"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🎤 MIC ON" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+
+                <Button
+                    android:id="@+id/btnAudioOnly"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🎧 AUDIO ONLY" />
+
+                <Button
+                    android:id="@+id/btnRecord"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⏺ RECORD" />
+
+                <Button
+                    android:id="@+id/btnGallery"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🖼️ LOGO" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Quality Settings:"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="10dp" />
+
+            <Spinner
+                android:id="@+id/spResolution"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF" />
+
+            <Spinner
+                android:id="@+id/spBitrate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF"
+                android:layout_marginTop="4dp" />
+
+            <Spinner
+                android:id="@+id/spFps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF"
+                android:layout_marginTop="4dp" />
+
+            <Spinner
+                android:id="@+id/spIntro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF"
+                android:layout_marginTop="4dp" />
+
+            <Spinner
+                android:id="@+id/spOrientation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#FFFFFF"
+                android:layout_marginTop="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <EditText
+                    android:id="@+id/etTimerMins"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Minutes e.g. 30"
+                    android:inputType="number"
+                    android:textColor="#FFFFFF"
+                    android:textColorHint="#888888"
+                    android:background="#333333"
+                    android:padding="8dp" />
+
+                <Button
+                    android:id="@+id/btnProgramTimer"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⏱ START TIMER" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnLoop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🔁 LOOP MODE"
+                android:layout_marginTop="4dp" />
+
+            <Button
+                android:id="@+id/btnChurchScreen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⛪ OPEN CHURCH SCREEN"
+                android:layout_marginTop="4dp" />
+
+            <Button
+                android:id="@+id/btnPayment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="💰 UPGRADE TO PREMIUM"
+                android:layout_marginTop="8dp" />
+
+            <Button
+                android:id="@+id/btnWhatsApp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="💬 WHATSAPP SUPPORT"
+                android:layout_marginTop="4dp" />
+
+            <Button
+                android:id="@+id/btnBack"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⬅️ BACK"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="20dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
 </LinearLayout>
-
-<TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="🖼 GALLERY / LOOP / INTRO / TIMER"
-    android:textColor="#FFFFFF"
-    android:layout_marginTop="12dp"/>
-
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:layout_marginTop="6dp">
-<Button
-    android:id="@+id/btnGallery"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="🖼 GALLERY"/>
-<Button
-    android:id="@+id/btnLoop"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="🔁 LOOP"/>
-</LinearLayout>
-
-<Spinner
-    android:id="@+id/spIntro"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#333333"
-    android:layout_marginTop="6dp"/>
-
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:layout_marginTop="6dp">
-<EditText
-    android:id="@+id/etTimerMins"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:hint="Program Timer Mins e.g. 30"
-    android:textColor="#FFFFFF"
-    android:textColorHint="#888888"
-    android:background="#333333"/>
-<Button
-    android:id="@+id/btnProgramTimer"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="⏱ START TIMER"/>
-</LinearLayout>
-
-<TextView
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:text="⚙️ SETTINGS"
-    android:textColor="#FFFFFF"
-    android:layout_marginTop="12dp"/>
-
-<Spinner
-    android:id="@+id/spOrientation"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#333333"
-    android:layout_marginTop="6dp"/>
-
-<Spinner
-    android:id="@+id/spResolution"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#333333"
-    android:layout_marginTop="6dp"/>
-
-<Spinner
-    android:id="@+id/spBitrate"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#333333"
-    android:layout_marginTop="6dp"/>
-
-<Spinner
-    android:id="@+id/spFps"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="#333333"
-    android:layout_marginTop="6dp"/>
-
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:layout_marginTop="10dp">
-<Button
-    android:id="@+id/btnSwitchCamera"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="🔄 CAM"/>
-<Button
-    android:id="@+id/btnFlash"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="⚡ FLASH"/>
-<Button
-    android:id="@+id/btnMic"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="🎤 MIC ON"/>
-</LinearLayout>
-
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:layout_marginTop="6dp">
-<Button
-    android:id="@+id/btnAudioOnly"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="🔊 AUDIO ONLY"/>
-<Button
-    android:id="@+id/btnRecord"
-    android:layout_width="0dp"
-    android:layout_height="wrap_content"
-    android:layout_weight="1"
-    android:text="⏺ RECORD"/>
-</LinearLayout>
-
-<TextView
-    android:id="@+id/tvLiveStatus"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="● OFFLINE"
-    android:textColor="#FFFFFF"
-    android:gravity="center"
-    android:padding="10dp"
-    android:layout_marginTop="10dp"/>
-
-<TextView
-    android:id="@+id/tvViewers"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="👁 0 viewers | ⏱ 00:00"
-    android:textColor="#FFFFFF"
-    android:gravity="center"/>
-
-<Button
-    android:id="@+id/btnGoLive"
-    android:layout_width="match_parent"
-    android:layout_height="65dp"
-    android:layout_marginTop="10dp"
-    android:text="🔴 GO LIVE TO SOCIAL MEDIA"
-    android:textColor="#FFFFFF"
-    android:backgroundTint="#FF0000"/>
-
-<Button
-    android:id="@+id/btnChurchScreen"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:text="⛪ SEND TO CHURCH SCREEN"/>
-
-<Button
-    android:id="@+id/btnPayment"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:text="💰 UPGRADE PREMIUM"/>
-
-<Button
-    android:id="@+id/btnWhatsApp"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:text="💬 WHATSAPP 0763052911"/>
-
-<Button
-    android:id="@+id/btnBack"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:text="⬅ BACK"/>
-
-</LinearLayout>
-</ScrollView>
