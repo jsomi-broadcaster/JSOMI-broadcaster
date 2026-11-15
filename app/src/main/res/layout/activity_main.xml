@@ -67,16 +67,18 @@
     </FrameLayout>
 
     <TextView
-        android:id="@+id/tvScrolling"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Welcome to JSTV - Paybill 516600 - WhatsApp 0763052911"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:ellipsize="marquee"
-        android:marqueeRepeatLimit="marquee"
-        android:singleLine="true"
-        android:selected="true" />
+        <TextView
+    android:id="@+id/tvScrolling"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:text="Welcome to JSTV - Paybill 516600 - WhatsApp 0763052911"
+    android:textColor="#FFFFFF"
+    android:textSize="16sp"
+    android:ellipsize="marquee"
+    android:marqueeRepeatLimit="marquee_forever"
+    android:singleLine="true"
+    android:focusable="true"
+    android:focusableInTouchMode="true" />
 
     <!-- CONTROLS - SCROLLABLE -->
     <ScrollView
