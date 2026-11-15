@@ -1,34 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
-<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="⛪ CHURCH SCREEN" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="22sp" android:gravity="center"/>
-<TextView android:id="@+id/tvChurchNowShowing" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="NOW SHOWING: MAIN" android:textColor="#FFD700" android:gravity="center" android:padding="8dp"/>
-<TextView android:id="@+id/tvChurchTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="MAIN STUDIO" android:textColor="#FFFFFF" android:textSize="20sp" android:gravity="center"/>
-<TextView android:id="@+id/tvChurchScroll" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📢 Welcome to JSTV" android:textColor="#FFFFFF" android:background="#333333" android:padding="8dp" android:singleLine="true" android:ellipsize="marquee" android:marqueeRepeatLimit="marquee_forever" android:focusable="true" android:focusableInTouchMode="true"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#000000"
+    android:padding="24dp">
 
-<!-- MAIN STUDIO LAYOUT -->
-<LinearLayout android:id="@+id/layoutMainStudio" android:layout_width="match_parent" android:layout_height="300dp" android:orientation="vertical" android:background="#111111" android:gravity="center" android:layout_marginTop="12dp">
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎬 MAIN STUDIO FEED" android:textColor="#FFFFFF" android:textSize="20sp" android:textStyle="bold"/>
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Main Event - Pastor / Stage" android:textColor="#AAAAAA"/>
-</LinearLayout>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Church Screen - Coming Soon"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center" />
 
-<!-- CAMERA LAYOUT -->
-<LinearLayout android:id="@+id/layoutCamera" android:layout_width="match_parent" android:layout_height="300dp" android:orientation="vertical" android:layout_marginTop="12dp">
-<androidx.camera.view.PreviewView android:id="@+id/previewChurchCamera" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#222222"/>
 </LinearLayout>
-
-<!-- BIBLE LAYOUT -->
-<LinearLayout android:id="@+id/layoutBible" android:layout_width="match_parent" android:layout_height="300dp" android:orientation="vertical" android:background="#1A2A1A" android:gravity="center" android:padding="16dp" android:layout_marginTop="12dp">
-<TextView android:id="@+id/tvBibleVerse" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📖 John 3:16 - For God so loved the world..." android:textColor="#FFFFFF" android:textSize="22sp" android:gravity="center"/>
-</LinearLayout>
-
-<EditText android:id="@+id/etBibleVerse" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Type Bible Verse here" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="12dp"/>
-<Button android:id="@+id/btnUpdateBible" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="📖 UPDATE BIBLE VERSE"/>
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="12dp">
-<Button android:id="@+id/btnShowMain" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎬 MAIN"/>
-<Button android:id="@+id/btnShowCamera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📷 CAMERA"/>
-<Button android:id="@+id/btnShowBible" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📖 BIBLE"/>
-</LinearLayout>
-<Button android:id="@+id/btnChurchBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="⬅ BACK"/>
-</LinearLayout>
-</ScrollView>
