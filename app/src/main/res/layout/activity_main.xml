@@ -6,8 +6,9 @@
 <TextView android:id="@+id/tvPlan" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Plan: FREE" android:textColor="#FFD700" android:gravity="center" android:padding="6dp"/>
 <TextView android:id="@+id/adBanner" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📢 ADVERTISEMENT - Upgrade to Premium to Remove Ads - Paybill 516600" android:textColor="#000000" android:background="#FFD700" android:gravity="center" android:padding="10dp"/>
 
+<!-- REAL CAMERA PREVIEW - SurfaceView for RTMP -->
 <FrameLayout android:layout_width="match_parent" android:layout_height="280dp" android:layout_marginTop="10dp">
-<androidx.camera.view.PreviewView android:id="@+id/previewView" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#222222"/>
+<SurfaceView android:id="@+id/surfaceView" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#222222"/>
 <TextView android:id="@+id/tvOverlayTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔴 JSTV LIVE" android:textColor="#FFFF00" android:textSize="22sp" android:textStyle="bold" android:layout_margin="10dp"/>
 <ImageView android:id="@+id/imgOverlayLogo" android:layout_width="70dp" android:layout_height="70dp" android:src="@mipmap/jstv_logo" android:layout_gravity="top|end" android:layout_margin="10dp"/>
 <TextView android:id="@+id/tvScrolling" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📢 Welcome to JSTV • " android:textColor="#FFFFFF" android:background="#80000000" android:layout_gravity="bottom" android:singleLine="true" android:ellipsize="marquee" android:marqueeRepeatLimit="marquee_forever" android:focusable="true" android:focusableInTouchMode="true"/>
@@ -46,7 +47,7 @@
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp">
 <Button android:id="@+id/btnSwitchCamera" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔄 CAM"/>
 <Button android:id="@+id/btnFlash" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⚡ FLASH"/>
-<Button android:id="@+id/btnMic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎤 MIC"/>
+<Button android:id="@+id/btnMic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎤 MIC ON"/>
 </LinearLayout>
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
 <Button android:id="@+id/btnAudioOnly" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔊 AUDIO ONLY"/>
