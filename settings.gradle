@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // THIS IS MISSING - RTMP library lives here
         maven { url 'https://jitpack.io' }
     }
 }
