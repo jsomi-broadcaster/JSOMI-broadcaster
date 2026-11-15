@@ -1,253 +1,80 @@
 package com.jsomi.broadcaster
 
-import android.Manifest
-import android.app.Activity
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Bundle
-import android.os.CountDownTimer
-import android.os.Environment
-import android.widget.ArrayAdapter
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import com.jsomi.broadcaster.databinding.ActivityMainBinding
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import android.view.View
+import java.lang.reflect.Proxy
 
-class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
-    private var isStreaming = false
-    private var isRecording = false
-    private var isMicOn = true
-    private var isFlashOn = false
-    private var timer: CountDownTimer? = null
-    private val PERMISSION_CODE = 100
-    private val GALLERY_CODE = 101
+object RtmpHelper {
+    var camera: Any? = null
+    var onStatus: ((String) -> Unit)? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        RtmpHelper.onStatus = { status -> updateStatus(status) }
-        RtmpHelper.init(binding.previewMain)
-        setupSpinners()
-        setupButtons()
-        checkPermissions()
-    }
-
-    private fun updateStatus(status: String) {
-        runOnUiThread {
-            if (status == "LIVE") {
-                binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
+    fun init(view: View): Any? {
+        return try {
+            val clazz = Class.forName("com.pedro.rtplibrary.rtmp.RtmpCamera1")
+            val ctor = clazz.constructors.firstOrNull { it.parameterTypes.size == 2 } ?: return null
+            val iface = ctor.parameterTypes[1]
+            val handler = java.lang.reflect.InvocationHandler { _, method, _ ->
+                val name = method.name
+                if (name.contains("Success")) onStatus?.invoke("LIVE")
+                if (name.contains("Failed")) onStatus?.invoke("FAILED")
+                if (name.contains("Disconnect")) onStatus?.invoke("OFFLINE")
+                if (name.contains("Started")) onStatus?.invoke("CONNECTING")
+                when (method.returnType) {
+                    Boolean::class.javaPrimitiveType -> false
+                    Int::class.javaPrimitiveType -> 0
+                    Long::class.javaPrimitiveType -> 0L
+                    else -> null
+                }
             }
-            if (status == "FAILED") {
-                isStreaming = false
-                binding.tvLiveStatus.text = "FAILED - Check Key"
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
-                binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-            }
-            if (status == "OFFLINE") {
-                isStreaming = false
-                binding.tvLiveStatus.text = "OFFLINE"
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
-                binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-            }
-            if (status == "CONNECTING") {
-                binding.tvLiveStatus.text = "CONNECTING..."
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
-            }
+            val proxy = Proxy.newProxyInstance(iface.classLoader, arrayOf(iface), handler)
+            camera = ctor.newInstance(view, proxy)
+            camera
+        } catch (e: Exception) {
+            null
         }
     }
 
-    private fun setupSpinners() {
-        binding.spPlatform.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("YouTube", "Facebook", "TikTok"))
-        binding.spResolution.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("720p - 1280x720", "1080p - 1920x1080", "480p - 854x480"))
-        binding.spBitrate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("2500 Kbps - Good", "4000 Kbps - HD", "1500 Kbps - Low Data"))
-        binding.spFps.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("30 FPS", "60 FPS", "24 FPS"))
-        binding.spIntro.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("No Intro", "JSTV Intro 1", "JSTV Intro 2"))
-        binding.spOrientation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("Portrait", "Landscape"))
+    fun call(name: String) {
+        try {
+            val cam = camera ?: return
+            val m = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 0 } ?: return
+            m.invoke(cam)
+        } catch (e: Exception) { }
     }
 
-    private fun setupButtons() {
-        binding.btnGoLive.setOnClickListener {
-            if (!isStreaming) startRealStream() else stopRealStream()
-        }
-        binding.btnSwitchCamera.setOnClickListener { RtmpHelper.call("switchCamera") }
-        binding.btnFlash.setOnClickListener {
-            isFlashOn = !isFlashOn
-            binding.btnFlash.text = if (isFlashOn) "FLASH ON" else "FLASH"
-        }
-        binding.btnMic.setOnClickListener {
-            if (isMicOn) {
-                RtmpHelper.call("disableAudio")
-                isMicOn = false
-                binding.btnMic.text = "MIC OFF"
-            } else {
-                RtmpHelper.call("enableAudio")
-                isMicOn = true
-                binding.btnMic.text = "MIC ON"
-            }
-        }
-        binding.btnAudioOnly.setOnClickListener {
-            Toast.makeText(this, "Audio Only mode", Toast.LENGTH_SHORT).show()
-        }
-        binding.btnRecord.setOnClickListener { toggleRecord() }
-        binding.btnGallery.setOnClickListener {
-            val intent = Intent(Intent.ACTION_PICK)
-            intent.type = "image/*"
-            startActivityForResult(intent, GALLERY_CODE)
-        }
-        binding.btnTitleStyle.setOnClickListener {
-            val title = binding.etStreamTitle.text.toString().trim()
-            if (title.isNotEmpty()) binding.tvOverlayTitle.text = title
-        }
-        binding.btnScrollText.setOnClickListener {
-            val txt = binding.etScrollText.text.toString().trim()
-            if (txt.isNotEmpty()) binding.tvScrolling.text = txt
-        }
-        binding.btnProgramTimer.setOnClickListener {
-            val mins = binding.etTimerMins.text.toString().trim().toIntOrNull() ?: 0
-            if (mins > 0) startProgramTimer(mins)
-        }
-        binding.btnLoop.setOnClickListener { Toast.makeText(this, "Loop Mode - Coming in Premium", Toast.LENGTH_SHORT).show() }
-        binding.btnChurchScreen.setOnClickListener { Toast.makeText(this, "Church Screen - Coming Soon", Toast.LENGTH_SHORT).show() }
-        binding.btnPayment.setOnClickListener { Toast.makeText(this, "Paybill 516600 - Account: JSTV PREMIUM", Toast.LENGTH_LONG).show() }
-        binding.btnWhatsApp.setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hello JSTV Support")))
-        }
-        binding.btnBack.setOnClickListener { finish() }
+    fun callBool(name: String): Boolean {
+        return try {
+            val cam = camera ?: return false
+            val m = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 0 } ?: return false
+            (m.invoke(cam) as? Boolean) ?: false
+        } catch (e: Exception) { false }
     }
 
-    private fun toggleRecord() {
-        if (!isRecording) {
-            val folder = File(getExternalFilesDir(Environment.DIRECTORY_MOVIES), "JSTV")
-            if (!folder.exists()) folder.mkdirs()
-            val time = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val file = File(folder, "JSTV_" + time + ".mp4")
-            RtmpHelper.callStr("startRecord", file.absolutePath)
-            isRecording = true
-            binding.btnRecord.text = "STOP REC"
-        } else {
-            RtmpHelper.call("stopRecord")
-            isRecording = false
-            binding.btnRecord.text = "RECORD"
-        }
+    fun callStr(name: String, arg: String) {
+        try {
+            val cam = camera ?: return
+            val m = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 1 } ?: return
+            m.invoke(cam, arg)
+        } catch (e: Exception) { }
     }
 
-    private fun getRtmpUrl(platform: String, key: String): String {
-        if (platform == "Facebook") return "rtmps://live-api-s.facebook.com:443/rtmp/" + key
-        if (platform == "TikTok") return "rtmp://rtmp-push.tiktok.com/live/" + key
-        return "rtmp://a.rtmp.youtube.com/live2/" + key
+    fun callInt(name: String, arg: Int) {
+        try {
+            val cam = camera ?: return
+            val m = cam.javaClass.methods.firstOrNull { it.name == name && it.parameterCount == 1 } ?: return
+            m.invoke(cam, arg)
+        } catch (e: Exception) { }
     }
 
-    private fun startRealStream() {
-        if (RtmpHelper.camera == null) {
-            Toast.makeText(this, "Camera not ready, restart app", Toast.LENGTH_LONG).show()
-            return
-        }
-        val key = binding.etStreamKey.text.toString().trim()
-        if (key.isEmpty()) {
-            Toast.makeText(this, "Paste Stream Key ONLY first", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (key.contains("rtmp")) {
-            Toast.makeText(this, "Paste KEY ONLY, not full URL", Toast.LENGTH_LONG).show()
-            return
-        }
-        val platform = binding.spPlatform.selectedItem?.toString() ?: "YouTube"
-        val fullUrl = getRtmpUrl(platform, key)
-        binding.tvRtmp.text = "RTMP: " + platform + " - Connecting..."
-        binding.tvLiveStatus.text = "CONNECTING..."
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
-        if (RtmpHelper.callBool("isStreaming")) RtmpHelper.call("stopStream")
-        RtmpHelper.callStr("startStream", fullUrl)
-        isStreaming = true
-        binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
-        binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
-        Toast.makeText(this, "Connecting to " + platform, Toast.LENGTH_LONG).show()
-    }
-
-    private fun stopRealStream() {
-        if (RtmpHelper.callBool("isStreaming")) RtmpHelper.call("stopStream")
-        if (isRecording) {
-            RtmpHelper.call("stopRecord")
-            isRecording = false
-            binding.btnRecord.text = "RECORD"
-        }
-        isStreaming = false
-        binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-        binding.tvLiveStatus.text = "OFFLINE"
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
-    }
-
-    private fun startProgramTimer(mins: Int) {
-        timer?.cancel()
-        val total = mins * 60 * 1000L
-        timer = object : CountDownTimer(total, 1000) {
-            override fun onTick(millis: Long) {
-                val m = millis / 60000
-                val s = (millis / 1000) % 60
-                binding.tvViewers.text = "Program: " + m + ":" + s + " remaining"
-            }
-            override fun onFinish() {
-                binding.tvViewers.text = "Program: Finished"
-                if (isStreaming) stopRealStream()
-            }
-        }.start()
-    }
-
-    private fun checkPermissions() {
-        val perms = mutableListOf<String>()
-        perms.add(Manifest.permission.CAMERA)
-        perms.add(Manifest.permission.RECORD_AUDIO)
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            perms.add(Manifest.permission.READ_MEDIA_IMAGES)
-            perms.add(Manifest.permission.READ_MEDIA_VIDEO)
-            perms.add(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-        val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-        if (need.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
-        } else {
-            RtmpHelper.prepareAndPreview()
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_CODE) {
-            val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-            if (camOk && micOk) {
-                RtmpHelper.prepareAndPreview()
-            } else {
-                Toast.makeText(this, "Camera / Mic DENIED - Go to Settings", Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == GALLERY_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            binding.imgOverlayLogo.setImageURI(data.data)
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        timer?.cancel()
-        if (RtmpHelper.callBool("isStreaming")) RtmpHelper.call("stopStream")
-        if (RtmpHelper.callBool("isOnPreview")) RtmpHelper.call("stopPreview")
+    fun prepareAndPreview() {
+        try {
+            val cam = camera ?: return
+            if (callBool("isOnPreview")) return
+            val clazz = cam.javaClass
+            val mv = clazz.methods.firstOrNull { it.name == "prepareVideo" }
+            mv?.invoke(cam, 1280, 720, 30, 2500 * 1024, false, 0, 2)
+            val ma = clazz.methods.firstOrNull { it.name == "prepareAudio" }
+            ma?.invoke(cam, 128 * 1024, 44100, true, false, false)
+            call("startPreview")
+        } catch (e: Exception) { }
     }
 }
