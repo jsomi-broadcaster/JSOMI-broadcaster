@@ -242,48 +242,42 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissions() {
-        val perms = arrayOf(
-            Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
-        val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-        if (need.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
-        } else {
+    val perms = mutableListOf<String>()
+    perms.add(Manifest.permission.CAMERA)
+    perms.add(Manifest.permission.RECORD_AUDIO)
+    // Android 13+ uses new media permissions, old ones do nothing
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+        perms.add(Manifest.permission.READ_MEDIA_IMAGES)
+        perms.add(Manifest.permission.READ_MEDIA_VIDEO)
+        perms.add(Manifest.permission.POST_NOTIFICATIONS)
+    } else {
+        perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+
+    val need = perms.filter {
+        ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+    }
+
+    if (need.isNotEmpty()) {
+        Toast.makeText(this, "JSTV needs Camera + Mic to stream - Tap ALLOW", Toast.LENGTH_LONG).show()
+        ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
+    } else {
+        Toast.makeText(this, "Permissions OK - Starting Camera", Toast.LENGTH_SHORT).show()
+        startPreview()
+    }
+}
+
+override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    if (requestCode == PERMISSION_CODE) {
+        val cameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (cameraGranted && micGranted) {
+            Toast.makeText(this, "Thank you - Starting Camera", Toast.LENGTH_SHORT).show()
             startPreview()
+        } else {
+            Toast.makeText(this, "Camera / Mic DENIED - Go to Settings > JSTV > Permissions > Allow", Toast.LENGTH_LONG).show()
         }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_CODE) startPreview()
-    }
-
-    private fun startPreview() {
-        try {
-            val cam = rtmpCamera ?: return
-            if (!cam.isOnPreview) cam.startPreview()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Preview error: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == GALLERY_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            try { binding.imgOverlayLogo.setImageURI(data.data) } catch (e: Exception) { }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        timer?.cancel()
-        try {
-            if (rtmpCamera?.isStreaming == true) rtmpCamera?.stopStream()
-            if (rtmpCamera?.isOnPreview == true) rtmpCamera?.stopPreview()
-        } catch (e: Exception) { }
     }
 }
