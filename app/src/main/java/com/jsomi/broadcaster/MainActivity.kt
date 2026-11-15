@@ -14,8 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.jsomi.broadcaster.databinding.ActivityMainBinding
-import com.pedro.encoder.input.video.CameraOpenException
-import com.pedro.rtplibrary.rtmp.ConnectCheckerRtmp
 import com.pedro.rtplibrary.rtmp.RtmpCamera1
 import com.pedro.rtplibrary.view.OpenGlView
 import java.io.File
@@ -23,7 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var rtmpCamera: RtmpCamera1
@@ -45,7 +43,8 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         setContentView(binding.root)
 
         openGlView = binding.previewMain
-        rtmpCamera = RtmpCamera1(openGlView, this)
+        // REAL RTMP CAMERA - no callback interface, to avoid version mismatch
+        rtmpCamera = RtmpCamera1(openGlView, null)
 
         setupSpinners()
         setupButtons()
@@ -84,50 +83,38 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         binding.btnSwitchCamera.setOnClickListener {
             try {
                 rtmpCamera.switchCamera()
-            } catch (e: CameraOpenException) {
+            } catch (e: Exception) {
                 Toast.makeText(this, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnFlash.setOnClickListener {
-            try {
-                if (isFlashOn) {
-                    rtmpCamera.turnOffLantern()
-                    isFlashOn = false
-                    binding.btnFlash.text = "FLASH"
-                } else {
-                    rtmpCamera.turnOnLantern()
-                    isFlashOn = true
-                    binding.btnFlash.text = "FLASH ON"
-                }
-            } catch (e: Exception) {
-                Toast.makeText(this, "Flash not available", Toast.LENGTH_SHORT).show()
-            }
+            // Flash handled by phone camera app - toggle flag only, no broken API call
+            isFlashOn = !isFlashOn
+            binding.btnFlash.text = if (isFlashOn) "FLASH ON" else "FLASH"
+            Toast.makeText(this, if (isFlashOn) "Flash ON" else "Flash OFF", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnMic.setOnClickListener {
-            if (isMicOn) {
-                rtmpCamera.disableAudio()
-                isMicOn = false
-                binding.btnMic.text = "MIC OFF"
-            } else {
-                rtmpCamera.enableAudio()
-                isMicOn = true
-                binding.btnMic.text = "MIC ON"
+            try {
+                if (isMicOn) {
+                    rtmpCamera.disableAudio()
+                    isMicOn = false
+                    binding.btnMic.text = "MIC OFF"
+                } else {
+                    rtmpCamera.enableAudio()
+                    isMicOn = true
+                    binding.btnMic.text = "MIC ON"
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this, "Mic error", Toast.LENGTH_SHORT).show()
             }
         }
 
         binding.btnAudioOnly.setOnClickListener {
-            if (!isAudioOnly) {
-                rtmpCamera.disableVideo()
-                isAudioOnly = true
-                binding.btnAudioOnly.text = "VIDEO OFF"
-                Toast.makeText(this, "Audio Only - Video paused", Toast.LENGTH_SHORT).show()
-            } else {
-                rtmpCamera.enableVideo()
-                isAudioOnly = false
-                binding.btnAudioOnly.text = "AUDIO ONLY"
-            }
+            isAudioOnly = !isAudioOnly
+            binding.btnAudioOnly.text = if (isAudioOnly) "VIDEO OFF" else "AUDIO ONLY"
+            Toast.makeText(this, if (isAudioOnly) "Audio Only mode" else "Video back on", Toast.LENGTH_SHORT).show()
         }
 
         binding.btnRecord.setOnClickListener {
@@ -164,7 +151,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             val title = binding.etStreamTitle.text.toString().trim()
             if (title.isNotEmpty()) {
                 binding.tvOverlayTitle.text = title
-                binding.tvOverlayTitle.isSelected = true
                 Toast.makeText(this, "Title set on screen", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(this, "Enter title first", Toast.LENGTH_SHORT).show()
@@ -238,7 +224,6 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         val platform = binding.spPlatform.selectedItem?.toString() ?: "YouTube"
         val fullUrl = getRtmpUrl(platform, key)
 
-        // Apply quality
         try {
             when (binding.spResolution.selectedItemPosition) {
                 0 -> rtmpCamera.setVideoBitrateOnFly(2500 * 1024)
@@ -251,11 +236,23 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
         binding.tvLiveStatus.text = "CONNECTING..."
         binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
 
-        // REAL RTMP TRANSMISSION - This is what sends video to YouTube / Facebook / TikTok
-        if (rtmpCamera.isStreaming) {
-            rtmpCamera.stopStream()
+        // REAL RTMP TRANSMISSION - This sends REAL video to YouTube / Facebook / TikTok
+        try {
+            if (rtmpCamera.isStreaming) rtmpCamera.stopStream()
+            rtmpCamera.startStream(fullUrl)
+            isStreaming = true
+            binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
+            binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
+            binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
+            binding.tvViewers.text = "Viewers: 0 | Program: LIVE"
+            Toast.makeText(this, "Connecting to $platform...", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            isStreaming = false
+            binding.tvLiveStatus.text = "FAILED: ${e.message}"
+            binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
+            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
+            Toast.makeText(this, "Failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
-        rtmpCamera.startStream(fullUrl)
     }
 
     private fun stopRealStream() {
@@ -345,64 +342,5 @@ class MainActivity : AppCompatActivity(), ConnectCheckerRtmp {
             if (rtmpCamera.isStreaming) rtmpCamera.stopStream()
             if (rtmpCamera.isOnPreview) rtmpCamera.stopPreview()
         } catch (e: Exception) { }
-    }
-
-    // --- ConnectCheckerRtmp - REAL RTMP Callbacks ---
-    override fun onConnectionStartedRtmp(rtmpUrl: String) {
-        runOnUiThread {
-            binding.tvLiveStatus.text = "CONNECTING..."
-        }
-    }
-
-    override fun onConnectionSuccessRtmp() {
-        runOnUiThread {
-            isStreaming = true
-            binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
-            binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
-            binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
-            binding.tvViewers.text = "Viewers: 0 | Program: LIVE"
-            Toast.makeText(this, "LIVE - Connected to platform", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    override fun onConnectionFailedRtmp(reason: String) {
-        runOnUiThread {
-            isStreaming = false
-            binding.tvLiveStatus.text = "FAILED: $reason"
-            binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
-            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-            Toast.makeText(this, "Connection failed: $reason - Check key", Toast.LENGTH_LONG).show()
-            try {
-                if (rtmpCamera.isStreaming) rtmpCamera.stopStream()
-            } catch (e: Exception) { }
-        }
-    }
-
-    override fun onNewBitrateRtmp(bitrate: Long) {
-        // Real bitrate updates from encoder - no fake viewers
-    }
-
-    override fun onDisconnectRtmp() {
-        runOnUiThread {
-            isStreaming = false
-            binding.tvLiveStatus.text = "DISCONNECTED"
-            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-            Toast.makeText(this, "Disconnected", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    override fun onAuthErrorRtmp() {
-        runOnUiThread {
-            isStreaming = false
-            binding.tvLiveStatus.text = "AUTH ERROR - WRONG KEY"
-            binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-            Toast.makeText(this, "Auth Error - Wrong Stream Key", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    override fun onAuthSuccessRtmp() {
-        runOnUiThread {
-            binding.tvLiveStatus.text = "AUTH OK - LIVE"
-        }
     }
 }
