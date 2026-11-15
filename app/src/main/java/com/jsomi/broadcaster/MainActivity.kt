@@ -321,27 +321,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startPreview() {
+    try {
+        val cam = rtmpCamera ?: return
+        if (callBoolean("isOnPreview")) return
+        // MUST PREPARE BEFORE PREVIEW - THIS WAS MISSING, CAUSED BLACK SCREEN
         try {
-            if (!callBoolean("isOnPreview")) call("startPreview")
+            val clazz = cam.javaClass
+            // prepareVideo(width, height, fps, bitrate, hardwareRotation, rotation, iFrameInterval)
+            val mVideo = clazz.methods.firstOrNull { it.name == "prepareVideo" }
+            mVideo?.invoke(cam, 1280, 720, 30, 2500 * 1024, false, 0, 2)
+            // prepareAudio(bitrate, sampleRate, isStereo, echoCanceler, noiseSuppressor)
+            val mAudio = clazz.methods.firstOrNull { it.name == "prepareAudio" }
+            mAudio?.invoke(cam, 128 * 1024, 44100, true, false, false)
         } catch (e: Exception) {
-            Toast.makeText(this, "Preview error: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Prepare: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == GALLERY_CODE && resultCode == Activity.RESULT_OK && data != null) {
-            try { binding.imgOverlayLogo.setImageURI(data.data) } catch (e: Exception) { }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        timer?.cancel()
-        try {
-            if (callBoolean("isStreaming")) call("stopStream")
-            if (callBoolean("isOnPreview")) call("stopPreview")
-        } catch (e: Exception) { }
+        call("startPreview")
+        Toast.makeText(this, "Camera started", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        Toast.makeText(this, "Preview error: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
