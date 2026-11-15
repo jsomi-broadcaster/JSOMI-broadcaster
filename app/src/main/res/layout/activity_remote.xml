@@ -1,8 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" android:background="#0A0A0A">
-<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📱 REMOTE CONTROL" android:textColor="#FFFFFF" android:textSize="20sp" android:gravity="center" android:padding="16dp"/>
-<Button android:id="@+id/btnRemoteGoLive" android:layout_width="match_parent" android:layout_height="70dp" android:text="🔴 REMOTE GO LIVE" android:backgroundTint="#FF0000" android:layout_marginBottom="10dp"/>
-<Button android:id="@+id/btnRemoteEnd" android:layout_width="match_parent" android:layout_height="70dp" android:text="⏹ REMOTE END LIVE" android:layout_marginBottom="10dp"/>
-<Button android:id="@+id/btnRemoteSwitch" android:layout_width="match_parent" android:layout_height="70dp" android:text="🔄 SWITCH CAMERA" android:layout_marginBottom="10dp"/>
-<Button android:id="@+id/btnRemoteMic" android:layout_width="match_parent" android:layout_height="70dp" android:text="🎤 MUTE / UNMUTE MIC"/>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#000000">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="📱 REMOTE CONTROL" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="20sp" android:gravity="center"/>
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="👁 PREVIEW BEFORE SENDING" android:textColor="#FFD700" android:gravity="center" android:padding="6dp"/>
+<FrameLayout android:layout_width="match_parent" android:layout_height="220dp">
+<androidx.camera.view.PreviewView android:id="@+id/previewRemote" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#222222"/>
+<TextView android:id="@+id/tvRemotePreviewTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Preview Title" android:textColor="#FFFF00" android:textSize="18sp" android:textStyle="bold" android:layout_margin="8dp"/>
+<TextView android:id="@+id/tvRemotePreviewScroll" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Preview Scroll" android:textColor="#FFFFFF" android:background="#80000000" android:layout_gravity="bottom" android:singleLine="true"/>
+<ImageView android:id="@+id/imgRemoteLogo" android:layout_width="60dp" android:layout_height="60dp" android:src="@mipmap/jstv_logo" android:layout_gravity="top|end" android:layout_margin="8dp"/>
+</FrameLayout>
+
+<Spinner android:id="@+id/spRemotePlatform" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="12dp"/>
+<Spinner android:id="@+id/spRemoteResolution" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+<Spinner android:id="@+id/spRemoteOrientation" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+<Spinner android:id="@+id/spRemoteIntro" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="#333333" android:layout_marginTop="6dp"/>
+
+<EditText android:id="@+id/etRemoteTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Title - Edit here" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="10dp"/>
+<EditText android:id="@+id/etRemoteScroll" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Scrolling text" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="6dp"/>
+<EditText android:id="@+id/etRemoteKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream Key" android:textColor="#FFFFFF" android:textColorHint="#888888" android:background="#333333" android:padding="10dp" android:layout_marginTop="6dp"/>
+
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="8dp">
+<Button android:id="@+id/btnRemotePreviewTitle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="👁 PREVIEW TITLE"/>
+<Button android:id="@+id/btnRemotePreviewScroll" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="👁 PREVIEW SCROLL"/>
 </LinearLayout>
+<Button android:id="@+id/btnRemoteSendToLive" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="✅ SEND TO LIVE"/>
+<Button android:id="@+id/btnRemoteSendToChurch" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="⛪ SEND TO CHURCH SCREEN"/>
+
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="SWITCH FROM FAR" android:textColor="#FFFFFF" android:layout_marginTop="12dp"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<Button android:id="@+id/btnRemoteMainCam" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎬 MAIN"/>
+<Button android:id="@+id/btnRemoteCongregationCam" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📷 CONGREGATION"/>
+<Button android:id="@+id/btnRemoteBible" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📖 BIBLE"/>
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<Button android:id="@+id/btnRemoteSwitchCam" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔄 CAM"/>
+<Button android:id="@+id/btnRemoteMic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🎤 MIC"/>
+<Button android:id="@+id/btnRemoteGallery" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🖼 GALLERY"/>
+</LinearLayout>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="6dp">
+<Button android:id="@+id/btnRemoteGoLive" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🔴 GO LIVE"/>
+<Button android:id="@+id/btnRemoteEndLive" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⏹ END LIVE"/>
+</LinearLayout>
+<Button android:id="@+id/btnRemoteWhatsApp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="💬 WHATSAPP"/>
+<Button android:id="@+id/btnRemoteBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="⬅ BACK"/>
+</LinearLayout>
+</ScrollView>
