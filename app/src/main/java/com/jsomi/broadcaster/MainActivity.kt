@@ -218,9 +218,11 @@ class MainActivity : AppCompatActivity() {
         val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
-        } else {
-            RtmpHelper.prepareAndPreview()
-        }
+       } else {
+    val result = RtmpHelper.prepareAndPreview()
+    Toast.makeText(this, result, Toast.LENGTH_LONG).show()
+    binding.tvLiveStatus.text = result
+} 
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -229,7 +231,9 @@ class MainActivity : AppCompatActivity() {
             val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
             val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             if (camOk && micOk) {
-                RtmpHelper.prepareAndPreview()
+    val result = RtmpHelper.prepareAndPreview()
+    Toast.makeText(this, result, Toast.LENGTH_LONG).show()
+    binding.tvLiveStatus.text = result
             } else {
                 Toast.makeText(this, "Camera / Mic DENIED - Go to Settings", Toast.LENGTH_LONG).show()
             }
