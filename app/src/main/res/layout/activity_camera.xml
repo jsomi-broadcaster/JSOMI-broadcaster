@@ -6,12 +6,13 @@
     android:background="#000000"
     android:padding="12dp">
 
-    <TextView android:id="@+id/tvStudioName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="STUDIO1 - Main Events" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:padding="12dp" android:textSize="20sp" />
-    <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Opening Camera..." android:textColor="#FFFFFF" android:gravity="center" />
+    <TextView android:id="@+id/tvStudioName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="STUDIO1" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:padding="12dp" android:textSize="20sp" />
+    <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tap OPEN CAMERA" android:textColor="#FFFFFF" android:gravity="center" />
 
-    <TextureView android:id="@+id/previewStudio" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#000000" />
+    <TextureView android:id="@+id/previewStudio" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#111111" />
 
-    <Button android:id="@+id/btnSendToMain" android:layout_width="match_parent" android:layout_height="60dp" android:text="SEND TO MAIN SCREEN ->" android:layout_marginTop="12dp" />
+    <Button android:id="@+id/btnOpenCamera" android:layout_width="match_parent" android:layout_height="60dp" android:text="OPEN CAMERA" android:layout_marginTop="12dp" />
+    <Button android:id="@+id/btnSendToMain" android:layout_width="match_parent" android:layout_height="60dp" android:text="SEND TO MAIN SCREEN ->" />
     <Button android:id="@+id/btnSwitchCamera" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SWITCH CAMERA Front / Back" />
     <Button android:id="@+id/btnFlash" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="FLASH" />
     <Button android:id="@+id/btnMic" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="MIC ON / OFF" />
