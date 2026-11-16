@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.JSOMIBroadcaster" parent="@android:style/Theme.Material.Light.NoActionBar">
+    <style name="Theme.JSOMIBroadcaster" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:colorBackground">@android:color/black</item>
         <item name="android:textColor">@android:color/white</item>
