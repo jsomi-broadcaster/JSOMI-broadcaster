@@ -11,7 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 class AuthActivity : AppCompatActivity {
 
-    private val ADMIN_EMAIL = "admin@jehovahshalom.tv"
+    private val ADMIN_EMAIL = "info.jsomitv@gmail.com"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
