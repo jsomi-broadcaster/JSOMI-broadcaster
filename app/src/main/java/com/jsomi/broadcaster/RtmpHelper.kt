@@ -11,7 +11,6 @@ object RtmpHelper {
     var lastError: String = ""
 
     fun init(view: View): RtmpCamera1? {
-        // If already init, don't re-init
         if (camera != null) return camera
         return try {
             val checker = object : ConnectCheckerRtmp {
@@ -32,17 +31,20 @@ object RtmpHelper {
         }
     }
 
-    fun prepareAndPreview(): String {
+    fun prepareAndPreview(width: Int = 1920, height: Int = 1080, fps: Int = 30, bitrate: Int = 4000 * 1024): String {
         val cam = camera
         if (cam == null) return "Camera NULL - init failed: $lastError"
         try {
-            if (cam.isOnPreview) return "Already previewing"
-            val okVideo = cam.prepareVideo(1280, 720, 30)
+            if (cam.isOnPreview) {
+                cam.stopPreview()
+                Thread.sleep(200)
+            }
+            val okVideo = cam.prepareVideo(width, height, fps, bitrate)
             if (!okVideo) return "prepareVideo FAILED"
             val okAudio = cam.prepareAudio()
             if (!okAudio) return "prepareAudio FAILED"
             cam.startPreview()
-            return "Preview STARTED"
+            return "Preview STARTED ${width}x${height} ${fps}fps"
         } catch (e: Exception) {
             lastError = e.message ?: "unknown"
             return "PREVIEW ERROR: $lastError"
