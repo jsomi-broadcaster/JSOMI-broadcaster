@@ -2,7 +2,8 @@ package com.jsomi.broadcaster
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.*
+import android.widget.Button
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class DeveloperActivity : AppCompatActivity() {
@@ -10,88 +11,55 @@ class DeveloperActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_developer)
 
-        val prefs = getSharedPreferences("JSTV", MODE_PRIVATE)
-        val adminPrefs = getSharedPreferences("JSTV_ADMIN", MODE_PRIVATE)
+        val tvGreeting = findViewById<TextView>(R.id.tvGreeting)
+        val tvUsers = findViewById<TextView>(R.id.tvUsers)
+        val btnPay = findViewById<Button>(R.id.btnPay)
+        val btnLive = findViewById<Button>(R.id.btnLive)
+        val btnRefresh = findViewById<Button>(R.id.btnRefresh)
+        val btnDeveloper = findViewById<Button>(R.id.btnDeveloper)
 
-        val tvStats = findViewById<TextView>(R.id.tvDevStats)
-        val tvUsers = findViewById<TextView>(R.id.tvDevUsers)
-        val etAnnouncement = findViewById<EditText>(R.id.etAnnouncement)
-        val etGlobalRtmp = findViewById<EditText>(R.id.etGlobalRtmp)
-        val etBanUser = findViewById<EditText>(R.id.etBanUser)
+        // ADMIN box ONLY - never read subscribers here as admin
+        val adminPrefs = getSharedPreferences("JSTV_ADMIN", MODE_PRIVATE)
+        // SUBSCRIBERS box ONLY
+        val subPrefs = getSharedPreferences("JSTV_SUBSCRIBERS", MODE_PRIVATE)
 
         fun refresh() {
-            val name = prefs.getString("name", "No user")
-            val email = prefs.getString("email", "No email")
-            val title = prefs.getString("title", "No stream yet")
-            val rtmp = prefs.getString("rtmp", "No RTMP")
-            val totalStreams = adminPrefs.getInt("totalStreams", 0)
-            val totalPayments = adminPrefs.getInt("totalPayments", 0)
-            val banned = adminPrefs.getString("banned", "None")
-            val announcement = adminPrefs.getString("announcement", "No announcement")
-            val globalRtmp = adminPrefs.getString("globalRtmp", "Not set")
+            // 1. ADMIN - from ADMIN box only
+            val adminName = adminPrefs.getString("adminName", "No admin")
+            val adminEmail = adminPrefs.getString("adminEmail", "No admin email")
 
-            tvStats.text = "📊 APP STATS\nTotal Streams: $totalStreams\nTotal Payments: $totalPayments\nBanned Users: $banned\nGlobal RTMP: $globalRtmp\nAnnouncement: $announcement"
-            tvUsers.text = "👥 CURRENT USER\nName: $name\nEmail: $email\nLast Stream: $title\nLast RTMP: $rtmp"
+            tvGreeting.text = "Welcome Admin\n$adminName"
+
+            // 2. SUBSCRIBERS - from SUBSCRIBERS box only
+            val total = subPrefs.getInt("totalSubscribers", 0)
+            val builder = StringBuilder()
+            builder.append("👥 SUBSCRIBERS\nTotal: $total\n\n")
+            for (i in 1..total) {
+                val sName = subPrefs.getString("sub_${i}_name", "")
+                val sEmail = subPrefs.getString("sub_${i}_email", "")
+                builder.append("$i. $sName - $sEmail\n")
+            }
+            builder.append("\n--- ADMIN ---\nName: $adminName\nEmail: $adminEmail")
+            tvUsers.text = builder.toString()
         }
+
         refresh()
 
-        // 1. Announcement - Send to all users
-        findViewById<Button>(R.id.btnSendAnnouncement).setOnClickListener {
-            val msg = etAnnouncement.text.toString().trim()
-            if (msg.isEmpty()) { Toast.makeText(this, "Type announcement", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
-            adminPrefs.edit().putString("announcement", msg).apply()
-            Toast.makeText(this, "Announcement Sent to All Users: $msg", Toast.LENGTH_LONG).show()
-            refresh()
-        }
+        btnRefresh.setOnClickListener { refresh() }
 
-        // 2. Global RTMP - Set for all streamers
-        findViewById<Button>(R.id.btnSaveRtmp).setOnClickListener {
-            val rtmp = etGlobalRtmp.text.toString().trim()
-            if (rtmp.isEmpty()) { Toast.makeText(this, "Enter RTMP", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
-            adminPrefs.edit().putString("globalRtmp", rtmp).apply()
-            Toast.makeText(this, "Global RTMP Saved: $rtmp", Toast.LENGTH_LONG).show()
-            refresh()
-        }
-
-        // 3. Ban User
-        findViewById<Button>(R.id.btnBanUser).setOnClickListener {
-            val user = etBanUser.text.toString().trim()
-            if (user.isEmpty()) { Toast.makeText(this, "Enter email to ban", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
-            adminPrefs.edit().putString("banned", user).apply()
-            Toast.makeText(this, "BANNED: $user", Toast.LENGTH_LONG).show()
-            refresh()
-        }
-
-        // 4. Unban
-        findViewById<Button>(R.id.btnUnban).setOnClickListener {
-            adminPrefs.edit().putString("banned", "None").apply()
-            Toast.makeText(this, "All Users Unbanned", Toast.LENGTH_SHORT).show()
-            refresh()
-        }
-
-        // 5. View Live Streams - Goes to Main Studio
-        findViewById<Button>(R.id.btnViewLives).setOnClickListener {
-            startActivity(Intent(this, LiveActivity::class.java))
-        }
-
-        // 6. View Payments
-        findViewById<Button>(R.id.btnViewPayments).setOnClickListener {
+        btnPay.setOnClickListener {
             startActivity(Intent(this, PaymentActivity::class.java))
         }
 
-        // 7. View Church Screens
-        findViewById<Button>(R.id.btnViewChurch).setOnClickListener {
+        btnLive.setOnClickListener {
             startActivity(Intent(this, LiveActivity::class.java))
         }
 
-        // 8. Reset App - Clear all data
-        findViewById<Button>(R.id.btnResetApp).setOnClickListener {
-            prefs.edit().clear().apply()
-            adminPrefs.edit().clear().apply()
-            Toast.makeText(this, "APP RESET - All Data Cleared", Toast.LENGTH_LONG).show()
-            refresh()
+        // Back / Logout - clears only current login, NOT subscribers, NOT admin
+        btnDeveloper.setOnClickListener {
+            getSharedPreferences("JSTV", MODE_PRIVATE).edit().clear().apply()
+            startActivity(Intent(this, WelcomeActivity::class.java))
+            finish()
         }
-
-        findViewById<Button>(R.id.btnBackDev).setOnClickListener { finish() }
     }
 }
