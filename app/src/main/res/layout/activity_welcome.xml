@@ -1,11 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:orientation="vertical" android:gravity="center" android:background="#000000" android:padding="24dp">
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="JSTV" android:textSize="72sp" android:textStyle="bold" android:textColor="#FFFFFF" android:gravity="center" />
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:text="Jesus Saviour TV\nLivestreaming" android:textSize="18sp" android:textColor="#AAAAAA" android:gravity="center" />
-    <Button android:id="@+id/btnNext" android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="NEXT →" android:layout_marginTop="40dp" />
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:background="#000000"
+    android:padding="24dp">
+
+    <ImageView
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:src="@mipmap/jstv_logo"
+        android:contentDescription="JSTV Logo" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="JSTV"
+        android:textSize="72sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:gravity="center" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Jesus Saviour TV\nLivestreaming"
+        android:textSize="18sp"
+        android:textColor="#AAAAAA"
+        android:gravity="center" />
+
+    <Button
+        android:id="@+id/btnNext"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="NEXT →"
+        android:layout_marginTop="40dp" />
+
 </LinearLayout>
