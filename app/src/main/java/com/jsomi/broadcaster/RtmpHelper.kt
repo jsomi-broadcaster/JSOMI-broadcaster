@@ -10,8 +10,19 @@ object RtmpHelper {
     var onStatus: ((String) -> Unit)? = null
     var lastError: String = ""
 
+    fun release() {
+        try {
+            camera?.let {
+                if (it.isStreaming) it.stopStream()
+                if (it.isOnPreview) it.stopPreview()
+            }
+        } catch (e: Exception) {}
+        camera = null
+    }
+
     fun init(view: View): RtmpCamera1? {
-        if (camera != null) return camera
+        // ALWAYS create fresh camera for the new screen - never reuse old dead one
+        release()
         return try {
             val checker = object : ConnectCheckerRtmp {
                 override fun onConnectionStartedRtmp(rtmpUrl: String) { onStatus?.invoke("CONNECTING") }
