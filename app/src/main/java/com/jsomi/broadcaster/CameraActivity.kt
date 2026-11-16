@@ -29,12 +29,12 @@ class CameraActivity : AppCompatActivity() {
     private var previewRequest: CaptureRequest.Builder? = null
     private var backgroundThread: HandlerThread? = null
     private var backgroundHandler: Handler? = null
-    private var cameraId = "0" // 0 = Back, 1 = Front
+    private var cameraId = "0"
     private var isFlashOn = false
     private var isMicOn = true
 
     private val textureListener = object : TextureView.SurfaceTextureListener {
-        override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) { openCamera() }
+        override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {}
         override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
         override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = true
         override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
@@ -42,20 +42,31 @@ class CameraActivity : AppCompatActivity() {
 
     private val cameraStateCallback = object : CameraDevice.StateCallback() {
         override fun onOpened(camera: CameraDevice) {
-            cameraDevice = camera
-            startPreview()
+            try {
+                cameraDevice = camera
+                startPreview()
+            } catch (e: Exception) {
+                binding.tvStatus.text = "OPENED BUT PREVIEW FAILED: ${e.message}"
+            }
         }
-        override fun onDisconnected(camera: CameraDevice) { camera.close(); cameraDevice = null }
+        override fun onDisconnected(camera: CameraDevice) { try { camera.close() } catch (e: Exception) {} ; cameraDevice = null }
         override fun onError(camera: CameraDevice, error: Int) {
-            binding.tvStatus.text = "CAMERA ERROR $error"
-            camera.close(); cameraDevice = null
+            binding.tvStatus.text = "CAMERA ERROR $error - Tap OPEN CAMERA again"
+            try { camera.close() } catch (e: Exception) {}
+            cameraDevice = null
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityCameraBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        try {
+            binding = ActivityCameraBinding.inflate(layoutInflater)
+            setContentView(binding.root)
+        } catch (e: Exception) {
+            Toast.makeText(this, "LAYOUT ERROR: ${e.message} - You did NOT replace activity_camera.xml", Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
         studioNumber = intent.getIntExtra("STUDIO", 1)
         studioName = intent.getStringExtra("STUDIO_NAME") ?: if (studioNumber == 1) "STUDIO1 - Main Events" else "STUDIO2 - Other Events"
@@ -63,21 +74,28 @@ class CameraActivity : AppCompatActivity() {
         if (studioNumber == 2) binding.tvStudioName.setBackgroundColor(android.graphics.Color.parseColor("#2196F3"))
         else binding.tvStudioName.setBackgroundColor(android.graphics.Color.parseColor("#F44336"))
 
-        binding.tvStatus.text = "Opening Real Camera2..."
+        binding.tvStatus.text = "Ready - Tap OPEN CAMERA"
+        binding.previewStudio.surfaceTextureListener = textureListener
+
+        binding.btnOpenCamera.setOnClickListener {
+            try {
+                startBackground()
+                openCamera()
+            } catch (e: Exception) {
+                binding.tvStatus.text = "OPEN FAILED: ${e.message}"
+            }
+        }
 
         binding.btnSwitchCamera.setOnClickListener {
-            closeCamera()
-            // Find other camera: Back <-> Front
-            val manager = getSystemService(CAMERA_SERVICE) as CameraManager
-            val ids = manager.cameraIdList
-            val frontId = ids.firstOrNull { id ->
-                manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT
-            }
-            val backId = ids.firstOrNull { id ->
-                manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK
-            }
-            cameraId = if (cameraId == backId) (frontId ?: backId ?: "0") else (backId ?: "0")
-            openCamera()
+            try {
+                closeCamera()
+                val manager = getSystemService(CAMERA_SERVICE) as CameraManager
+                val ids = manager.cameraIdList
+                val frontId = ids.firstOrNull { manager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT }
+                val backId = ids.firstOrNull { manager.getCameraCharacteristics(it).get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK }
+                cameraId = if (cameraId == backId) (frontId ?: backId ?: "0") else (backId ?: "0")
+                openCamera()
+            } catch (e: Exception) { binding.tvStatus.text = "SWITCH FAILED: ${e.message}" }
         }
 
         binding.btnFlash.setOnClickListener {
@@ -85,55 +103,54 @@ class CameraActivity : AppCompatActivity() {
                 isFlashOn = !isFlashOn
                 previewRequest?.set(CaptureRequest.FLASH_MODE, if (isFlashOn) CaptureRequest.FLASH_MODE_TORCH else CaptureRequest.FLASH_MODE_OFF)
                 previewRequest?.build()?.let { captureSession?.setRepeatingRequest(it, null, backgroundHandler) }
-                binding.tvStatus.text = if (isFlashOn) "FLASH ON - $studioName" else "FLASH OFF - $studioName"
+                binding.tvStatus.text = if (isFlashOn) "FLASH ON" else "FLASH OFF"
             } catch (e: Exception) { Toast.makeText(this, "Flash not supported", Toast.LENGTH_SHORT).show() }
         }
 
         binding.btnMic.setOnClickListener {
             isMicOn = !isMicOn
-            binding.tvStatus.text = if (isMicOn) "MIC ON - $studioName" else "MIC OFF - Muted"
+            binding.tvStatus.text = if (isMicOn) "MIC ON" else "MIC OFF"
         }
 
         binding.btnSendToMain.setOnClickListener {
-            getSharedPreferences("jstv", MODE_PRIVATE).edit()
-                .putString("active_studio", "STUDIO$studioNumber")
-                .putString("active_studio_name", studioName).apply()
+            getSharedPreferences("jstv", MODE_PRIVATE).edit().putString("active_studio", "STUDIO$studioNumber").putString("active_studio_name", studioName).apply()
             val i = Intent(this, MainActivity::class.java)
-            i.putExtra("FROM_STUDIO", studioNumber)
-            i.putExtra("FROM_STUDIO_NAME", studioName)
+            i.putExtra("FROM_STUDIO", studioNumber); i.putExtra("FROM_STUDIO_NAME", studioName)
             startActivity(i)
         }
         binding.btnBack.setOnClickListener { finish() }
     }
 
     private fun startBackground() {
-        backgroundThread = HandlerThread("CameraBg").also { it.start() }
-        backgroundHandler = Handler(backgroundThread!!.looper)
+        if (backgroundThread == null) {
+            backgroundThread = HandlerThread("CameraBg").also { it.start() }
+            backgroundHandler = Handler(backgroundThread!!.looper)
+        }
     }
     private fun stopBackground() {
-        backgroundThread?.quitSafely()
+        try { backgroundThread?.quitSafely() } catch (e: Exception) {}
         backgroundThread = null; backgroundHandler = null
     }
 
     private fun openCamera() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            binding.tvStatus.text = "CAMERA PERMISSION DENIED - Allow in Settings"
+            binding.tvStatus.text = "CAMERA PERMISSION DENIED - Allow in Settings > Apps > JSTV > Permissions"
             return
         }
         try {
             val manager = getSystemService(CAMERA_SERVICE) as CameraManager
-            // If cameraId not valid, use first back camera
             if (!manager.cameraIdList.contains(cameraId)) cameraId = manager.cameraIdList[0]
+            binding.tvStatus.text = "Opening camera $cameraId..."
             manager.openCamera(cameraId, cameraStateCallback, backgroundHandler)
-            binding.tvStatus.text = "Camera opening..."
         } catch (e: Exception) {
-            binding.tvStatus.text = "CANNOT OPEN CAMERA: ${e.message}"
+            binding.tvStatus.text = "CANNOT OPEN: ${e.message}"
         }
     }
 
     private fun startPreview() {
         try {
-            val texture = binding.previewStudio.surfaceTexture ?: return
+            val texture = binding.previewStudio.surfaceTexture
+            if (texture == null) { binding.tvStatus.text = "Texture not ready - tap OPEN CAMERA again"; return }
             texture.setDefaultBufferSize(1280, 720)
             val surface = Surface(texture)
             previewRequest = cameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
@@ -144,16 +161,12 @@ class CameraActivity : AppCompatActivity() {
                     try {
                         previewRequest?.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
                         session.setRepeatingRequest(previewRequest!!.build(), null, backgroundHandler)
-                        binding.tvStatus.text = "LIVE - $studioName - Camera ON"
+                        binding.tvStatus.text = "LIVE - $studioName"
                     } catch (e: Exception) { binding.tvStatus.text = "PREVIEW ERROR: ${e.message}" }
                 }
-                override fun onConfigureFailed(session: CameraCaptureSession) {
-                    binding.tvStatus.text = "FAILED TO CONFIGURE CAMERA"
-                }
+                override fun onConfigureFailed(session: CameraCaptureSession) { binding.tvStatus.text = "FAILED TO CONFIGURE - Tap OPEN CAMERA again" }
             }, backgroundHandler)
-        } catch (e: Exception) {
-            binding.tvStatus.text = "PREVIEW ERROR: ${e.message}"
-        }
+        } catch (e: Exception) { binding.tvStatus.text = "PREVIEW ERROR: ${e.message}" }
     }
 
     private fun closeCamera() {
@@ -163,16 +176,7 @@ class CameraActivity : AppCompatActivity() {
         cameraDevice = null
     }
 
-    override fun onResume() {
-        super.onResume()
-        startBackground()
-        if (binding.previewStudio.isAvailable) openCamera()
-        else binding.previewStudio.surfaceTextureListener = textureListener
-    }
-
     override fun onPause() {
-        closeCamera()
-        stopBackground()
-        super.onPause()
+        closeCamera(); stopBackground(); super.onPause()
     }
 }
