@@ -2,6 +2,7 @@ package com.jsomi.broadcaster
 
 import android.view.View
 import com.pedro.rtplibrary.rtmp.RtmpCamera1
+import com.pedro.rtplibrary.view.OpenGlView
 import com.pedro.rtmp.utils.ConnectCheckerRtmp
 
 object RtmpHelper {
@@ -10,6 +11,8 @@ object RtmpHelper {
     var lastError: String = ""
 
     fun init(view: View): RtmpCamera1? {
+        // If already init, don't re-init
+        if (camera != null) return camera
         return try {
             val checker = object : ConnectCheckerRtmp {
                 override fun onConnectionStartedRtmp(rtmpUrl: String) { onStatus?.invoke("CONNECTING") }
@@ -20,8 +23,7 @@ object RtmpHelper {
                 override fun onAuthErrorRtmp() { onStatus?.invoke("FAILED") }
                 override fun onAuthSuccessRtmp() { onStatus?.invoke("LIVE") }
             }
-            // OpenGlView is a View, cast it
-            val glView = view as com.pedro.rtplibrary.view.OpenGlView
+            val glView = view as OpenGlView
             camera = RtmpCamera1(glView, checker)
             camera
         } catch (e: Exception) {
@@ -35,9 +37,8 @@ object RtmpHelper {
         if (cam == null) return "Camera NULL - init failed: $lastError"
         try {
             if (cam.isOnPreview) return "Already previewing"
-            // THIS is the correct signature for this library version
             val okVideo = cam.prepareVideo(1280, 720, 30)
-            if (!okVideo) return "prepareVideo FAILED - try 640x480"
+            if (!okVideo) return "prepareVideo FAILED"
             val okAudio = cam.prepareAudio()
             if (!okAudio) return "prepareAudio FAILED"
             cam.startPreview()
