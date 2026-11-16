@@ -1,29 +1,28 @@
 package com.jsomi.broadcaster
 
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.hardware.Camera
 import android.os.Bundle
+import android.view.SurfaceHolder
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import com.jsomi.broadcaster.databinding.ActivityCameraBinding
 
-class CameraActivity : AppCompatActivity() {
+class CameraActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private lateinit var binding: ActivityCameraBinding
     private var studioNumber = 1
     private var studioName = "STUDIO1 - Main Events"
-    private var isPreviewOn = false
-    private val PERM_CODE = 200
+    private var camera: Camera? = null
+    private var currentCameraId = 0 // 0 = Back, 1 = Front
+    private var isFlashOn = false
+    private var isMicOn = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityCameraBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Which Studio? 1 or 2 - sent from Home Menu
         studioNumber = intent.getIntExtra("STUDIO", 1)
         studioName = intent.getStringExtra("STUDIO_NAME") ?: if (studioNumber == 1) "STUDIO1 - Main Events" else "STUDIO2 - Other Events"
 
@@ -34,27 +33,42 @@ class CameraActivity : AppCompatActivity() {
             binding.tvStudioName.setBackgroundColor(android.graphics.Color.parseColor("#F44336"))
         }
 
-        // ASK FOR CAMERA + MIC NOW - on open
-        checkPermissionsAndStartCamera()
+        binding.tvStatus.text = "Opening Real Camera..."
 
-        // Wait for SurfaceView - otherwise black screen
-        binding.previewStudio.holder.addCallback(object : android.view.SurfaceHolder.Callback {
-            override fun surfaceCreated(holder: android.view.SurfaceHolder) {
-                // Surface ready - if permission already allowed, start
-                if (ContextCompat.checkSelfPermission(this@CameraActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-                    ContextCompat.checkSelfPermission(this@CameraActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                    startCamera()
+        // Surface for real camera
+        binding.previewStudio.holder.addCallback(this)
+        // Old SurfaceView needs this
+        @Suppress("DEPRECATION")
+        binding.previewStudio.holder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS)
+
+        binding.btnSwitchCamera.setOnClickListener {
+            // Switch Back <-> Front
+            releaseCamera()
+            currentCameraId = if (currentCameraId == 0) 1 else 0
+            openCamera()
+        }
+
+        binding.btnFlash.setOnClickListener {
+            // Flash ON / OFF - Back camera only
+            try {
+                val params = camera?.parameters
+                if (params != null) {
+                    isFlashOn = !isFlashOn
+                    params.flashMode = if (isFlashOn) Camera.Parameters.FLASH_MODE_TORCH else Camera.Parameters.FLASH_MODE_OFF
+                    camera?.parameters = params
+                    binding.tvStatus.text = if (isFlashOn) "FLASH ON - $studioName" else "FLASH OFF - $studioName"
                 }
+            } catch (e: Exception) {
+                Toast.makeText(this, "Flash not supported on this camera", Toast.LENGTH_SHORT).show()
             }
-            override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, width: Int, height: Int) {}
-            override fun surfaceDestroyed(holder: android.view.SurfaceHolder) { isPreviewOn = false }
-        })
+        }
 
-        binding.btnSwitchCamera.setOnClickListener { RtmpHelper.call("switchCamera") }
-        binding.btnFlash.setOnClickListener { RtmpHelper.call("toggleFlash") }
-        binding.btnMic.setOnClickListener { RtmpHelper.call("toggleAudio") }
+        binding.btnMic.setOnClickListener {
+            isMicOn = !isMicOn
+            binding.tvStatus.text = if (isMicOn) "MIC ON - $studioName" else "MIC OFF - Muted"
+            Toast.makeText(this, if (isMicOn) "Mic ON" else "Mic OFF", Toast.LENGTH_SHORT).show()
+        }
 
-        // SEND TO MAIN SCREEN
         binding.btnSendToMain.setOnClickListener {
             getSharedPreferences("jstv", MODE_PRIVATE).edit()
                 .putString("active_studio", "STUDIO$studioNumber")
@@ -70,51 +84,76 @@ class CameraActivity : AppCompatActivity() {
         binding.btnBack.setOnClickListener { finish() }
     }
 
-    private fun checkPermissionsAndStartCamera() {
-        val need = mutableListOf<String>()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) need.add(Manifest.permission.CAMERA)
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) need.add(Manifest.permission.RECORD_AUDIO)
-        if (need.isEmpty()) {
-            if (binding.previewStudio.holder.surface.isValid) startCamera()
-        } else {
-            binding.tvStatus.text = "Need Camera + Microphone Permission - Tap ALLOW"
-            ActivityCompat.requestPermissions(this, need.toTypedArray(), PERM_CODE)
-        }
-    }
-
-    private fun startCamera() {
-        if (isPreviewOn) return
-        if (RtmpHelper.camera == null) RtmpHelper.init(binding.previewStudio)
-        val started: Boolean = RtmpHelper.prepareAndPreview(1280, 720, 30, 2500 * 1024, 90)
-        binding.tvStatus.text = if (started) "LIVE - $studioName - Camera ON" else "PREVIEW FAILED"
-        isPreviewOn = started
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERM_CODE) {
-            val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-            if (camOk && micOk) {
-                Toast.makeText(this, "Camera + Mic ALLOWED - Starting", Toast.LENGTH_SHORT).show()
-                startCamera()
-            } else {
-                binding.tvStatus.text = "PERMISSION DENIED - Go to Settings > Apps > JSTV > Permissions > Allow Camera + Mic, then reopen"
-                Toast.makeText(this, "You DENIED Camera / Mic. Enable in Settings.", Toast.LENGTH_LONG).show()
+    private fun openCamera() {
+        try {
+            // Find camera - if front requested but no front, use back
+            val count = Camera.getNumberOfCameras()
+            var idToOpen = currentCameraId
+            if (idToOpen >= count) idToOpen = 0
+            if (count == 0) {
+                binding.tvStatus.text = "NO CAMERA FOUND ON THIS PHONE"
+                return
             }
+            camera = Camera.open(idToOpen)
+            currentCameraId = idToOpen
+            camera?.setDisplayOrientation(90)
+            // If surface already ready, start now
+            if (binding.previewStudio.holder.surface.isValid) {
+                camera?.setPreviewDisplay(binding.previewStudio.holder)
+                camera?.startPreview()
+                binding.tvStatus.text = "LIVE - $studioName - Real Camera ON - ${if (currentCameraId == 0) "BACK" else "FRONT"}"
+            }
+        } catch (e: Exception) {
+            binding.tvStatus.text = "CAMERA BUSY / IN USE - Close other camera app and reopen: ${e.message}"
+            Toast.makeText(this, "Camera busy: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun releaseCamera() {
+        try {
+            camera?.stopPreview()
+            camera?.release()
+        } catch (e: Exception) {}
+        camera = null
+    }
+
+    // SurfaceHolder - Real camera needs this
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        openCamera()
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (holder.surface == null) return
+        try {
+            camera?.stopPreview()
+        } catch (e: Exception) {}
+        try {
+            camera?.setPreviewDisplay(holder)
+            camera?.startPreview()
+            binding.tvStatus.text = "LIVE - $studioName - Real Camera ON - ${if (currentCameraId == 0) "BACK" else "FRONT"}"
+        } catch (e: Exception) {
+            binding.tvStatus.text = "CAMERA ERROR: ${e.message}"
+        }
+    }
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        releaseCamera()
     }
 
     override fun onResume() {
         super.onResume()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            if (!isPreviewOn && binding.previewStudio.holder.surface.isValid) startCamera()
+        if (camera == null && binding.previewStudio.holder.surface.isValid) {
+            openCamera()
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        releaseCamera()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isPreviewOn) try { RtmpHelper.call("stopPreview") } catch (e: Exception) {}
+        releaseCamera()
     }
 }
