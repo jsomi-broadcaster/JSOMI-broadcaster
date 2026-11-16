@@ -12,6 +12,20 @@ class AuthActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        val etPassword = findViewById<EditText>(R.id.etPassword)
+val cbShow = findViewById<CheckBox>(R.id.cbShowPassword)
+
+cbShow.setOnCheckedChangeListener { _, isChecked ->
+    if (isChecked) {
+        // Show password
+        etPassword.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+    } else {
+        // Hide password
+        etPassword.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+    }
+    // Keep cursor at end
+    etPassword.setSelection(etPassword.text.length)
+}
 
         val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
 
