@@ -3,17 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
     android:background="#000000"
-    android:padding="24dp">
+    android:padding="12dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Second Camera - Coming Soon"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:gravity="center" />
+    <TextView android:id="@+id/tvStudioName" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="STUDIO1 - Main Events" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:padding="12dp" android:textSize="20sp" />
+    <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Starting Camera..." android:textColor="#FFFFFF" android:gravity="center" />
 
+    <SurfaceView android:id="@+id/previewStudio" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#222222" />
+
+    <Button android:id="@+id/btnSendToMain" android:layout_width="match_parent" android:layout_height="60dp" android:text="SEND TO MAIN SCREEN ->" android:layout_marginTop="12dp" />
+    <Button android:id="@+id/btnSwitchCamera" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SWITCH CAMERA Front / Back" />
+    <Button android:id="@+id/btnFlash" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="FLASH" />
+    <Button android:id="@+id/btnMic" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="MIC ON / OFF" />
+    <Button android:id="@+id/btnBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="BACK" />
 </LinearLayout>
