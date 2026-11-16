@@ -1,33 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- REAL PERMISSIONS FOR STREAMING -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/jstv_logo"
-        android:roundIcon="@mipmap/jstv_logo"
+        android:icon="@mipmap/ic_launcher"
         android:label="JSTV Broadcaster"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <activity
-            android:name=".AuthActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="portrait">
             <intent-filter>
@@ -35,14 +31,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <activity android:name=".HomeMenuActivity" android:exported="false" android:screenOrientation="portrait" />
-        <activity android:name=".MainActivity" android:exported="false" android:screenOrientation="portrait" />
-        <activity android:name=".RemoteControlActivity" android:exported="false" android:screenOrientation="portrait" />
-        <activity android:name=".CameraActivity" android:exported="false" android:screenOrientation="portrait" />
-        <activity android:name=".ChurchScreenActivity" android:exported="false" android:screenOrientation="landscape" />
-        <activity android:name=".DeveloperActivity" android:exported="false" android:screenOrientation="portrait" />
-        <activity android:name=".PaymentActivity" android:exported="false" android:screenOrientation="portrait" />
 
     </application>
 </manifest>
