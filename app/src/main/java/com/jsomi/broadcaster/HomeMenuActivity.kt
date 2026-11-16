@@ -63,7 +63,7 @@ class HomeMenuActivity : AppCompatActivity() {
         // Hidden - MAIN SCREEN is reached from Church Screen / Studio / Remote, not from here
         // If you want it visible, change visibility in XML to visible
         binding.btnMainScreen.setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, LiveActivity::class.java))
         }
     }
 }
