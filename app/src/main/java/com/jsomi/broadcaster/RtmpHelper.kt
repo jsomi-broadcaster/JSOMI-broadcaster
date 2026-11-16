@@ -31,7 +31,7 @@ object RtmpHelper {
         }
     }
 
-    fun prepareAndPreview(width: Int = 1280, height: Int = 720, fps: Int = 30, bitrate: Int = 2500 * 1024): String {
+    fun prepareAndPreview(width: Int = 1280, height: Int = 720, fps: Int = 30, bitrate: Int = 3500 * 1024, rotation: Int = 90): String {
         val cam = camera
         if (cam == null) return "Camera NULL - init failed: $lastError"
         try {
@@ -39,24 +39,24 @@ object RtmpHelper {
                 cam.stopPreview()
                 Thread.sleep(200)
             }
-            var okVideo = cam.prepareVideo(width, height, fps, bitrate, 0)
+            var okVideo = cam.prepareVideo(width, height, fps, bitrate, rotation)
             var usedW = width
             var usedH = height
             if (!okVideo) {
                 Thread.sleep(200)
-                okVideo = cam.prepareVideo(1280, 720, 30, 2500 * 1024, 0)
+                okVideo = cam.prepareVideo(1280, 720, 30, 2500 * 1024, rotation)
                 usedW = 1280; usedH = 720
             }
             if (!okVideo) {
                 Thread.sleep(200)
-                okVideo = cam.prepareVideo(854, 480, 30, 1500 * 1024, 0)
+                okVideo = cam.prepareVideo(854, 480, 30, 1500 * 1024, rotation)
                 usedW = 854; usedH = 480
             }
-            if (!okVideo) return "prepareVideo FAILED - phone cannot do this resolution"
+            if (!okVideo) return "prepareVideo FAILED"
             val okAudio = cam.prepareAudio()
             if (!okAudio) return "prepareAudio FAILED"
             cam.startPreview()
-            return "Preview STARTED ${usedW}x${usedH} ${fps}fps"
+            return "Preview STARTED ${usedW}x${usedH} Rot $rotation"
         } catch (e: Exception) {
             lastError = e.message ?: "unknown"
             return "PREVIEW ERROR: $lastError"
@@ -73,6 +73,8 @@ object RtmpHelper {
                 "stopStream" -> cam.stopStream()
                 "stopPreview" -> cam.stopPreview()
                 "stopRecord" -> cam.stopRecord()
+                "enableFlash" -> cam.enableLantern()
+                "disableFlash" -> cam.disableLantern()
             }
         } catch (e: Exception) { lastError = e.message ?: "" }
     }
