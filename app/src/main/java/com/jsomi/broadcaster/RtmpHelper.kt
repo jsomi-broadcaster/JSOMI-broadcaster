@@ -39,7 +39,7 @@ object RtmpHelper {
                 cam.stopPreview()
                 Thread.sleep(200)
             }
-            val okVideo = cam.prepareVideo(width, height, fps, bitrate)
+            val okVideo = cam.prepareVideo(width, height, fps, bitrate, 0)
             if (!okVideo) return "prepareVideo FAILED"
             val okAudio = cam.prepareAudio()
             if (!okAudio) return "prepareAudio FAILED"
