@@ -1,49 +1,33 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- CAMERA + MIC - THIS IS WHY IT SAID PREVIEW FAILED -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- INTERNET / STREAMING -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- STORAGE / FILES -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="JSTV Broadcaster"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
-        <!-- 1st SCREEN - WELCOME -->
-        <activity android:name=".WelcomeActivity" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- 2nd SCREEN - LOGIN -->
-        <activity android:name=".AuthActivity" android:exported="true" />
-
-        <!-- 3rd SCREEN - HOME MENU -->
-        <activity android:name=".HomeMenuActivity" android:exported="true" />
-
-        <!-- MAIN SCREEN - LIVESTREAMING - All settings here -->
-        <activity android:name=".MainActivity" android:exported="true" />
-
-        <!-- STUDIO 1 / STUDIO 2 CAMERA -->
-        <activity android:name=".CameraActivity" android:exported="true" />
-
-        <!-- OTHER REAL SCREENS - Keep, do not delete -->
-        <activity android:name=".ChurchScreenActivity" android:exported="true" />
-        <activity android:name=".RemoteControlActivity" android:exported="true" />
-        <activity android:name=".DeveloperActivity" android:exported="true" />
-        <activity android:name=".PaymentActivity" android:exported="true" />
-
+    <application ... >
+        ... your activities stay the same, DO NOT delete them ...
     </application>
 </manifest>
