@@ -1,55 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:background="#000000"
-    android:fillViewport="true">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+    android:padding="12dp">
 
-        <TextView android:id="@+id/tvPlan" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="FREE - 1 STREAM" android:textColor="#FFEB3B" android:gravity="center" />
-        <TextView android:id="@+id/tvLiveStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="OFFLINE" android:textColor="#FFFFFF" android:gravity="center" />
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tap OPEN CAMERA"
+        android:textColor="#FFFFFF"
+        android:gravity="center" />
 
-        <!-- CAMERA PREVIEW - MAIN SCREEN OWN CAMERA -->
-        <FrameLayout android:layout_width="match_parent" android:layout_height="300dp" android:background="#222222">
-            <SurfaceView android:id="@+id/previewMain" android:layout_width="match_parent" android:layout_height="match_parent" />
-            <TextView android:id="@+id/tvWatermark1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JSTV FREE - UPGRADE TO PREMIUM" android:textColor="#80FFFFFF" android:gravity="center" />
-            <TextView android:id="@+id/tvWatermark2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JSTV FREE - Paybill 516600" android:textColor="#80FFFFFF" android:gravity="center" android:layout_gravity="center" />
-            <TextView android:id="@+id/tvWatermark3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JSTV FREE - WhatsApp 0763052911" android:textColor="#80FFFFFF" android:gravity="center" android:layout_gravity="bottom" />
-            <TextView android:id="@+id/tvStudioNotice" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Receiving from STUDIO..." android:textColor="#FFEB3B" android:gravity="center" android:layout_gravity="center" android:visibility="gone" />
-        </FrameLayout>
+    <SurfaceView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#111111" />
 
-        <TextView android:id="@+id/tvSource" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SOURCE: OWN CAMERA - MAIN SCREEN Direct" android:textColor="#FFFFFF" android:gravity="center" android:background="#4CAF50" android:padding="8dp" android:layout_marginTop="8dp" />
+    <Button
+        android:id="@+id/btnOpenCamera"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="OPEN CAMERA" />
 
-        <!-- SWITCH BUTTON - OWN / STUDIO1 / STUDIO2 -->
-        <Button android:id="@+id/btnSwitchSource" android:layout_width="match_parent" android:layout_height="60dp" android:text="SWITCH: OWN -> STUDIO 1" android:textSize="18sp" />
+    <Button
+        android:id="@+id/btnSwitchCamera"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SWITCH CAMERA Front / Back" />
 
-        <Button android:id="@+id/btnGoLive" android:layout_width="match_parent" android:layout_height="60dp" android:text="GO LIVE" />
-        <TextView android:id="@+id/tvMultistream" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Multistream: YouTube + Facebook + TikTok" android:textColor="#4CAF50" android:gravity="center" android:visibility="gone" />
+    <Button
+        android:id="@+id/btnFlash"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="FLASH" />
 
-        <Button android:id="@+id/btnSwitchCamera" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SWITCH CAMERA Front / Back" />
-        <Button android:id="@+id/btnFlash" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="FLASH" />
-        <Button android:id="@+id/btnMic" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="MIC ON / OFF" />
-        <Button android:id="@+id/btnRecord" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="RECORD" />
-
-        <Button android:id="@+id/btnSettings" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="⚙️ SETTINGS - SHOW / HIDE" />
-        <Button android:id="@+id/btnPremium" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="⭐ PREMIUM - MULTISTREAM" />
-
-        <!-- SETTINGS PANEL - All settings are HERE on MAIN SCREEN -->
-        <LinearLayout android:id="@+id/settingsPanel" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone" android:background="#222222" android:padding="12dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="ALL SETTINGS - MAIN SCREEN" android:textColor="#FFEB3B" android:textStyle="bold" />
-            <EditText android:id="@+id/etStreamTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream Title" android:textColor="#FFFFFF" android:textColorHint="#AAAAAA" />
-            <EditText android:id="@+id/etStreamKey" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream KEY 1 - YouTube KEY ONLY" android:textColor="#FFFFFF" android:textColorHint="#AAAAAA" />
-            <EditText android:id="@+id/etStreamKey2" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream KEY 2 - Facebook KEY ONLY (Premium)" android:textColor="#FFFFFF" android:textColorHint="#AAAAAA" />
-            <EditText android:id="@+id/etStreamKey3" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Stream KEY 3 - TikTok KEY ONLY (Premium)" android:textColor="#FFFFFF" android:textColorHint="#AAAAAA" />
-            <Spinner android:id="@+id/spPlatform" android:layout_width="match_parent" android:layout_height="wrap_content" />
-            <Spinner android:id="@+id/spResolution" android:layout_width="match_parent" android:layout_height="wrap_content" />
-            <Button android:id="@+id/btnSaveSettings" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SAVE SETTINGS" />
-        </LinearLayout>
-
-        <Button android:id="@+id/btnRemote" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🎛️ REMOTE CONTROL" />
-        <Button android:id="@+id/btnChurchScreen" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="⛪ CHURCH SCREEN" />
-        <Button android:id="@+id/btnAdmin" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🔐 ADMIN PORTAL" />
-        <Button android:id="@+id/btnBack" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="BACK" />
-
-    </LinearLayout>
-</ScrollView>
+</LinearLayout>
