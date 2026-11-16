@@ -104,7 +104,7 @@ class CameraActivity : AppCompatActivity(), SurfaceHolder.Callback {
         }
         binding.btnSendToMain.setOnClickListener {
             getSharedPreferences("jstv", MODE_PRIVATE).edit().putString("active_studio", "STUDIO$studioNumber").putString("active_studio_name", studioName).apply()
-            val i = Intent(this, MainActivity::class.java)
+            val i = Intent(this, LiveActivity::class.java)
             i.putExtra("FROM_STUDIO", studioNumber); i.putExtra("FROM_STUDIO_NAME", studioName)
             startActivity(i)
         }
