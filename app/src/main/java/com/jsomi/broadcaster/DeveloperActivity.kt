@@ -81,7 +81,7 @@ class DeveloperActivity : AppCompatActivity() {
 
         // 7. View Church Screens
         findViewById<Button>(R.id.btnViewChurch).setOnClickListener {
-            startActivity(Intent(this, ChurchScreenActivity::class.java))
+            startActivity(Intent(this, LiveActivity::class.java))
         }
 
         // 8. Reset App - Clear all data
