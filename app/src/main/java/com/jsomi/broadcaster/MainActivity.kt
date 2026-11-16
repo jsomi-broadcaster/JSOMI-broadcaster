@@ -10,6 +10,7 @@ import android.os.CountDownTimer
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -50,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (!previewStarted && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 800)
+            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 300)
         }
     }
 
@@ -82,43 +83,44 @@ class MainActivity : AppCompatActivity() {
             RtmpHelper.init(binding.previewMain)
         }
         readSettings()
-        val result = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate, curRotation)
-        binding.tvLiveStatus.text = result
-        Toast.makeText(this, result, Toast.LENGTH_LONG).show()
-        if (result.contains("STARTED")) previewStarted = true
-        else {
+        val ok = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate, curRotation)
+        if (ok) {
+            previewStarted = true
+            binding.tvLiveStatus.visibility = View.GONE
+        } else {
             Handler(Looper.getMainLooper()).postDelayed({
                 if (!previewStarted) {
-                    val result2 = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate, curRotation)
-                    binding.tvLiveStatus.text = result2
-                    Toast.makeText(this, "Retry: $result2", Toast.LENGTH_LONG).show()
-                    if (result2.contains("STARTED")) previewStarted = true
+                    val ok2 = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate, curRotation)
+                    if (ok2) {
+                        previewStarted = true
+                        binding.tvLiveStatus.visibility = View.GONE
+                    }
                 }
-            }, 1500)
+            }, 1000)
         }
     }
 
     private fun updateStatus(status: String) {
         runOnUiThread {
             if (status == "LIVE") {
-                binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
+                binding.tvLiveStatus.visibility = View.VISIBLE
+                binding.tvLiveStatus.text = "● LIVE"
+                binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
             }
             if (status == "FAILED") {
                 isStreaming = false
-                binding.tvLiveStatus.text = "FAILED - Check Key"
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.RED)
-                binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
+                binding.btnGoLive.text = "GO LIVE"
+                Toast.makeText(this, "Live failed - check Stream Key", Toast.LENGTH_SHORT).show()
             }
             if (status == "OFFLINE") {
                 isStreaming = false
-                binding.tvLiveStatus.text = "OFFLINE"
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
-                binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
+                binding.tvLiveStatus.visibility = View.GONE
+                binding.btnGoLive.text = "GO LIVE"
             }
             if (status == "CONNECTING") {
-                binding.tvLiveStatus.text = "CONNECTING..."
-                binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
+                binding.tvLiveStatus.visibility = View.VISIBLE
+                binding.tvLiveStatus.text = "● CONNECTING..."
+                binding.tvLiveStatus.setTextColor(android.graphics.Color.WHITE)
             }
         }
     }
@@ -141,10 +143,10 @@ class MainActivity : AppCompatActivity() {
             isFlashOn = !isFlashOn
             if (isFlashOn) {
                 RtmpHelper.call("enableFlash")
-                binding.btnFlash.text = "FLASH ON - BRIGHT"
+                binding.btnFlash.text = "FLASH ON"
             } else {
                 RtmpHelper.call("disableFlash")
-                binding.btnFlash.text = "FLASH - TAP FOR BRIGHT"
+                binding.btnFlash.text = "FLASH"
             }
         }
         binding.btnMic.setOnClickListener {
@@ -224,17 +226,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val platform = binding.spPlatform.selectedItem?.toString() ?: "YouTube"
-        val fullUrl = getRtmpUrl(platform, key)
-        binding.tvRtmp.text = "RTMP: " + platform + " - Connecting..."
-        binding.tvLiveStatus.text = "CONNECTING..."
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.YELLOW)
         if (RtmpHelper.callBool("isStreaming")) RtmpHelper.call("stopStream")
-        RtmpHelper.callStr("startStream", fullUrl)
+        RtmpHelper.callStr("startStream", getRtmpUrl(platform, key))
         isStreaming = true
-        binding.btnGoLive.text = "STOP LIVE - REALLY TRANSMITTING"
-        binding.tvLiveStatus.text = "LIVE - REALLY TRANSMITTING"
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.GREEN)
-        Toast.makeText(this, "Connecting to " + platform, Toast.LENGTH_LONG).show()
+        binding.btnGoLive.text = "STOP LIVE"
     }
 
     private fun stopRealStream() {
@@ -245,9 +240,8 @@ class MainActivity : AppCompatActivity() {
             binding.btnRecord.text = "RECORD"
         }
         isStreaming = false
-        binding.btnGoLive.text = "GO LIVE TO SOCIAL MEDIA"
-        binding.tvLiveStatus.text = "OFFLINE"
-        binding.tvLiveStatus.setTextColor(android.graphics.Color.parseColor("#FF5252"))
+        binding.btnGoLive.text = "GO LIVE"
+        binding.tvLiveStatus.visibility = View.GONE
     }
 
     private fun startProgramTimer(mins: Int) {
@@ -282,7 +276,7 @@ class MainActivity : AppCompatActivity() {
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
         } else {
-            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 1000)
+            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 300)
         }
     }
 
@@ -292,9 +286,7 @@ class MainActivity : AppCompatActivity() {
             val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
             val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             if (camOk && micOk) {
-                Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 1000)
-            } else {
-                Toast.makeText(this, "Camera / Mic DENIED - Go to Settings", Toast.LENGTH_LONG).show()
+                Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 300)
             }
         }
     }
