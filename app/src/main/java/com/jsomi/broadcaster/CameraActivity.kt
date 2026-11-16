@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -35,10 +34,17 @@ class CameraActivity : AppCompatActivity() {
             binding.tvStudioName.setBackgroundColor(android.graphics.Color.parseColor("#F44336"))
         }
 
+        // ASK FOR CAMERA + MIC NOW - on open
+        checkPermissionsAndStartCamera()
+
         // Wait for SurfaceView - otherwise black screen
         binding.previewStudio.holder.addCallback(object : android.view.SurfaceHolder.Callback {
             override fun surfaceCreated(holder: android.view.SurfaceHolder) {
-                checkPermissionsAndStartCamera()
+                // Surface ready - if permission already allowed, start
+                if (ContextCompat.checkSelfPermission(this@CameraActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(this@CameraActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    startCamera()
+                }
             }
             override fun surfaceChanged(holder: android.view.SurfaceHolder, format: Int, width: Int, height: Int) {}
             override fun surfaceDestroyed(holder: android.view.SurfaceHolder) { isPreviewOn = false }
@@ -48,9 +54,8 @@ class CameraActivity : AppCompatActivity() {
         binding.btnFlash.setOnClickListener { RtmpHelper.call("toggleFlash") }
         binding.btnMic.setOnClickListener { RtmpHelper.call("toggleAudio") }
 
-        // SEND TO MAIN SCREEN - This is the important button
+        // SEND TO MAIN SCREEN
         binding.btnSendToMain.setOnClickListener {
-            // Save which studio is sending, so MAIN SCREEN knows
             getSharedPreferences("jstv", MODE_PRIVATE).edit()
                 .putString("active_studio", "STUDIO$studioNumber")
                 .putString("active_studio_name", studioName)
@@ -66,10 +71,15 @@ class CameraActivity : AppCompatActivity() {
     }
 
     private fun checkPermissionsAndStartCamera() {
-        val perms = listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-        val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-        if (need.isNotEmpty()) ActivityCompat.requestPermissions(this, need.toTypedArray(), PERM_CODE)
-        else startCamera()
+        val need = mutableListOf<String>()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) need.add(Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) need.add(Manifest.permission.RECORD_AUDIO)
+        if (need.isEmpty()) {
+            if (binding.previewStudio.holder.surface.isValid) startCamera()
+        } else {
+            binding.tvStatus.text = "Need Camera + Microphone Permission - Tap ALLOW"
+            ActivityCompat.requestPermissions(this, need.toTypedArray(), PERM_CODE)
+        }
     }
 
     private fun startCamera() {
@@ -84,7 +94,22 @@ class CameraActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERM_CODE) {
             val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            if (camOk) startCamera()
+            val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+            if (camOk && micOk) {
+                Toast.makeText(this, "Camera + Mic ALLOWED - Starting", Toast.LENGTH_SHORT).show()
+                startCamera()
+            } else {
+                binding.tvStatus.text = "PERMISSION DENIED - Go to Settings > Apps > JSTV > Permissions > Allow Camera + Mic, then reopen"
+                Toast.makeText(this, "You DENIED Camera / Mic. Enable in Settings.", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            if (!isPreviewOn && binding.previewStudio.holder.surface.isValid) startCamera()
         }
     }
 
