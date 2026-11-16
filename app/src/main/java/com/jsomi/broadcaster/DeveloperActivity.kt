@@ -71,7 +71,7 @@ class DeveloperActivity : AppCompatActivity() {
 
         // 5. View Live Streams - Goes to Main Studio
         findViewById<Button>(R.id.btnViewLives).setOnClickListener {
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(Intent(this, LiveActivity::class.java))
         }
 
         // 6. View Payments
