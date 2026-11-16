@@ -25,13 +25,10 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".AuthActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".LiveActivity"
-            android:exported="false" />
+        <activity android:name=".AuthActivity" android:exported="false" />
+        <activity android:name=".LiveActivity" android:exported="false" />
+        <activity android:name=".DeveloperActivity" android:exported="false" />
+        <activity android:name=".PaymentActivity" android:exported="false" />
 
     </application>
 
