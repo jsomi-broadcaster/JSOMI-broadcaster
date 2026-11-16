@@ -10,9 +10,11 @@ import android.os.CountDownTimer
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -50,9 +52,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (!previewStarted && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (!previewStarted && hasCameraMicPermission()) {
             binding.previewMain.post { tryStartPreview() }
         }
+    }
+
+    private fun hasCameraMicPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun readSettings() {
@@ -79,6 +86,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun tryStartPreview() {
         if (previewStarted) return
+        if (!hasCameraMicPermission()) {
+            checkPermissions()
+            return
+        }
         RtmpHelper.init(binding.previewMain)
         readSettings()
         val ok = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate, curRotation)
@@ -134,6 +145,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupButtons() {
         binding.btnGoLive.setOnClickListener {
+            if (!hasCameraMicPermission()) { checkPermissions(); return@setOnClickListener }
             if (!isStreaming) startRealStream() else stopRealStream()
         }
         binding.btnSwitchCamera.setOnClickListener { RtmpHelper.call("switchCamera") }
@@ -184,7 +196,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hello JSTV Support")))
         }
         binding.btnBack.setOnClickListener { finish() }
-        binding.previewMain.setOnClickListener { previewStarted = false; tryStartPreview() }
+        binding.previewMain.setOnClickListener {
+            if (!hasCameraMicPermission()) checkPermissions()
+            else { previewStarted = false; tryStartPreview() }
+        }
     }
 
     private fun toggleRecord() {
@@ -259,32 +274,52 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkPermissions() {
-        val perms = mutableListOf<String>()
-        perms.add(Manifest.permission.CAMERA)
-        perms.add(Manifest.permission.RECORD_AUDIO)
-        if (android.os.Build.VERSION.SDK_INT >= 33) {
-            perms.add(Manifest.permission.READ_MEDIA_IMAGES)
-            perms.add(Manifest.permission.READ_MEDIA_VIDEO)
-            perms.add(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            perms.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
-        val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
-        if (need.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
-        } else {
+        val need = mutableListOf<String>()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) need.add(Manifest.permission.CAMERA)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) need.add(Manifest.permission.RECORD_AUDIO)
+        if (need.isEmpty()) {
             binding.previewMain.post { tryStartPreview() }
+            return
         }
+        // If you denied before and ticked Don't Ask Again, Android will NOT show popup again.
+        // Show our own dialog that opens Settings.
+        val deniedForever = need.any { !ActivityCompat.shouldShowRequestPermissionRationale(this, it) } && !isFirstPermissionRequest()
+        if (deniedForever) {
+            showPermissionSettingsDialog()
+            return
+        }
+        setFirstPermissionRequestDone()
+        ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
+    }
+
+    private fun isFirstPermissionRequest(): Boolean {
+        return getSharedPreferences("jstv", MODE_PRIVATE).getBoolean("first_perm", true)
+    }
+    private fun setFirstPermissionRequestDone() {
+        getSharedPreferences("jstv", MODE_PRIVATE).edit().putBoolean("first_perm", false).apply()
+    }
+
+    private fun showPermissionSettingsDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Camera Permission Needed")
+            .setMessage("You denied Camera before, so Android will not ask again. Tap OPEN SETTINGS, then allow Camera and Microphone, then come back.")
+            .setPositiveButton("OPEN SETTINGS") { _, _ ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                intent.data = Uri.fromParts("package", packageName, null)
+                startActivity(intent)
+            }
+            .setNegativeButton("CANCEL", null)
+            .show()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == PERMISSION_CODE) {
-            val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-            val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-            if (camOk && micOk) {
+            if (hasCameraMicPermission()) {
                 binding.previewMain.post { tryStartPreview() }
+            } else {
+                Toast.makeText(this, "Camera DENIED - Tap screen to try again, or allow in Settings", Toast.LENGTH_LONG).show()
+                showPermissionSettingsDialog()
             }
         }
     }
