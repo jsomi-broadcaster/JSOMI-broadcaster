@@ -29,6 +29,10 @@ class MainActivity : AppCompatActivity() {
     private var isFlashOn = false
     private var timer: CountDownTimer? = null
     private var previewStarted = false
+    private var curW = 1920
+    private var curH = 1080
+    private var curFps = 30
+    private var curBitrate = 4000 * 1024
     private val PERMISSION_CODE = 100
     private val GALLERY_CODE = 101
 
@@ -44,9 +48,27 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Retry if preview died - this is the fix for black screen
         if (!previewStarted && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 800)
+        }
+    }
+
+    private fun readSettings() {
+        val res = binding.spResolution.selectedItem?.toString() ?: "1080p"
+        if (res.contains("1080")) { curW = 1920; curH = 1080 }
+        else if (res.contains("480")) { curW = 854; curH = 480 }
+        else { curW = 1280; curH = 720 }
+        val bitTxt = binding.spBitrate.selectedItem?.toString() ?: "4000"
+        curBitrate = when {
+            bitTxt.contains("4000") -> 4000 * 1024
+            bitTxt.contains("1500") -> 1500 * 1024
+            else -> 2500 * 1024
+        }
+        val fpsTxt = binding.spFps.selectedItem?.toString() ?: "30"
+        curFps = when {
+            fpsTxt.contains("60") -> 60
+            fpsTxt.contains("24") -> 24
+            else -> 30
         }
     }
 
@@ -55,15 +77,15 @@ class MainActivity : AppCompatActivity() {
         if (RtmpHelper.camera == null) {
             RtmpHelper.init(binding.previewMain)
         }
-        val result = RtmpHelper.prepareAndPreview()
+        readSettings()
+        val result = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate)
         binding.tvLiveStatus.text = result
         Toast.makeText(this, result, Toast.LENGTH_LONG).show()
         if (result.contains("STARTED")) previewStarted = true
         else {
-            // Retry once more after 1.5s - surface might still be warming up
             Handler(Looper.getMainLooper()).postDelayed({
                 if (!previewStarted) {
-                    val result2 = RtmpHelper.prepareAndPreview()
+                    val result2 = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate)
                     binding.tvLiveStatus.text = result2
                     Toast.makeText(this, "Retry: $result2", Toast.LENGTH_LONG).show()
                     if (result2.contains("STARTED")) previewStarted = true
@@ -99,8 +121,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupSpinners() {
         binding.spPlatform.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("YouTube", "Facebook", "TikTok"))
-        binding.spResolution.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("720p - 1280x720", "1080p - 1920x1080", "480p - 854x480"))
-        binding.spBitrate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("2500 Kbps - Good", "4000 Kbps - HD", "1500 Kbps - Low Data"))
+        binding.spResolution.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("1080p - 1920x1080", "720p - 1280x720", "480p - 854x480"))
+        binding.spBitrate.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("4000 Kbps - HD", "2500 Kbps - Good", "1500 Kbps - Low Data"))
         binding.spFps.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("30 FPS", "60 FPS", "24 FPS"))
         binding.spIntro.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("No Intro", "JSTV Intro 1", "JSTV Intro 2"))
         binding.spOrientation.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("Portrait", "Landscape"))
@@ -152,7 +174,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hello JSTV Support")))
         }
         binding.btnBack.setOnClickListener { finish() }
-        // TAP PREVIEW TO RETRY - if black, tap the black box
         binding.previewMain.setOnClickListener { previewStarted = false; tryStartPreview() }
     }
 
@@ -251,7 +272,6 @@ class MainActivity : AppCompatActivity() {
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
         } else {
-            // WAIT for surface - this is the fix
             Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 1000)
         }
     }
