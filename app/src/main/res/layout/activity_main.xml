@@ -7,6 +7,16 @@
     android:padding="12dp">
 
     <TextView
+        android:id="@+id/tvStudio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="YOU ARE IN: STUDIO 1"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:padding="10dp" />
+
+    <TextView
         android:id="@+id/tvStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -21,10 +31,44 @@
         android:layout_weight="1"
         android:background="#111111" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnStudio1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="STUDIO 1" />
+
+        <Button
+            android:id="@+id/btnStudio2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="STUDIO 2" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/etRtmpUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="RTMP URL for this studio - e.g. rtmp://..."
+        android:textColor="#FFFFFF"
+        android:textColorHint="#AAAAAA" />
+
+    <Button
+        android:id="@+id/btnSaveUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SAVE STUDIO URL" />
+
     <Button
         android:id="@+id/btnOpenCamera"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="wrap_content"
         android:text="OPEN CAMERA" />
 
     <Button
