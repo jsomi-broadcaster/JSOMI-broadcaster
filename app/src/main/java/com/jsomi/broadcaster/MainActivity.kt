@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (!previewStarted && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 300)
+            binding.previewMain.post { tryStartPreview() }
         }
     }
 
@@ -79,9 +79,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun tryStartPreview() {
         if (previewStarted) return
-        if (RtmpHelper.camera == null) {
-            RtmpHelper.init(binding.previewMain)
-        }
+        RtmpHelper.init(binding.previewMain)
         readSettings()
         val ok = RtmpHelper.prepareAndPreview(curW, curH, curFps, curBitrate, curRotation)
         if (ok) {
@@ -276,7 +274,7 @@ class MainActivity : AppCompatActivity() {
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
         } else {
-            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 300)
+            binding.previewMain.post { tryStartPreview() }
         }
     }
 
@@ -286,7 +284,7 @@ class MainActivity : AppCompatActivity() {
             val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
             val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             if (camOk && micOk) {
-                Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 300)
+                binding.previewMain.post { tryStartPreview() }
             }
         }
     }
@@ -299,10 +297,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        previewStarted = false
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         timer?.cancel()
-        if (RtmpHelper.callBool("isStreaming")) RtmpHelper.call("stopStream")
-        if (RtmpHelper.callBool("isOnPreview")) RtmpHelper.call("stopPreview")
+        RtmpHelper.release()
     }
 }
