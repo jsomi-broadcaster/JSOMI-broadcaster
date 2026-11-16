@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         RtmpHelper.onStatus = { status -> updateStatus(status) }
-        RtmpHelper.init(binding.previewMain)
+        // DO NOT init camera here - no permission yet!
         setupSpinners()
         setupButtons()
         checkPermissions()
@@ -94,9 +94,7 @@ class MainActivity : AppCompatActivity() {
                 binding.btnMic.text = "MIC ON"
             }
         }
-        binding.btnAudioOnly.setOnClickListener {
-            Toast.makeText(this, "Audio Only mode", Toast.LENGTH_SHORT).show()
-        }
+        binding.btnAudioOnly.setOnClickListener { Toast.makeText(this, "Audio Only mode", Toast.LENGTH_SHORT).show() }
         binding.btnRecord.setOnClickListener { toggleRecord() }
         binding.btnGallery.setOnClickListener {
             val intent = Intent(Intent.ACTION_PICK)
@@ -218,11 +216,12 @@ class MainActivity : AppCompatActivity() {
         val need = perms.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
-       } else {
-    val result = RtmpHelper.prepareAndPreview()
-    Toast.makeText(this, result, Toast.LENGTH_LONG).show()
-    binding.tvLiveStatus.text = result
-} 
+        } else {
+            RtmpHelper.init(binding.previewMain)
+            val result = RtmpHelper.prepareAndPreview()
+            Toast.makeText(this, result, Toast.LENGTH_LONG).show()
+            binding.tvLiveStatus.text = result
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -231,9 +230,10 @@ class MainActivity : AppCompatActivity() {
             val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
             val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             if (camOk && micOk) {
-    val result = RtmpHelper.prepareAndPreview()
-    Toast.makeText(this, result, Toast.LENGTH_LONG).show()
-    binding.tvLiveStatus.text = result
+                RtmpHelper.init(binding.previewMain)
+                val result = RtmpHelper.prepareAndPreview()
+                Toast.makeText(this, result, Toast.LENGTH_LONG).show()
+                binding.tvLiveStatus.text = result
             } else {
                 Toast.makeText(this, "Camera / Mic DENIED - Go to Settings", Toast.LENGTH_LONG).show()
             }
