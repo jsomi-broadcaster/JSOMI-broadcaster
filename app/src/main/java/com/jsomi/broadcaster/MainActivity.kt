@@ -126,12 +126,12 @@ class MainActivity : AppCompatActivity() {
         binding.btnSwitchSource.text = "SWITCH: $cameraSource -> NEXT"
     }
 
-    private fun startOwnCamera() {
+        private fun startOwnCamera() {
         if (isPreviewOn) return
         if (RtmpHelper.camera == null) RtmpHelper.init(binding.previewMain)
-        val result = RtmpHelper.prepareAndPreview(1280, 720, 30, 2500 * 1024, 90)
-        binding.tvLiveStatus.text = result
-        if (result.contains("STARTED")) isPreviewOn = true
+        val started: Boolean = RtmpHelper.prepareAndPreview(1280, 720, 30, 2500 * 1024, 90)
+        binding.tvLiveStatus.text = if (started) "STARTED - OWN CAMERA" else "PREVIEW FAILED"
+        isPreviewOn = started
     }
 
     private fun stopOwnCamera() {
