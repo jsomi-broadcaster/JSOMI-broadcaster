@@ -8,6 +8,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     private var isMicOn = true
     private var isFlashOn = false
     private var timer: CountDownTimer? = null
+    private var previewStarted = false
     private val PERMISSION_CODE = 100
     private val GALLERY_CODE = 101
 
@@ -34,10 +37,39 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         RtmpHelper.onStatus = { status -> updateStatus(status) }
-        // DO NOT init camera here - no permission yet!
         setupSpinners()
         setupButtons()
         checkPermissions()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Retry if preview died - this is the fix for black screen
+        if (!previewStarted && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 800)
+        }
+    }
+
+    private fun tryStartPreview() {
+        if (previewStarted) return
+        if (RtmpHelper.camera == null) {
+            RtmpHelper.init(binding.previewMain)
+        }
+        val result = RtmpHelper.prepareAndPreview()
+        binding.tvLiveStatus.text = result
+        Toast.makeText(this, result, Toast.LENGTH_LONG).show()
+        if (result.contains("STARTED")) previewStarted = true
+        else {
+            // Retry once more after 1.5s - surface might still be warming up
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!previewStarted) {
+                    val result2 = RtmpHelper.prepareAndPreview()
+                    binding.tvLiveStatus.text = result2
+                    Toast.makeText(this, "Retry: $result2", Toast.LENGTH_LONG).show()
+                    if (result2.contains("STARTED")) previewStarted = true
+                }
+            }, 1500)
+        }
     }
 
     private fun updateStatus(status: String) {
@@ -120,6 +152,8 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/254763052911?text=Hello JSTV Support")))
         }
         binding.btnBack.setOnClickListener { finish() }
+        // TAP PREVIEW TO RETRY - if black, tap the black box
+        binding.previewMain.setOnClickListener { previewStarted = false; tryStartPreview() }
     }
 
     private fun toggleRecord() {
@@ -217,10 +251,8 @@ class MainActivity : AppCompatActivity() {
         if (need.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, need.toTypedArray(), PERMISSION_CODE)
         } else {
-            RtmpHelper.init(binding.previewMain)
-            val result = RtmpHelper.prepareAndPreview()
-            Toast.makeText(this, result, Toast.LENGTH_LONG).show()
-            binding.tvLiveStatus.text = result
+            // WAIT for surface - this is the fix
+            Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 1000)
         }
     }
 
@@ -230,10 +262,7 @@ class MainActivity : AppCompatActivity() {
             val camOk = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
             val micOk = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             if (camOk && micOk) {
-                RtmpHelper.init(binding.previewMain)
-                val result = RtmpHelper.prepareAndPreview()
-                Toast.makeText(this, result, Toast.LENGTH_LONG).show()
-                binding.tvLiveStatus.text = result
+                Handler(Looper.getMainLooper()).postDelayed({ tryStartPreview() }, 1000)
             } else {
                 Toast.makeText(this, "Camera / Mic DENIED - Go to Settings", Toast.LENGTH_LONG).show()
             }
