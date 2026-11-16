@@ -2,66 +2,79 @@ package com.jsomi.broadcaster
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.jsomi.broadcaster.databinding.ActivityAuthBinding
 
-class AuthActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityAuthBinding
+class AuthActivity : AppCompatActivity {
+
+    private val ADMIN_EMAIL = "admin@jehovahshalom.tv"
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAuthBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        setContentView(R.layout.activity_auth)
+
+        val etName = findViewById<EditText>(R.id.etName)
+        val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
-val cbShow = findViewById<CheckBox>(R.id.cbShowPassword)
+        val cbShow = findViewById<CheckBox>(R.id.cbShowPassword)
+        val btnSignUp = findViewById<Button>(R.id.btnSignUp)
+        val btnSignIn = findViewById<Button>(R.id.btnSignIn)
 
-cbShow.setOnCheckedChangeListener { _, isChecked ->
-    if (isChecked) {
-        // Show password
-        etPassword.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-    } else {
-        // Hide password
-        etPassword.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-    }
-    // Keep cursor at end
-    etPassword.setSelection(etPassword.text.length)
-}
+        val currentPrefs = getSharedPreferences("JSTV", MODE_PRIVATE)
+        val subPrefs = getSharedPreferences("JSTV_SUBSCRIBERS", MODE_PRIVATE)
+        val adminPrefs = getSharedPreferences("JSTV_ADMIN", MODE_PRIVATE)
 
-        val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
-
-        // If already signed in, go straight to Live
-        if (prefs.getBoolean("loggedIn", false)) {
-            goLive()
-            return
+        // SHOW / HIDE PASSWORD
+        cbShow.setOnCheckedChangeListener { _, isChecked: Boolean ->
+            if (isChecked) {
+                etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            } else {
+                etPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            }
+            etPassword.setSelection(etPassword.text.length)
         }
 
-        binding.btnSignUp.setOnClickListener {
-            val name = binding.etName.text.toString().trim()
-            val email = binding.etEmail.text.toString().trim()
-            val pass = binding.etPassword.text.toString().trim()
-            if (name.isEmpty() || email.isEmpty() || pass.isEmpty()) {
+        btnSignUp.setOnClickListener {
+            val name = etName.text.toString().trim()
+            val email = etEmail.text.toString().trim()
+            val password = etPassword.text.toString().trim()
+
+            if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            prefs.edit().putString("name", name).putString("email", email).putBoolean("loggedIn", true).apply()
-            Toast.makeText(this, "Welcome $name!", Toast.LENGTH_SHORT).show()
-            goLive()
+
+            currentPrefs.edit().putString("name", name).putString("email", email).apply()
+
+            if (email.equals(ADMIN_EMAIL, ignoreCase = true)) {
+                adminPrefs.edit().putString("adminName", name).putString("adminEmail", email).apply()
+                Toast.makeText(this, "Welcome Admin", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, DeveloperActivity::class.java))
+            } else {
+                val count = subPrefs.getInt("totalSubscribers", 0) + 1
+                subPrefs.edit()
+                    .putInt("totalSubscribers", count)
+                    .putString("sub_${count}_name", name)
+                    .putString("sub_${count}_email", email)
+                    .putString("sub_${count}_password", password)
+                    .apply()
+                Toast.makeText(this, "Welcome to Jehovah Shalom TV, $name", Toast.LENGTH_SHORT).show()
+                startActivity(Intent(this, LiveActivity::class.java))
+            }
         }
 
-        binding.btnSignIn.setOnClickListener {
-            val email = binding.etEmail.text.toString().trim()
-            val pass = binding.etPassword.text.toString().trim()
-            if (email.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Enter email + password", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+        btnSignIn.setOnClickListener {
+            val email = etEmail.text.toString().trim()
+            if (email.equals(ADMIN_EMAIL, ignoreCase = true)) {
+                startActivity(Intent(this, DeveloperActivity::class.java))
+            } else {
+                currentPrefs.edit().putString("email", email).apply()
+                startActivity(Intent(this, LiveActivity::class.java))
             }
-            // Simple sign-in: if they signed up before, let them in
-            prefs.edit().putBoolean("loggedIn", true).apply()
-            goLive()
         }
-    }
-    private fun goLive() {
-        startActivity(Intent(this, LiveActivity::class.java))
-        finish()
     }
 }
