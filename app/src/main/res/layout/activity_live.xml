@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#000000" android:padding="10dp">
+    <TextView android:id="@+id/tvWelcome" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="JSTV LIVE" android:textColor="#FFFFFF" android:gravity="center" android:textStyle="bold" />
+    <TextView android:id="@+id/tvLiveBadge" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="" android:textColor="#FF0000" android:gravity="center" android:textStyle="bold" android:textSize="20sp" />
+    <TextView android:id="@+id/tvStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Opening camera..." android:textColor="#FFFFFF" android:gravity="center" />
+    <androidx.camera.view.PreviewView android:id="@+id/previewView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:background="#111111" />
+    <Button android:id="@+id/btnGoLive" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="GO LIVE" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <Button android:id="@+id/btnFeatures" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="FEATURES" />
+        <Button android:id="@+id/btnSettings" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="SETTINGS" />
+        <Button android:id="@+id/btnSwitch" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="SWITCH" />
+    </LinearLayout>
+</LinearLayout>
