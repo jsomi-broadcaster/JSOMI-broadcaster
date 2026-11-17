@@ -1,45 +1,41 @@
 package com.jsomi.broadcaster
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.*
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
-class WelcomeActivity : AppCompatActivity() {
+class WelcomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
-        root.setBackgroundColor(Color.BLACK)
-        root.gravity = Gravity.CENTER
-        root.setPadding(40, 40, 40, 40)
-        setContentView(root)
-
-        val logo = TextView(this)
-        logo.text = "✝️\nJSTV"
-        logo.textSize = 70f
-        logo.setTextColor(Color.WHITE)
-        logo.gravity = Gravity.CENTER
-        root.addView(logo)
-
-        val title = TextView(this)
-        title.text = "Jehovah Shalom TV"
-        title.textSize = 28f
-        title.setTextColor(Color.WHITE)
-        title.gravity = Gravity.CENTER
-        root.addView(title)
-
-        val sub = TextView(this)
-        sub.text = "Broadcast the Gospel to the World"
-        sub.setTextColor(Color.YELLOW)
-        sub.gravity = Gravity.CENTER
-        root.addView(sub)
-
-        val btn = Button(this)
-        btn.text = "GET STARTED →"
-        btn.setOnClickListener { startActivity(Intent(this, AuthActivity::class.java)) }
-        root.addView(btn)
+        setContent {
+            var show by remember { mutableStateOf(true) }
+            LaunchedEffect(Unit) {
+                delay(2000) // 2 seconds logo
+                startActivity(Intent(this@WelcomeActivity, BroadcastActivity::class.java))
+                finish()
+            }
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black),
+                contentAlignment = Alignment.Center
+            ) {
+                // YOUR OLD LOGO - DO NOT CHANGE THIS NAME
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "JSOMI Logo",
+                    modifier = Modifier.size(220.dp)
+                )
+            }
+        }
     }
 }
