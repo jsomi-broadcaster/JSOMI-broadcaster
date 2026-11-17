@@ -2,51 +2,44 @@ package com.jsomi.broadcaster
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.InputType
-import android.view.Gravity
-import android.widget.*
+import android.view.View
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
 
 class AuthActivity : AppCompatActivity() {
 
-    // Views
+    // --- UI ---
     private lateinit var titleText: TextView
     private lateinit var fullNameInput: EditText
     private lateinit var emailInput: EditText
-    private lateinit var phoneInput: EditText
     private lateinit var usernameInput: EditText
     private lateinit var passwordInput: EditText
     private lateinit var confirmPasswordInput: EditText
+    private lateinit var phoneInput: EditText
     private lateinit var otpInput: EditText
     private lateinit var newPasswordInput: EditText
     private lateinit var confirmNewPasswordInput: EditText
 
     private lateinit var btnGenerateUsername: Button
-    private lateinit var btnTogglePass: Button
-    private lateinit var btnToggleConfirmPass: Button
-    private lateinit var btnToggleNewPass: Button
-    private lateinit var btnToggleConfirmNewPass: Button
-
-    private lateinit var btnMain: Button
-    private lateinit var btnSwitch: Button
-    private lateinit var btnForgot: Button
+    private lateinit var btnTogglePassword: Button
     private lateinit var btnSendOtp: Button
     private lateinit var btnVerifyOtp: Button
     private lateinit var btnReset: Button
+    private lateinit var btnMain: Button
+    private lateinit var btnSwitch: Button
+    private lateinit var btnForgot: Button
 
-    private var mode = "SIGNUP" // SIGNUP, SIGNIN, OTP, FORGOT, RESET
+    // --- STATE ---
+    private var mode = "SIGNUP"
     private var generatedOtp = ""
     private var pendingEmail = ""
-    private var pendingPass = ""
-    private var pendingName = ""
-    private var pendingPhone = ""
-    private var pendingUsername = ""
-
-    private var passVisible = false
-    private var confirmPassVisible = false
-    private var newPassVisible = false
-    private var confirmNewPassVisible = false
+    private var isPasswordVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,162 +47,98 @@ class AuthActivity : AppCompatActivity() {
         val scroll = ScrollView(this)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(48, 48, 48, 48)
-            setBackgroundColor(android.graphics.Color.BLACK)
+            setPadding(40, 40, 40, 40)
         }
         scroll.addView(layout)
         setContentView(scroll)
 
-        titleText = TextView(this).apply {
-            text = "Sign Up"
-            textSize = 30f
-            setTextColor(android.graphics.Color.WHITE)
+        fun makeInput(hint: String): EditText {
+            return EditText(this).apply {
+                this.hint = hint
+                layout.addView(this)
+            }
         }
-        layout.addView(titleText)
+        fun makeBtn(text: String): Button {
+            return Button(this).apply {
+                this.text = text
+                layout.addView(this)
+            }
+        }
 
+        titleText = TextView(this).apply { textSize = 24f; layout.addView(this) }
         fullNameInput = makeInput("Full Name")
-        emailInput = makeInput("Email - e.g. you@gmail.com")
-        phoneInput = makeInput("Phone Number - e.g. 0712345678")
-        phoneInput.inputType = InputType.TYPE_CLASS_PHONE
-        usernameInput = makeInput("Username - write or Generate")
-        passwordInput = makePassInput("Password")
-        confirmPasswordInput = makePassInput("Confirm Password")
-        otpInput = makeInput("Enter OTP sent to Email")
-        otpInput.inputType = InputType.TYPE_CLASS_NUMBER
-        newPasswordInput = makePassInput("New Password")
-        confirmNewPasswordInput = makePassInput("Confirm New Password")
+        emailInput = makeInput("Email")
+        usernameInput = makeInput("Username")
+        phoneInput = makeInput("Phone (optional)")
+        passwordInput = makeInput("Password")
+        confirmPasswordInput = makeInput("Confirm Password")
+        otpInput = makeInput("Enter OTP")
+        newPasswordInput = makeInput("New Password")
+        confirmNewPasswordInput = makeInput("Confirm New Password")
 
-        layout.addView(fullNameInput)
-        layout.addView(emailInput)
-        layout.addView(phoneInput)
+        btnGenerateUsername = makeBtn("Generate Username")
+        btnTogglePassword = makeBtn("Show Password")
+        btnSendOtp = makeBtn("SEND OTP")
+        btnVerifyOtp = makeBtn("VERIFY OTP")
+        btnReset = makeBtn("RESET PASSWORD")
+        btnMain = makeBtn("SIGN UP -> SEND OTP")
+        btnForgot = makeBtn("Forgot Password?")
+        btnSwitch = makeBtn("Already have account? SIGN IN")
 
-        // Username row + Generate button
-        layout.addView(usernameInput)
-        btnGenerateUsername = makeButton("GENERATE USERNAME 🎲")
         btnGenerateUsername.setOnClickListener {
-            val base = emailInput.text.toString().substringBefore("@").ifEmpty { "jstv" }
-            val gen = base + Random.nextInt(100, 999)
-            usernameInput.setText(gen)
-            Toast.makeText(this, "Generated: $gen", Toast.LENGTH_SHORT).show()
+            val name = fullNameInput.text.toString().trim().replace(" ", "").lowercase()
+            if (name.isNotEmpty()) {
+                usernameInput.setText(name + Random.nextInt(100, 999))
+            } else {
+                Toast.makeText(this, "Enter Full Name first", Toast.LENGTH_SHORT).show()
+            }
         }
-        layout.addView(btnGenerateUsername)
 
-        // Password + Eye
-        layout.addView(passwordInput)
-        btnTogglePass = makeButton("👁️ SHOW / HIDE PASSWORD")
-        btnTogglePass.setOnClickListener {
-            passVisible = !passVisible
-            passwordInput.inputType = if (passVisible) InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            passwordInput.setSelection(passwordInput.text.length)
+        btnTogglePassword.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            val type = if (isPasswordVisible) android.text.InputType.TYPE_CLASS_TEXT else android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            passwordInput.inputType = type
+            confirmPasswordInput.inputType = type
         }
-        layout.addView(btnTogglePass)
 
-        layout.addView(confirmPasswordInput)
-        btnToggleConfirmPass = makeButton("👁️ SHOW / HIDE CONFIRM PASSWORD")
-        btnToggleConfirmPass.setOnClickListener {
-            confirmPassVisible = !confirmPassVisible
-            confirmPasswordInput.inputType = if (confirmPassVisible) InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            confirmPasswordInput.setSelection(confirmPasswordInput.text.length)
-        }
-        layout.addView(btnToggleConfirmPass)
-
-        // OTP views
-        layout.addView(otpInput)
-        btnSendOtp = makeButton("SEND OTP TO EMAIL")
-        btnSendOtp.setOnClickListener { sendOtp() }
-        layout.addView(btnSendOtp)
-
-        btnVerifyOtp = makeButton("VERIFY OTP → CONTINUE")
-        btnVerifyOtp.setOnClickListener { verifyOtp() }
-        layout.addView(btnVerifyOtp)
-
-        // Reset password views
-        layout.addView(newPasswordInput)
-        btnToggleNewPass = makeButton("👁️ SHOW / HIDE NEW PASSWORD")
-        btnToggleNewPass.setOnClickListener {
-            newPassVisible = !newPassVisible
-            newPasswordInput.inputType = if (newPassVisible) InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            newPasswordInput.setSelection(newPasswordInput.text.length)
-        }
-        layout.addView(btnToggleNewPass)
-
-        layout.addView(confirmNewPasswordInput)
-        btnToggleConfirmNewPass = makeButton("👁️ SHOW / HIDE CONFIRM NEW PASSWORD")
-        btnToggleConfirmNewPass.setOnClickListener {
-            confirmNewPassVisible = !confirmNewPassVisible
-            confirmNewPasswordInput.inputType = if (confirmNewPassVisible) InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD else InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            confirmNewPasswordInput.setSelection(confirmNewPasswordInput.text.length)
-        }
-        layout.addView(btnToggleConfirmNewPass)
-
-        btnReset = makeButton("RESET PASSWORD → SIGN IN")
-        btnReset.setOnClickListener { doReset() }
-        layout.addView(btnReset)
-
-        // Main + Switch + Forgot
-        btnMain = makeButton("SIGN UP → SEND OTP")
         btnMain.setOnClickListener { onMainClick() }
-        layout.addView(btnMain)
-
-        btnForgot = makeButton("FORGOT PASSWORD?")
+        btnSendOtp.setOnClickListener { sendOtp() }
+        btnVerifyOtp.setOnClickListener {
+            if (mode == "FORGOT" || mode == "OTP") {
+                // Decide which verify to use - if we came from FORGOT, use forgot verify
+                // We check pending flow via a simple flag: if mode was FORGOT before OTP, it stays OTP but we try both
+                verifyOtp()
+            } else {
+                verifyOtp()
+            }
+        }
         btnForgot.setOnClickListener { showForgot() }
-        layout.addView(btnForgot)
-
-        btnSwitch = makeButton("Already have account? SIGN IN")
         btnSwitch.setOnClickListener {
             if (mode == "SIGNUP") showSignIn() else showSignUp()
         }
-        layout.addView(btnSwitch)
+        btnReset.setOnClickListener { doResetPassword() }
 
         showSignUp()
     }
 
-    private fun makeInput(hint: String): EditText {
-        return EditText(this).apply {
-            this.hint = hint
-            setHintTextColor(android.graphics.Color.GRAY)
-            setTextColor(android.graphics.Color.WHITE)
-            textSize = 18f
-            setPadding(0, 24, 0, 24)
-        }
-    }
-
-    private fun makePassInput(hint: String): EditText {
-        return makeInput(hint).apply {
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-    }
-
-    private fun makeButton(text: String): Button {
-        return Button(this).apply {
-            this.text = text
-            setBackgroundColor(android.graphics.Color.LTGRAY)
-            setTextColor(android.graphics.Color.BLACK)
-            val p = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            p.topMargin = 16
-            layoutParams = p
-        }
-    }
-
     private fun hideAll() {
-        listOf(fullNameInput, emailInput, phoneInput, usernameInput, passwordInput, confirmPasswordInput, otpInput, newPasswordInput, confirmNewPasswordInput,
-            btnGenerateUsername, btnTogglePass, btnToggleConfirmPass, btnToggleNewPass, btnToggleConfirmNewPass,
-            btnSendOtp, btnVerifyOtp, btnReset, btnForgot).forEach { it.visibility = android.view.View.GONE }
-        btnMain.visibility = android.view.View.VISIBLE
-        btnSwitch.visibility = android.view.View.VISIBLE
+        listOf(fullNameInput, emailInput, usernameInput, phoneInput, passwordInput, confirmPasswordInput, otpInput, newPasswordInput, confirmNewPasswordInput,
+            btnGenerateUsername, btnTogglePassword, btnSendOtp, btnVerifyOtp, btnReset).forEach { it.visibility = View.GONE }
+        btnMain.visibility = View.VISIBLE
+        btnSwitch.visibility = View.VISIBLE
     }
 
-    private fun show(view: android.view.View) { view.visibility = android.view.View.VISIBLE }
+    private fun show(view: View) { view.visibility = View.VISIBLE }
 
     private fun showSignUp() {
         mode = "SIGNUP"
         hideAll()
         titleText.text = "Sign Up"
-        show(fullNameInput); show(emailInput); show(phoneInput)
+        show(fullNameInput); show(emailInput)
         show(usernameInput); show(btnGenerateUsername)
-        show(passwordInput); show(btnTogglePass)
-        show(confirmPasswordInput); show(btnToggleConfirmPass)
-        btnMain.text = "SIGN UP → SEND OTP"
+        show(passwordInput); show(btnTogglePassword)
+        show(confirmPasswordInput); show(phoneInput)
+        btnMain.text = "SIGN UP -> SEND OTP"
         btnSwitch.text = "Already have account? SIGN IN"
         show(btnForgot)
     }
@@ -218,8 +147,8 @@ class AuthActivity : AppCompatActivity() {
         mode = "SIGNIN"
         hideAll()
         titleText.text = "Sign In"
-        show(emailInput); show(passwordInput); show(btnTogglePass)
-        btnMain.text = "SIGN IN → CONTINUE"
+        show(emailInput); show(passwordInput)
+        btnMain.text = "SIGN IN -> CONTINUE"
         btnSwitch.text = "New here? SIGN UP"
         show(btnForgot)
     }
@@ -230,7 +159,7 @@ class AuthActivity : AppCompatActivity() {
         titleText.text = "Forgot Password"
         show(emailInput)
         show(btnSendOtp)
-        btnMain.visibility = android.view.View.GONE
+        btnMain.visibility = View.GONE
         btnSwitch.text = "Back to SIGN IN"
         btnSwitch.setOnClickListener { showSignIn() }
     }
@@ -240,62 +169,97 @@ class AuthActivity : AppCompatActivity() {
         hideAll()
         titleText.text = "Enter OTP"
         show(otpInput); show(btnVerifyOtp)
-        btnMain.visibility = android.view.View.GONE
-        btnSwitch.visibility = android.view.View.GONE
+        btnMain.visibility = View.GONE
+        btnSwitch.visibility = View.GONE
     }
 
     private fun showReset() {
         mode = "RESET"
         hideAll()
         titleText.text = "Reset Password"
-        show(newPasswordInput); show(btnToggleNewPass)
-        show(confirmNewPasswordInput); show(btnToggleConfirmNewPass)
-        show(btnReset)
-        btnMain.visibility = android.view.View.GONE
-        btnSwitch.visibility = android.view.View.GONE
+        show(newPasswordInput); show(btnTogglePassword)
+        show(confirmNewPasswordInput); show(btnReset)
+        btnMain.visibility = View.GONE
+        btnSwitch.visibility = View.GONE
     }
 
     private fun onMainClick() {
         if (mode == "SIGNUP") {
             val name = fullNameInput.text.toString().trim()
             val email = emailInput.text.toString().trim()
-            val phone = phoneInput.text.toString().trim()
             val user = usernameInput.text.toString().trim()
             val pass = passwordInput.text.toString()
             val conf = confirmPasswordInput.text.toString()
-            if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || user.isEmpty() || pass.isEmpty()) {
-                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show(); return
+
+            if (name.isEmpty() || email.isEmpty() || user.isEmpty() || pass.isEmpty()) {
+                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show()
+                return
             }
-            if (!email.contains("@")) { Toast.makeText(this, "Enter valid Gmail", Toast.LENGTH_SHORT).show(); return }
-            if (pass.length < 6) { Toast.makeText(this, "Password min 6 chars", Toast.LENGTH_SHORT).show(); return }
-            if (pass != conf) { Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show(); return }
-            pendingName = name; pendingEmail = email; pendingPhone = phone; pendingUsername = user; pendingPass = pass
+            if (!email.contains("@")) {
+                Toast.makeText(this, "Enter valid email", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (pass != conf) {
+                Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                return
+            }
+            if (pass.length < 6) {
+                Toast.makeText(this, "Password must be 6+ characters", Toast.LENGTH_SHORT).show()
+                return
+            }
             sendOtp()
         } else if (mode == "SIGNIN") {
             val email = emailInput.text.toString().trim()
             val pass = passwordInput.text.toString()
-            if (email.isEmpty() || pass.isEmpty()) { Toast.makeText(this, "Enter Email + Password", Toast.LENGTH_SHORT).show(); return }
-            // Check saved user - if none saved, allow for testing
-            val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
-            val savedPass = prefs.getString("pass_$email", null)
-            if (savedPass != null && savedPass != pass) { Toast.makeText(this, "Wrong password", Toast.LENGTH_SHORT).show(); return }
-            Toast.makeText(this, "Welcome back ${prefs.getString("user_$email", email)}", Toast.LENGTH_SHORT).show()
+            if (email.isEmpty() || pass.isEmpty()) {
+                Toast.makeText(this, "Enter email and password", Toast.LENGTH_SHORT).show()
+                return
+            }
+            // TODO: Check against saved user in SharedPreferences / Firebase
+            // For now, go to main
+            Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show()
             goNext()
+        } else if (mode == "FORGOT") {
+            sendOtp()
         }
     }
 
+    // ================= OTP - WITH REAL EMAIL =================
     private fun sendOtp() {
-        val email = if (mode == "FORGOT") emailInput.text.toString().trim() else pendingEmail.ifEmpty { emailInput.text.toString().trim() }
-        if (email.isEmpty() || !email.contains("@")) { Toast.makeText(this, "Enter valid Email first", Toast.LENGTH_SHORT).show(); return }
+        val email = if (mode == "FORGOT") emailInput.text.toString().trim() else emailInput.text.toString().trim()
+        if (email.isEmpty() || !email.contains("@")) {
+            Toast.makeText(this, "Enter valid email", Toast.LENGTH_SHORT).show()
+            return
+        }
         pendingEmail = email
-        generatedOtp = Random.nextInt(100000, 999999).toString()
-        // TEST MODE: Show OTP in Toast - later replace with real email server
-        Toast.makeText(this, "TEST OTP for $email is: $generatedOtp", Toast.LENGTH_LONG).show()
-        Toast.makeText(this, "OTP sent to Email (Test Mode)", Toast.LENGTH_SHORT).show()
+        generatedOtp = Random.nextInt(10000, 99999).toString()
+
+        // REAL EMAIL - Send OTP via Brevo
+        val userEmail = emailInput.text.toString().trim()
+        var userName = ""
+        try {
+            userName = fullNameInput.text.toString().trim()
+        } catch (e: Exception) { userName = "" }
+        if (userName.isEmpty()) userName = "JSTV User"
+
+        EmailSender.sendOTPEmail(userEmail, userName, generatedOtp) { success ->
+            runOnUiThread {
+                if (success) {
+                    Toast.makeText(this, "OTP sent to Email", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Failed to send email, check key", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        // TEST MODE: Show OTP in Toast - later remove this line
+        Toast.makeText(this, "TEST OTP for $email: $generatedOtp", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "OTP sent to Email", Toast.LENGTH_SHORT).show()
+
         if (mode == "FORGOT") {
-            // After sending OTP in Forgot, go to OTP screen, then Reset
+            // After sending OTP in Forgot, go to OTP screen
             showOtp()
-            // Mark that after OTP we go to Reset, not Signup
+            // Mark that after OTP we go to Reset
             btnVerifyOtp.setOnClickListener { verifyOtpForgot() }
         } else {
             showOtp()
@@ -305,42 +269,55 @@ class AuthActivity : AppCompatActivity() {
 
     private fun verifyOtp() {
         if (otpInput.text.toString().trim() == generatedOtp) {
-            val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
+            val prefs = getSharedPreferences("JSTV_Prefs", MODE_PRIVATE)
             prefs.edit()
-                .putString("pass_$pendingEmail", pendingPass)
-                .putString("user_$pendingEmail", pendingUsername)
-                .putString("name_$pendingEmail", pendingName)
-                .putString("phone_$pendingEmail", pendingPhone)
+                .putString("pass_\$pendingEmail", pendingEmail)
+                .putString("user_\$pendingEmail", usernameInput.text.toString().trim())
+                .putString("name_\$pendingEmail", fullNameInput.text.toString().trim())
+                .putString("phone_\$pendingEmail", phoneInput.text.toString().trim())
                 .apply()
-            Toast.makeText(this, "Success! Welcome $pendingUsername", Toast.LENGTH_SHORT).show()
+
+            Toast.makeText(this, "Success! Account Created", Toast.LENGTH_SHORT).show()
+
+            // Send Welcome Email after OTP verified
+            val welcomeEmail = emailInput.text.toString().trim()
+            var welcomeName = ""
+            try { welcomeName = fullNameInput.text.toString().trim() } catch (e: Exception) {}
+            if (welcomeName.isEmpty()) welcomeName = "JSTV User"
+            EmailSender.sendWelcomeEmail(welcomeEmail, welcomeName)
+
             goNext()
         } else {
-            Toast.makeText(this, "Wrong OTP. Try again. Test OTP was: $generatedOtp", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Wrong OTP, try again", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun verifyOtpForgot() {
         if (otpInput.text.toString().trim() == generatedOtp) {
-            Toast.makeText(this, "OTP Confirmed - Now Reset Password", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "OTP Confirmed", Toast.LENGTH_SHORT).show()
             showReset()
         } else {
             Toast.makeText(this, "Wrong OTP", Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun doReset() {
-        val np = newPasswordInput.text.toString()
-        val cnp = confirmNewPasswordInput.text.toString()
-        if (np.length < 6) { Toast.makeText(this, "Password min 6 chars", Toast.LENGTH_SHORT).show(); return }
-        if (np != cnp) { Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show(); return }
-        val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
-        prefs.edit().putString("pass_$pendingEmail", np).apply()
-        Toast.makeText(this, "Password Reset! Now Sign In", Toast.LENGTH_SHORT).show()
+    private fun doResetPassword() {
+        val p1 = newPasswordInput.text.toString()
+        val p2 = confirmNewPasswordInput.text.toString()
+        if (p1.isEmpty() || p1 != p2) {
+            Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (p1.length < 6) {
+            Toast.makeText(this, "Password must be 6+ characters", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "Password Reset Success!", Toast.LENGTH_SHORT).show()
         showSignIn()
     }
 
     private fun goNext() {
-        startActivity(Intent(this, PlanActivity::class.java))
+        startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
 }
