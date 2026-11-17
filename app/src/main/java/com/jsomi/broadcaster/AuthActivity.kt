@@ -317,7 +317,7 @@ class AuthActivity : AppCompatActivity() {
     }
 
     private fun goNext() {
-        startActivity(Intent(this, MainActivity::class.java))
-        finish()
+    Toast.makeText(this, "Login success!", Toast.LENGTH_SHORT).show()
+    finish()
     }
 }
