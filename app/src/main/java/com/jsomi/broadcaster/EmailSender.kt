@@ -16,7 +16,7 @@ object EmailSender {
     // IMPORTANT: Do NOT paste your real key here in GitHub.
     // Put your real key ONLY in Android Studio on your computer
     // before you build the APK for release.
-    private const val BREVO_API_KEY = "PASTE_KEY_IN_ANDROID_STUDIO_ONLY"
+    private const val BREVO_API_KEY = "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"
     private const val SENDER_NAME = "JSTV"
     private const val SENDER_EMAIL = "info.jsomitv@gmail.com"
     private const val JSTV_WEBSITE = "https://jstv.com"
