@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- PERMISSIONS - Camera, Mic, Internet for Live -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
-<uses-permission android:name="android.permission.CAMERA" />
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
-<uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/jstv_logo"
-        android:roundIcon="@mipmap/jstv_logo"
-        android:label="JSTV"
+        android:icon="@mipmap/ic_launcher"
+        android:label="JSTV - Jehovah Shalom TV"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.JSOMIBroadcaster">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:usesCleartextTraffic="true">
 
+        <!-- 1. WELCOME - LAUNCHER - FIRST SCREEN -->
         <activity
             android:name=".WelcomeActivity"
             android:exported="true">
@@ -28,10 +31,30 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".AuthActivity" android:exported="false" />
-        <activity android:name=".LiveActivity" android:exported="false" />
-        <activity android:name=".DeveloperActivity" android:exported="false" />
-        <activity android:name=".PaymentActivity" android:exported="false" />
+        <!-- 2. SIGN UP / SIGN IN -->
+        <activity
+            android:name=".AuthActivity"
+            android:exported="false" />
+
+        <!-- 3. PREMIUM / FREE - FREE FOR NOW -->
+        <activity
+            android:name=".PlanActivity"
+            android:exported="false" />
+
+        <!-- 4. SETTINGS - APPLY TO MAIN -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false" />
+
+        <!-- 5. DESTINATION CHOOSING -->
+        <activity
+            android:name=".DestinationActivity"
+            android:exported="false" />
+
+        <!-- 6. BROADCASTING SCREEN -->
+        <activity
+            android:name=".BroadcastActivity"
+            android:exported="false" />
 
     </application>
 
