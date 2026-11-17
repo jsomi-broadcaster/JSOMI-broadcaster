@@ -45,6 +45,5 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:${camerax_version}"
     implementation "androidx.camera:camera-view:${camerax_version}"
 
-    // RTMP - REAL STREAM
-    implementation("com.github.pedroSG94:rtmp-rtsp-stream-client-java:2.2.4")
+    
 }
