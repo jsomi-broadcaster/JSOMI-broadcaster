@@ -1,6 +1,5 @@
 package com.jsomi.broadcaster
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -9,57 +8,52 @@ import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.*
+import android.widget.Button
+import android.widget.CheckBox
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 
 class BroadcastActivity : AppCompatActivity() {
 
-    private lateinit var mainLayout: LinearLayout
     private lateinit var topBar: LinearLayout
-    private lateinit var btnBack: Button
-    private lateinit var btnAddFile: Button
-    private lateinit var btnGoLive: Button
-
-    // Broadcast preview area
     private lateinit var previewBox: LinearLayout
-    private lateinit var tvPreviewLabel: TextView
-    private lateinit var tvLogoOverlay: TextView
-    private lateinit var tvTitleOverlay: TextView
-    private lateinit var tvTickerOverlay: TextView
-    private lateinit var tvLoopOverlay: TextView
-
-    // Live controls - hidden until LIVE
+    private lateinit var tvPreview: TextView
+    private lateinit var tvLogo: TextView
+    private lateinit var tvTitle: TextView
+    private lateinit var tvTicker: TextView
+    private lateinit var tvLoop: TextView
     private lateinit var liveBar: LinearLayout
-    private lateinit var tvLiveIndicator: TextView
-    private lateinit var btnEnd: Button
+    private lateinit var tvLive: TextView
+    private lateinit var tvTimer: TextView
     private lateinit var btnSwitchVideo: Button
-    private lateinit var tvLiveTimer: TextView
-
-    // Studio panel
     private lateinit var studioLayout: LinearLayout
-    private lateinit var etScrollText: EditText
-    private lateinit var etTitle: EditText
-    private lateinit var etLogoText: EditText
-    private lateinit var etFileName: EditText
-    private lateinit var tvTitlesList: TextView
-    private lateinit var tvFilesList: TextView
+    private lateinit var etScroll: EditText
+    private lateinit var etTitleInput: EditText
+    private lateinit var etLogoInput: EditText
+    private lateinit var etFileInput: EditText
+    private lateinit var tvTitles: TextView
+    private lateinit var tvFiles: TextView
     private lateinit var cbIntro: CheckBox
     private lateinit var cbLoop: CheckBox
-    private lateinit var rgMode: RadioGroup
-    private lateinit var rbLiveMode: RadioButton
-    private lateinit var rbVideoMode: RadioButton
+    private lateinit var rbLive: RadioButton
+    private lateinit var rbVideo: RadioButton
 
     private var titles = mutableListOf<String>()
     private var files = mutableListOf<String>()
     private var isLive = false
     private var isVideoLoop = false
-    private var secondsLive = 0
+    private var seconds = 0
     private val handler = Handler(Looper.getMainLooper())
-    private var timerRunnable: Runnable? = null
-
-    private var channels = ""
-    private var plan = ""
+    private var timerRun: Runnable? = null
+    private var channels = "Facebook"
+    private var plan = "FREE"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,256 +63,319 @@ class BroadcastActivity : AppCompatActivity() {
         plan = prefs.getString("plan", "FREE") ?: "FREE"
 
         val scroll = ScrollView(this)
-        mainLayout = LinearLayout(this).apply {
+        val main = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
             setBackgroundColor(Color.BLACK)
         }
-        scroll.addView(mainLayout)
+        scroll.addView(main)
         setContentView(scroll)
 
-        // ===== PREVIEW / CAMERA AREA =====
+        // PREVIEW
         previewBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(Color.DKGRAY)
             setPadding(16, 16, 16, 16)
-            minimumHeight = 600
+            minimumHeight = 500
             gravity = Gravity.CENTER
         }
-        mainLayout.addView(previewBox)
+        main.addView(previewBox)
 
-        tvPreviewLabel = TextView(this).apply {
-            text = "📷 CAMERA PREVIEW\nREADY - $channels - $plan"
+        tvPreview = TextView(this).apply {
+            text = "CAMERA PREVIEW\nREADY - " + channels + " - " + plan
             textSize = 18f
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
         }
-        previewBox.addView(tvPreviewLabel)
+        previewBox.addView(tvPreview)
 
-        tvLogoOverlay = TextView(this).apply {
-            text = "JSTV LOGO"; textSize = 16f; setTextColor(Color.YELLOW); gravity = Gravity.CENTER
+        tvLogo = TextView(this).apply {
+            text = "JSTV LOGO"
+            textSize = 16f
+            setTextColor(Color.YELLOW)
+            gravity = Gravity.CENTER
         }
-        previewBox.addView(tvLogoOverlay)
+        previewBox.addView(tvLogo)
 
-        tvTitleOverlay = TextView(this).apply {
-            text = ""; textSize = 22f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
+        tvTitle = TextView(this).apply {
+            text = ""
+            textSize = 22f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
         }
-        previewBox.addView(tvTitleOverlay)
+        previewBox.addView(tvTitle)
 
-        tvLoopOverlay = TextView(this).apply {
-            text = ""; textSize = 16f; setTextColor(Color.GREEN); gravity = Gravity.CENTER; visibility = View.GONE
+        tvLoop = TextView(this).apply {
+            text = ""
+            textSize = 16f
+            setTextColor(Color.GREEN)
+            gravity = Gravity.CENTER
+            visibility = View.GONE
         }
-        previewBox.addView(tvLoopOverlay)
+        previewBox.addView(tvLoop)
 
-        // TICKER - SINGLE LINE, NEVER WRAP, SCROLLS
-        tvTickerOverlay = TextView(this).apply {
-            text = prefs.getString("ticker", "Welcome to Jehovah Shalom TV - God Bless You") ?: ""
-            textSize = 18f; setTextColor(Color.WHITE); setBackgroundColor(Color.BLACK)
+        // TICKER - SINGLE LINE, NEVER WRAP
+        tvTicker = TextView(this).apply {
+            text = prefs.getString("ticker", "Welcome to Jehovah Shalom TV") ?: "Welcome"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.BLACK)
             maxLines = 1
             setSingleLine(true)
             ellipsize = TextUtils.TruncateAt.MARQUEE
             marqueeRepeatLimit = -1
-            isSelected = true // needed for marquee to scroll
+            isSelected = true
             isSingleLine = true
         }
-        previewBox.addView(tvTickerOverlay)
+        previewBox.addView(tvTicker)
 
-        // ===== LIVE BAR - Hidden until LIVE =====
+        // LIVE BAR - Hidden until LIVE
         liveBar = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             visibility = View.GONE
             setPadding(16, 16, 16, 16)
             setBackgroundColor(Color.RED)
         }
-        mainLayout.addView(liveBar)
+        main.addView(liveBar)
 
-        tvLiveIndicator = TextView(this).apply {
-            text = "🔴 LIVE"; textSize = 24f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
+        tvLive = TextView(this).apply {
+            text = "LIVE"
+            textSize = 24f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
         }
-        liveBar.addView(tvLiveIndicator)
+        liveBar.addView(tvLive)
 
-        tvLiveTimer = TextView(this).apply {
-            text = "00:00 - $channels"; textSize = 16f; setTextColor(Color.WHITE); gravity = Gravity.CENTER
+        tvTimer = TextView(this).apply {
+            text = "00:00"
+            textSize = 16f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
         }
-        liveBar.addView(tvLiveTimer)
+        liveBar.addView(tvTimer)
 
         btnSwitchVideo = Button(this).apply {
             text = "SWITCH TO VIDEO - LOOP (Not Camera)"
-            setBackgroundColor(Color.YELLOW); setTextColor(Color.BLACK)
-            setOnClickListener { switchToVideoLoop() }
+            setBackgroundColor(Color.YELLOW)
+            setTextColor(Color.BLACK)
+            setOnClickListener { switchVideo() }
         }
         liveBar.addView(btnSwitchVideo)
 
-        btnEnd = Button(this).apply {
-            text = "⏹ END LIVE"
-            setBackgroundColor(Color.WHITE); setTextColor(Color.RED)
+        val btnEnd = Button(this).apply {
+            text = "END LIVE"
+            setBackgroundColor(Color.WHITE)
+            setTextColor(Color.RED)
             setOnClickListener { endLive() }
         }
         liveBar.addView(btnEnd)
 
-        // ===== 3 BUTTONS ONLY =====
+        // ===== ONLY 3 BUTTONS =====
         topBar = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 20, 0, 0)
         }
-        mainLayout.addView(topBar)
+        main.addView(topBar)
 
-        btnBack = makeButton("← BACK")
+        val btnBack = makeButton("BACK")
         btnBack.setOnClickListener {
             if (isLive) {
                 Toast.makeText(this, "End Live first!", Toast.LENGTH_SHORT).show()
             } else {
-                finish() // Back to Destination
+                finish()
             }
         }
         topBar.addView(btnBack)
 
-        btnAddFile = makeButton("📁 ADD FILE - STUDIO")
-        btnAddFile.setOnClickListener { toggleStudio() }
+        val btnAddFile = makeButton("ADD FILE - STUDIO")
+        btnAddFile.setOnClickListener {
+            if (studioLayout.visibility == View.VISIBLE) {
+                studioLayout.visibility = View.GONE
+            } else {
+                studioLayout.visibility = View.VISIBLE
+            }
+        }
         topBar.addView(btnAddFile)
 
-        btnGoLive = makeButton("🔴 GO LIVE")
+        val btnGoLive = makeButton("GO LIVE")
         btnGoLive.setBackgroundColor(Color.RED)
         btnGoLive.setTextColor(Color.WHITE)
-        btnGoLive.setOnClickListener { confirmAndGoLive() }
+        btnGoLive.setOnClickListener { confirmGoLive() }
         topBar.addView(btnGoLive)
 
-        // ===== STUDIO PANEL - Hidden at first =====
+        // ===== STUDIO =====
         studioLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
             setBackgroundColor(Color.DKGRAY)
             visibility = View.GONE
         }
-        mainLayout.addView(studioLayout)
-        buildStudio()
-    }
+        main.addView(studioLayout)
 
-    private fun buildStudio() {
         studioLayout.addView(TextView(this).apply {
-            text = "🎬 STUDIO FILE - Add to Broadcast"; textSize = 22f; setTextColor(Color.YELLOW)
+            text = "STUDIO FILE"
+            textSize = 22f
+            setTextColor(Color.YELLOW)
         })
         studioLayout.addView(TextView(this).apply {
-            text = "Scrolling Text is SINGLE LINE - never wraps, scrolls no matter how long"; textSize = 13f; setTextColor(Color.LTGRAY)
+            text = "Scrolling Text = SINGLE LINE, never wraps, scrolls no matter how long"
+            textSize = 13f
+            setTextColor(Color.LTGRAY)
         })
 
-        etScrollText = EditText(this).apply {
-            hint = "Scrolling Text - Single Line - e.g. Welcome to JSTV Live - Psalm 122:1 I was glad... (can be very long)"
-            setHintTextColor(Color.GRAY); setTextColor(Color.WHITE)
-            maxLines = 1; setSingleLine(true)
+        etScroll = EditText(this).apply {
+            hint = "Scrolling Text - Single Line - Write long text here"
+            setHintTextColor(Color.GRAY)
+            setTextColor(Color.WHITE)
+            maxLines = 1
+            setSingleLine(true)
         }
-        studioLayout.addView(etScrollText)
+        studioLayout.addView(etScroll)
 
-        etTitle = EditText(this).apply {
-            hint = "Title - e.g. Sunday Service Live"; setHintTextColor(Color.GRAY); setTextColor(Color.WHITE)
+        etTitleInput = EditText(this).apply {
+            hint = "Title - e.g. Sunday Service"
+            setHintTextColor(Color.GRAY)
+            setTextColor(Color.WHITE)
         }
-        studioLayout.addView(etTitle)
+        studioLayout.addView(etTitleInput)
 
-        val btnAddTitle = makeButton("➕ ADD TITLE (Unlimited)")
+        val btnAddTitle = makeButton("ADD TITLE - Unlimited")
         btnAddTitle.setOnClickListener {
-            val t = etTitle.text.toString().trim()
-            if (t.isEmpty()) { Toast.makeText(this, "Write Title first", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+            val t = etTitleInput.text.toString().trim()
+            if (t.isEmpty()) {
+                Toast.makeText(this, "Write Title first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             titles.add(t)
-            tvTitlesList.text = "Titles (${titles.size}):\n" + titles.joinToString("\n• ", prefix = "• ")
-            etTitle.setText("")
-            Toast.makeText(this, "Title Added: $t", Toast.LENGTH_SHORT).show()
+            tvTitles.text = "Titles (" + titles.size + "):\n" + titles.joinToString("\n")
+            etTitleInput.setText("")
+            Toast.makeText(this, "Title Added", Toast.LENGTH_SHORT).show()
         }
         studioLayout.addView(btnAddTitle)
 
-        tvTitlesList = TextView(this).apply { text = "Titles (0):"; setTextColor(Color.WHITE); textSize = 14f }
-        studioLayout.addView(tvTitlesList)
-
-        etLogoText = EditText(this).apply {
-            hint = "Logo Text - e.g. JSTV"; setHintTextColor(Color.GRAY); setTextColor(Color.WHITE)
+        tvTitles = TextView(this).apply {
+            text = "Titles (0):"
+            setTextColor(Color.WHITE)
         }
-        studioLayout.addView(etLogoText)
+        studioLayout.addView(tvTitles)
 
-        etFileName = EditText(this).apply {
-            hint = "File Name - e.g. intro.mp4 / worship.mp3 / verse.png"; setHintTextColor(Color.GRAY); setTextColor(Color.WHITE)
+        etLogoInput = EditText(this).apply {
+            hint = "Logo Text - e.g. JSTV"
+            setHintTextColor(Color.GRAY)
+            setTextColor(Color.WHITE)
         }
-        studioLayout.addView(etFileName)
+        studioLayout.addView(etLogoInput)
 
-        val btnAddFileItem = makeButton("➕ ADD FILE")
-        btnAddFileItem.setOnClickListener {
-            val f = etFileName.text.toString().trim()
-            if (f.isEmpty()) { Toast.makeText(this, "Write File Name first", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+        etFileInput = EditText(this).apply {
+            hint = "File Name - e.g. intro.mp4"
+            setHintTextColor(Color.GRAY)
+            setTextColor(Color.WHITE)
+        }
+        studioLayout.addView(etFileInput)
+
+        val btnAddFile2 = makeButton("ADD FILE")
+        btnAddFile2.setOnClickListener {
+            val f = etFileInput.text.toString().trim()
+            if (f.isEmpty()) {
+                Toast.makeText(this, "Write File Name", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             files.add(f)
-            tvFilesList.text = "Files (${files.size}):\n" + files.joinToString("\n• ", prefix = "• ")
-            etFileName.setText("")
-            Toast.makeText(this, "File Added: $f", Toast.LENGTH_SHORT).show()
+            tvFiles.text = "Files (" + files.size + "):\n" + files.joinToString("\n")
+            etFileInput.setText("")
         }
-        studioLayout.addView(btnAddFileItem)
+        studioLayout.addView(btnAddFile2)
 
-        tvFilesList = TextView(this).apply { text = "Files (0):"; setTextColor(Color.WHITE); textSize = 14f }
-        studioLayout.addView(tvFilesList)
+        tvFiles = TextView(this).apply {
+            text = "Files (0):"
+            setTextColor(Color.WHITE)
+        }
+        studioLayout.addView(tvFiles)
 
-        cbIntro = CheckBox(this).apply { text = "Play Intro First"; isChecked = true; setTextColor(Color.WHITE) }
+        cbIntro = CheckBox(this).apply {
+            text = "Play Intro First"
+            isChecked = true
+            setTextColor(Color.WHITE)
+        }
         studioLayout.addView(cbIntro)
-        cbLoop = CheckBox(this).apply { text = "Loop Files - Repeat Again & Again"; isChecked = true; setTextColor(Color.WHITE) }
+
+        cbLoop = CheckBox(this).apply {
+            text = "Loop Files - Repeat"
+            isChecked = true
+            setTextColor(Color.WHITE)
+        }
         studioLayout.addView(cbLoop)
 
-        studioLayout.addView(TextView(this).apply { text = "Broadcast Mode:"; setTextColor(Color.WHITE); textSize = 16f })
-        rgMode = RadioGroup(this).apply { orientation = RadioGroup.VERTICAL }
-        rbLiveMode = RadioButton(this).apply { text = "LIVE - From Camera"; isChecked = true; setTextColor(Color.WHITE) }
-        rbVideoMode = RadioButton(this).apply { text = "VIDEO - From Files / Loop (Not Camera)"; setTextColor(Color.WHITE) }
-        rgMode.addView(rbLiveMode); rgMode.addView(rbVideoMode)
-        studioLayout.addView(rgMode)
+        studioLayout.addView(TextView(this).apply {
+            text = "Broadcast Mode:"
+            setTextColor(Color.WHITE)
+        })
+        val rg = RadioGroup(this)
+        rbLive = RadioButton(this).apply {
+            text = "LIVE - From Camera"
+            isChecked = true
+            setTextColor(Color.WHITE)
+        }
+        rbVideo = RadioButton(this).apply {
+            text = "VIDEO - From Files / Loop (Not Camera)"
+            setTextColor(Color.WHITE)
+        }
+        rg.addView(rbLive)
+        rg.addView(rbVideo)
+        studioLayout.addView(rg)
 
-        val btnAddToBroadcast = makeButton("✅ ADD TO BROADCAST SCREEN")
+        val btnAddToBroadcast = makeButton("ADD TO BROADCAST SCREEN")
         btnAddToBroadcast.setBackgroundColor(Color.GREEN)
         btnAddToBroadcast.setOnClickListener { addToBroadcast() }
         studioLayout.addView(btnAddToBroadcast)
 
-        val btnCloseStudio = makeButton("CLOSE STUDIO ▲")
-        btnCloseStudio.setOnClickListener { studioLayout.visibility = View.GONE }
-        studioLayout.addView(btnCloseStudio)
-    }
-
-    private fun toggleStudio() {
-        studioLayout.visibility = if (studioLayout.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+        val btnClose = makeButton("CLOSE STUDIO")
+        btnClose.setOnClickListener { studioLayout.visibility = View.GONE }
+        studioLayout.addView(btnClose)
     }
 
     private fun addToBroadcast() {
-        // Single line scrolling text - never twin/wrap
-        val scrollTxt = etScrollText.text.toString().trim()
-        if (scrollTxt.isNotEmpty()) {
-            tvTickerOverlay.text = scrollTxt
-            tvTickerOverlay.maxLines = 1
-            tvTickerOverlay.setSingleLine(true)
-            tvTickerOverlay.ellipsize = TextUtils.TruncateAt.MARQUEE
-            tvTickerOverlay.isSelected = true
+        val s = etScroll.text.toString().trim()
+        if (s.isNotEmpty()) {
+            tvTicker.text = s
+            tvTicker.maxLines = 1
+            tvTicker.setSingleLine(true)
+            tvTicker.ellipsize = TextUtils.TruncateAt.MARQUEE
+            tvTicker.isSelected = true
         }
-        if (etLogoText.text.toString().trim().isNotEmpty()) {
-            tvLogoOverlay.text = etLogoText.text.toString().trim()
+        if (etLogoInput.text.toString().trim().isNotEmpty()) {
+            tvLogo.text = etLogoInput.text.toString().trim()
         }
         if (titles.isNotEmpty()) {
-            tvTitleOverlay.text = titles.last()
+            tvTitle.text = titles.last()
         }
-        if (rbVideoMode.isChecked) {
+        if (rbVideo.isChecked) {
             isVideoLoop = true
-            tvPreviewLabel.text = "🎬 VIDEO MODE - Playing Files / Loop\nFiles: ${files.joinToString(", ")}"
-            tvLoopOverlay.visibility = View.VISIBLE
-            tvLoopOverlay.text = "🔁 LOOP: ${if (files.isEmpty()) "No file - Add File" else files.joinToString(" → ")} | Intro: ${if (cbIntro.isChecked) "ON" else "OFF"} | Loop: ${if (cbLoop.isChecked) "ON" else "OFF"}"
+            tvPreview.text = "VIDEO MODE - Files / Loop\n" + files.joinToString(", ")
+            tvLoop.visibility = View.VISIBLE
+            tvLoop.text = "LOOP: " + files.joinToString(" - ") + " | Intro: " + cbIntro.isChecked + " | Loop: " + cbLoop.isChecked
         } else {
             isVideoLoop = false
-            tvPreviewLabel.text = "📷 CAMERA PREVIEW - LIVE MODE"
-            tvLoopOverlay.visibility = View.GONE
+            tvPreview.text = "CAMERA PREVIEW - LIVE MODE"
+            tvLoop.visibility = View.GONE
         }
         studioLayout.visibility = View.GONE
-        Toast.makeText(this, "Added to Broadcast ✅", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Added to Broadcast", Toast.LENGTH_SHORT).show()
     }
 
-    private fun confirmAndGoLive() {
-        if (isLive) { Toast.makeText(this, "Already LIVE", Toast.LENGTH_SHORT).show(); return }
+    private fun confirmGoLive() {
+        if (isLive) {
+            Toast.makeText(this, "Already LIVE", Toast.LENGTH_SHORT).show()
+            return
+        }
         AlertDialog.Builder(this)
             .setTitle("Confirm Destination?")
-            .setMessage("Go LIVE to:\n$channels\nPlan: $plan\n\nMode: ${if (isVideoLoop) "VIDEO - Loop Files" else "LIVE - Camera"}\n\nTitles: ${titles.size} | Files: ${files.size}\n\nContinue?")
-            .setPositiveButton("YES - GO LIVE") { _, _ -> startCountdown() }
+            .setMessage("Go LIVE to:\n" + channels + "\nPlan: " + plan + "\nMode: " + if (isVideoLoop) "VIDEO - Loop" else "LIVE - Camera" + "\n\nContinue?")
+            .setPositiveButton("YES - GO LIVE") { _, _ -> startCount() }
             .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun startCountdown() {
+    private fun startCount() {
         val dialog = AlertDialog.Builder(this)
             .setTitle("Get Ready!")
             .setMessage("Starting in 3...")
@@ -330,8 +387,8 @@ class BroadcastActivity : AppCompatActivity() {
         val h = Handler(Looper.getMainLooper())
         val r = object : Runnable {
             override fun run() {
-                if (i < counts.size) {
-                    dialog.setMessage("Starting in ${counts[i]}...")
+                if (i < 3) {
+                    dialog.setMessage("Starting in " + counts[i] + "...")
                     Toast.makeText(this@BroadcastActivity, counts[i], Toast.LENGTH_SHORT).show()
                     i++
                     h.postDelayed(this, 1000)
@@ -346,58 +403,58 @@ class BroadcastActivity : AppCompatActivity() {
 
     private fun beginLive() {
         isLive = true
-        // FULLSCREEN
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        // Hide top 3 buttons, show Live Bar
         topBar.visibility = View.GONE
         studioLayout.visibility = View.GONE
         liveBar.visibility = View.VISIBLE
-        tvLiveIndicator.text = "🔴 LIVE - $channels"
-        tvPreviewLabel.text = if (isVideoLoop) "🎬 LIVE - VIDEO LOOP PLAYING\n${files.joinToString(", ")}" else "🔴 LIVE - CAMERA"
-        Toast.makeText(this, "🔴 LIVE BEGUN!", Toast.LENGTH_LONG).show()
-        secondsLive = 0
-        timerRunnable = object : Runnable {
+        tvLive.text = "LIVE - " + channels
+        if (isVideoLoop) {
+            tvPreview.text = "LIVE - VIDEO LOOP\n" + files.joinToString(", ")
+        } else {
+            tvPreview.text = "LIVE - CAMERA"
+        }
+        Toast.makeText(this, "LIVE BEGUN!", Toast.LENGTH_LONG).show()
+        seconds = 0
+        timerRun = object : Runnable {
             override fun run() {
-                secondsLive++
-                val m = secondsLive / 60
-                val s = secondsLive % 60
-                tvLiveTimer.text = String.format("%02d:%02d - %s", m, s, if (isVideoLoop) "VIDEO LOOP" else "CAMERA")
+                seconds++
+                val m = seconds / 60
+                val s = seconds % 60
+                tvTimer.text = String.format("%02d:%02d - %s", m, s, if (isVideoLoop) "VIDEO LOOP" else "CAMERA")
                 handler.postDelayed(this, 1000)
             }
         }
-        handler.post(timerRunnable!!)
+        handler.post(timerRun!!)
     }
 
-    private fun switchToVideoLoop() {
+    private fun switchVideo() {
         if (!isLive) return
         if (!isVideoLoop) {
             isVideoLoop = true
-            tvPreviewLabel.text = "🎬 LIVE - SWITCHED TO VIDEO - LOOP\nFiles: ${if (files.isEmpty()) "No file - Add in Studio before Live" else files.joinToString(", ")}"
-            tvLoopOverlay.visibility = View.VISIBLE
-            tvLoopOverlay.text = "🔁 LOOP PLAYING - Not Camera"
+            tvPreview.text = "LIVE - VIDEO LOOP\n" + files.joinToString(", ")
+            tvLoop.visibility = View.VISIBLE
+            tvLoop.text = "LOOP PLAYING - Not Camera"
             btnSwitchVideo.text = "SWITCH BACK TO CAMERA"
-            Toast.makeText(this, "Switched to Video Loop - Camera OFF", Toast.LENGTH_SHORT).show()
         } else {
             isVideoLoop = false
-            tvPreviewLabel.text = "🔴 LIVE - CAMERA"
-            tvLoopOverlay.visibility = View.GONE
+            tvPreview.text = "LIVE - CAMERA"
+            tvLoop.visibility = View.GONE
             btnSwitchVideo.text = "SWITCH TO VIDEO - LOOP (Not Camera)"
-            Toast.makeText(this, "Back to Camera", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun endLive() {
         AlertDialog.Builder(this)
             .setTitle("End Live?")
-            .setMessage("Are you sure you want to END this Live?")
+            .setMessage("End this Live?")
             .setPositiveButton("END LIVE") { _, _ ->
                 isLive = false
-                timerRunnable?.let { handler.removeCallbacks(it) }
+                timerRun?.let { handler.removeCallbacks(it) }
                 window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 liveBar.visibility = View.GONE
                 topBar.visibility = View.VISIBLE
-                tvPreviewLabel.text = "📷 CAMERA PREVIEW\nLIVE ENDED - $channels"
+                tvPreview.text = "CAMERA PREVIEW\nLIVE ENDED - " + channels
                 Toast.makeText(this, "Live Ended", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Keep Live", null)
@@ -406,9 +463,13 @@ class BroadcastActivity : AppCompatActivity() {
 
     private fun makeButton(t: String): Button {
         return Button(this).apply {
-            text = t; setBackgroundColor(Color.LTGRAY); setTextColor(Color.BLACK); textSize = 18f
+            text = t
+            setBackgroundColor(Color.LTGRAY)
+            setTextColor(Color.BLACK)
+            textSize = 18f
             val p = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            p.topMargin = 16; layoutParams = p
+            p.topMargin = 16
+            layoutParams = p
         }
     }
 }
