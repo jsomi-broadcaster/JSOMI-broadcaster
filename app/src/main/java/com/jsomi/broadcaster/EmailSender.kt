@@ -1,74 +1,79 @@
 package com.jsomi.broadcaster
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import android.util.Log
 import org.json.JSONObject
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 
 // ============================================
 // JSTV EMAIL SYSTEM - Powered by Brevo
-// SAFE VERSION - No API Key Inside
-// Key comes from local.properties -> BuildConfig
+// File: EmailSender.kt
+// SAFE VERSION - Key comes from BuildConfig, not here
 // ============================================
 
 object EmailSender {
 
-    private val client = OkHttpClient()
+    private const val TAG = "JSTV_Email"
+    private const val BREVO_URL = "https://api.brevo.com/v3/smtp/email"
     private const val SENDER_NAME = "JSTV"
     private const val SENDER_EMAIL = "info.jsomitv@gmail.com"
     private const val JSTV_WEBSITE = "https://jstv.com"
 
-    // --- 1. MAIN SENDER ---
-    private suspend fun sendEmail(
+    // Key is injected from local.properties -> BuildConfig
+    // Never paste the real key in this file
+    private val apiKey: String
+        get() = BuildConfig.BREVO_API_KEY
+
+    fun sendEmail(
         toEmail: String,
         toName: String,
         subject: String,
-        htmlContent: String
-    ): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val apiKey = BuildConfig.BREVO_API_KEY
+        htmlContent: String,
+        onResult: (Boolean) -> Unit = {}
+    ) {
+        Thread {
+            try {
+                val url = URL(BREVO_URL)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("accept", "application/json")
+                connection.setRequestProperty("api-key", apiKey)
+                connection.setRequestProperty("content-type", "application/json")
+                connection.doOutput = true
 
-            val json = JSONObject().apply {
-                put("sender", JSONObject().apply {
-                    put("name", SENDER_NAME)
-                    put("email", SENDER_EMAIL)
-                })
-                put("to", org.json.JSONArray().apply {
-                    put(JSONObject().apply {
-                        put("email", toEmail)
-                        put("name", toName)
+                val body = JSONObject().apply {
+                    put("sender", JSONObject().apply {
+                        put("name", SENDER_NAME)
+                        put("email", SENDER_EMAIL)
                     })
-                })
-                put("subject", subject)
-                put("htmlContent", htmlContent)
+                    put("to", org.json.JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("email", toEmail)
+                            put("name", toName)
+                        })
+                    })
+                    put("subject", subject)
+                    put("htmlContent", htmlContent)
+                }
+
+                val writer = OutputStreamWriter(connection.outputStream)
+                writer.write(body.toString())
+                writer.flush()
+                writer.close()
+
+                val code = connection.responseCode
+                Log.d(TAG, "Email to $toEmail -> HTTP $code")
+                onResult(code in 200..299)
+                connection.disconnect()
+            } catch (e: Exception) {
+                Log.e(TAG, "Email failed: ${e.message}", e)
+                onResult(false)
             }
-
-            val body = json.toString()
-                .toRequestBody("application/json".toMediaType())
-
-            val request = Request.Builder()
-                .url("https://api.brevo.com/v3/smtp/email")
-                .addHeader("accept", "application/json")
-                .addHeader("api-key", apiKey)
-                .addHeader("content-type", "application/json")
-                .post(body)
-                .build()
-
-            val response = client.newCall(request).execute()
-            val responseBody = response.body?.string() ?: ""
-            println("JSTV Email Response: $responseBody")
-            return@withContext response.isSuccessful
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return@withContext false
-        }
+        }.start()
     }
 
-    // --- 2. WELCOME EMAIL ---
-    suspend fun sendWelcomeEmail(toEmail: String, toName: String): Boolean {
+    fun sendWelcomeEmail(toEmail: String, toName: String, onResult: (Boolean) -> Unit = {}) {
         val html = """
             <div style="font-family:Arial; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:10px;">
               <h1 style="color:#000;">Welcome to JSTV 🎉</h1>
@@ -79,25 +84,23 @@ object EmailSender {
               <p style="color:#888; font-size:12px;">- JSTV Team<br>info.jsomitv@gmail.com</p>
             </div>
         """.trimIndent()
-        return sendEmail(toEmail, toName, "Welcome to JSTV 🎉", html)
+        sendEmail(toEmail, toName, "Welcome to JSTV 🎉", html, onResult)
     }
 
-    // --- 3. OTP / VERIFICATION CODE ---
-    suspend fun sendOTPEmail(toEmail: String, toName: String, otpCode: String): Boolean {
+    fun sendOTPEmail(toEmail: String, toName: String, otpCode: String, onResult: (Boolean) -> Unit = {}) {
         val html = """
             <div style="font-family:Arial; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:10px; text-align:center;">
               <h2>Hello $toName</h2>
               <p>Your JSTV verification code is:</p>
               <h1 style="font-size:45px; letter-spacing:8px; background:#f5f5f5; padding:15px; border-radius:10px;">$otpCode</h1>
-              <p>This code expires in <b>10 minutes</b>. Do not share it with anyone.</p>
+              <p>This code expires in <b>10 minutes</b>. Do not share it.</p>
               <p style="color:#888; font-size:12px;">- JSTV Team</p>
             </div>
         """.trimIndent()
-        return sendEmail(toEmail, toName, "Your JSTV Code: $otpCode", html)
+        sendEmail(toEmail, toName, "Your JSTV Code: $otpCode", html, onResult)
     }
 
-    // --- 4. PASSWORD RESET ---
-    suspend fun sendPasswordResetEmail(toEmail: String, toName: String, resetLink: String): Boolean {
+    fun sendPasswordResetEmail(toEmail: String, toName: String, resetLink: String, onResult: (Boolean) -> Unit = {}) {
         val html = """
             <div style="font-family:Arial; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:10px;">
               <h2>Hello $toName</h2>
@@ -109,6 +112,6 @@ object EmailSender {
               <p style="color:#888; font-size:12px;">- JSTV Team</p>
             </div>
         """.trimIndent()
-        return sendEmail(toEmail, toName, "Reset Your JSTV Password", html)
+        sendEmail(toEmail, toName, "Reset Your JSTV Password", html, onResult)
     }
 }
