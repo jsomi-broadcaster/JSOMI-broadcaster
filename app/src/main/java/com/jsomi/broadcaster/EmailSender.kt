@@ -1,6 +1,5 @@
 package com.jsomi.broadcaster
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -10,22 +9,20 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
 // ============================================
-// JSTV / JSOMI Email System - Powered by Brevo
+// JSTV EMAIL SYSTEM - Powered by Brevo
 // SAFE VERSION - No API Key Inside
 // Key comes from local.properties -> BuildConfig
 // ============================================
 
 object EmailSender {
 
-    private const val TAG = "JSTV-Email"
+    private val client = OkHttpClient()
     private const val SENDER_NAME = "JSTV"
     private const val SENDER_EMAIL = "info.jsomitv@gmail.com"
     private const val JSTV_WEBSITE = "https://jstv.com"
 
-    private val client = OkHttpClient()
-
     // --- 1. MAIN SENDER ---
-    suspend fun sendEmail(
+    private suspend fun sendEmail(
         toEmail: String,
         toName: String,
         subject: String,
@@ -54,25 +51,19 @@ object EmailSender {
 
             val request = Request.Builder()
                 .url("https://api.brevo.com/v3/smtp/email")
-                .post(body)
                 .addHeader("accept", "application/json")
                 .addHeader("api-key", apiKey)
                 .addHeader("content-type", "application/json")
+                .post(body)
                 .build()
 
             val response = client.newCall(request).execute()
             val responseBody = response.body?.string() ?: ""
-
-            if (response.isSuccessful) {
-                Log.d(TAG, "✅ Email Sent to: $toEmail")
-                true
-            } else {
-                Log.e(TAG, "❌ Email Failed: $responseBody")
-                false
-            }
+            println("JSTV Email Response: $responseBody")
+            return@withContext response.isSuccessful
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Email Error: ${e.message}")
-            false
+            e.printStackTrace()
+            return@withContext false
         }
     }
 
@@ -98,7 +89,7 @@ object EmailSender {
               <h2>Hello $toName</h2>
               <p>Your JSTV verification code is:</p>
               <h1 style="font-size:45px; letter-spacing:8px; background:#f5f5f5; padding:15px; border-radius:10px;">$otpCode</h1>
-              <p>This code expires in <b>10 minutes</b>. Do not share it.</p>
+              <p>This code expires in <b>10 minutes</b>. Do not share it with anyone.</p>
               <p style="color:#888; font-size:12px;">- JSTV Team</p>
             </div>
         """.trimIndent()
@@ -111,6 +102,7 @@ object EmailSender {
             <div style="font-family:Arial; max-width:600px; margin:auto; padding:20px; border:1px solid #eee; border-radius:10px;">
               <h2>Hello $toName</h2>
               <p>You requested to reset your JSTV password.</p>
+              <p>Click the button below:</p>
               <a href="$resetLink" style="background:#000; color:#fff; padding:12px 25px; text-decoration:none; border-radius:5px; display:inline-block;">Reset Password</a>
               <p style="margin-top:20px;">Or copy this link:<br>$resetLink</p>
               <p>If you did not request this, just ignore this email.</p>
