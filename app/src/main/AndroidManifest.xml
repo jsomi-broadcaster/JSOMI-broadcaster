@@ -54,7 +54,10 @@
         <activity
             android:name=".BroadcastActivity"
             android:exported="false" />
-
+<!-- 7. REAL STREAM - YOUTUBE / FACEBOOK RTMP -->
+<activity
+    android:name=".RealStreamActivity"
+    android:exported="false" />
     </application>
 
 </manifest>
