@@ -18,12 +18,21 @@ class RealStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
         super.onCreate(savedInstanceState)
 
         val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
-        val dest = prefs.getString("destination", "YouTube") ?: "YouTube"
-        val key = prefs.getString("streamKey", "") ?: ""
-        // Real RTMP URLs
-        val baseUrl = if (dest == "Facebook") "rtmp://live-api-s.facebook.com:80/rtmp/"
-                      else "rtmp://a.rtmp.youtube.com/live2/"
-        rtmpUrl = baseUrl + key
+val channels = prefs.getString("selected_channels", "") ?: ""
+val fbUrl = prefs.getString("fb_full_url", "") ?: ""
+val ytUrl = prefs.getString("yt_full_url", "") ?: ""
+val ttUrl = prefs.getString("tt_full_url", "") ?: ""
+val dest = when {
+    channels.contains("FACEBOOK") -> "Facebook"
+    channels.contains("TIKTOK") -> "TikTok"
+    else -> "YouTube"
+}
+val key = when (dest) {
+    "Facebook" -> fbUrl
+    "TikTok" -> ttUrl
+    else -> ytUrl
+}
+rtmpUrl = key
 
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
