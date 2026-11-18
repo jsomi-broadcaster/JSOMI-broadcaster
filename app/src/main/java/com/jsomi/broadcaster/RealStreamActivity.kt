@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.pedro.library.rtmp.RtmpCamera1
-import com.pedro.library.utils.ConnectChecker
+import com.pedro.library.base.ConnectChecker
 import com.pedro.library.view.OpenGlView
 
 class RealStreamActivity : AppCompatActivity(), ConnectChecker {
