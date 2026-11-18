@@ -3,13 +3,13 @@ package com.jsomi.broadcaster
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.pedro.rtmp.rtmp.RtmpCamera1
-import com.pedro.rtmp.utils.ConnectCheckerRtmp
+import com.pedro.library.rtmp.RtmpCamera
+import com.pedro.library.base.ConnectChecker
 import android.view.SurfaceView
 
-class RealStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
+class RealStreamActivity : AppCompatActivity(), ConnectChecker {
 
-    private lateinit var rtmpCamera: RtmpCamera1
+    private lateinit var rtmpCamera: RtmpCamera
     private lateinit var surfaceView: SurfaceView
     private lateinit var statusText: TextView
     private var rtmpUrl = ""
@@ -18,21 +18,21 @@ class RealStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
         super.onCreate(savedInstanceState)
 
         val prefs = getSharedPreferences("jstv", MODE_PRIVATE)
-val channels = prefs.getString("selected_channels", "") ?: ""
-val fbUrl = prefs.getString("fb_full_url", "") ?: ""
-val ytUrl = prefs.getString("yt_full_url", "") ?: ""
-val ttUrl = prefs.getString("tt_full_url", "") ?: ""
-val dest = when {
-    channels.contains("FACEBOOK") -> "Facebook"
-    channels.contains("TIKTOK") -> "TikTok"
-    else -> "YouTube"
-}
-val key = when (dest) {
-    "Facebook" -> fbUrl
-    "TikTok" -> ttUrl
-    else -> ytUrl
-}
-rtmpUrl = key
+        val channels = prefs.getString("selected_channels", "") ?: ""
+        val fbUrl = prefs.getString("fb_full_url", "") ?: ""
+        val ytUrl = prefs.getString("yt_full_url", "") ?: ""
+        val ttUrl = prefs.getString("tt_full_url", "") ?: ""
+        val dest = when {
+            channels.contains("FACEBOOK") -> "Facebook"
+            channels.contains("TIKTOK") -> "TikTok"
+            else -> "YouTube"
+        }
+        val key = when (dest) {
+            "Facebook" -> fbUrl
+            "TikTok" -> ttUrl
+            else -> ytUrl
+        }
+        rtmpUrl = key
 
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -52,7 +52,7 @@ rtmpUrl = key
         }
         val stopBtn = Button(this).apply { text = "STOP LIVE" }
 
-        rtmpCamera = RtmpCamera1(surfaceView, this)
+        rtmpCamera = RtmpCamera(surfaceView, this)
 
         startBtn.setOnClickListener {
             if (key.isEmpty()) {
@@ -78,20 +78,20 @@ rtmpUrl = key
         setContentView(layout)
     }
 
-    override fun onConnectionSuccessRtmp() {
+    override fun onConnectionSuccess() {
         runOnUiThread { statusText.text = "CONNECTED - YOU ARE LIVE FOR REAL!" }
     }
-    override fun onConnectionFailedRtmp(reason: String) {
+    override fun onConnectionFailed(reason: String) {
         runOnUiThread { statusText.text = "FAILED: $reason\nCheck Stream Key + Internet" }
     }
-    override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() {
+    override fun onNewBitrate(bitrate: Long) {}
+    override fun onDisconnect() {
         runOnUiThread { statusText.text = "Disconnected" }
     }
-    override fun onAuthErrorRtmp() {
+    override fun onAuthError() {
         runOnUiThread { statusText.text = "AUTH ERROR - Wrong Stream Key" }
     }
-    override fun onAuthSuccessRtmp() {
+    override fun onAuthSuccess() {
         runOnUiThread { statusText.text = "Auth OK - LIVE!" }
     }
     override fun onDestroy() {
