@@ -17,7 +17,7 @@ class WelcomeActivity : AppCompatActivity() {
             setBackgroundColor(android.graphics.Color.BLACK)
         }
         val logo = ImageView(this).apply {
-            setImageResource(jstv_logo.png) // YOUR OLD LOGO - keep
+            setImageResource(@mipmap/jstv_logo) // YOUR OLD LOGO - keep
             layoutParams = LinearLayout.LayoutParams(500, 500)
         }
         layout.addView(logo)
