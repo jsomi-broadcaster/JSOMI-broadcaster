@@ -3,7 +3,13 @@ pluginManagement {
         google()
         mavenCentral()
         gradlePluginPortal()
-        maven { url 'https://jitpack.io' }
+        maven {
+            url 'https://jitpack.io'
+            credentials {
+                username = "jitpack"
+                password = System.getenv("JITPACK_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
     }
 }
 dependencyResolutionManagement {
@@ -11,7 +17,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' }
+        maven {
+            url 'https://jitpack.io'
+            credentials {
+                username = "jitpack"
+                password = System.getenv("JITPACK_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
     }
 }
 rootProject.name = "JSOMI-broadcaster"
