@@ -14,6 +14,7 @@ class RealStreamActivity : AppCompatActivity() {
     private lateinit var openGlView: OpenGlView
     private lateinit var statusText: TextView
     private var rtmpUrl = ""
+    private var lastError = "not tried yet"
 
     private fun call(name: String, vararg args: Any?) {
         val c = rtmpCamera ?: return
@@ -24,6 +25,57 @@ class RealStreamActivity : AppCompatActivity() {
         val c = rtmpCamera ?: return false
         val method = c.javaClass.methods.firstOrNull { it.name == name && it.parameterTypes.isEmpty() }
         return try { (method?.invoke(c) as? Boolean) ?: false } catch (e: Exception) { false }
+    }
+
+    private fun makeChecker(checkerClass: Class<*>): Any {
+        return Proxy.newProxyInstance(
+            checkerClass.classLoader,
+            arrayOf(checkerClass)
+        ) { _: Any, method: Method, args: Array<Any?>? ->
+            when (method.name) {
+                "onConnectionSuccess", "onConnectionSuccessRtmp" -> runOnUiThread { statusText.text = "CONNECTED - YOU ARE LIVE FOR REAL!" }
+                "onConnectionFailed", "onConnectionFailedRtmp" -> runOnUiThread { statusText.text = "FAILED: ${args?.getOrNull(0)}" }
+                "onDisconnect", "onDisconnectRtmp" -> runOnUiThread { statusText.text = "Disconnected" }
+                "onAuthError", "onAuthErrorRtmp" -> runOnUiThread { statusText.text = "AUTH ERROR - Wrong Stream Key" }
+                "onAuthSuccess", "onAuthSuccessRtmp" -> runOnUiThread { statusText.text = "Auth OK - LIVE!" }
+                "onNewBitrate", "onNewBitrateRtmp" -> { }
+            }
+            if (method.returnType == Boolean::class.javaPrimitiveType) false else null
+        }
+    }
+
+    private fun tryCreate(): Boolean {
+        lastError = ""
+        try {
+            val ctors = RtmpCamera1::class.java.constructors.filter { it.parameterTypes.size == 2 }
+            // 1st try: with Proxy checker
+            for (ctor in ctors) {
+                try {
+                    val checker = makeChecker(ctor.parameterTypes[1])
+                    val firstArg: Any = if (ctor.parameterTypes[0].isAssignableFrom(openGlView.javaClass)) openGlView else this
+                    rtmpCamera = ctor.newInstance(firstArg, checker)
+                    if (rtmpCamera != null) return true
+                } catch (e: Exception) {
+                    lastError += "Proxy try ${ctor.parameterTypes[0].simpleName}: ${e.cause ?: e.message}\n"
+                }
+            }
+            // 2nd try: with NULL checker - streaming still works, just no callbacks
+            for (ctor in ctors) {
+                try {
+                    val firstArg: Any = if (ctor.parameterTypes[0].isAssignableFrom(openGlView.javaClass)) openGlView else this
+                    rtmpCamera = ctor.newInstance(firstArg, null)
+                    if (rtmpCamera != null) {
+                        lastError = "Created with null checker - will stream but no status callbacks"
+                        return true
+                    }
+                } catch (e: Exception) {
+                    lastError += "Null try ${ctor.parameterTypes[0].simpleName}: ${e.cause ?: e.message}\n"
+                }
+            }
+        } catch (e: Exception) {
+            lastError = "${e.javaClass.simpleName}: ${e.cause ?: e.message}"
+        }
+        return false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,56 +116,31 @@ class RealStreamActivity : AppCompatActivity() {
         }
         val stopBtn = Button(this).apply { text = "STOP LIVE" }
 
-        // Try EVERY 2-arg constructor, not just the OpenGlView one.
-        // OpenGlView extends SurfaceView, so SurfaceView constructor also works.
-        var lastError: String = "none"
-        try {
-            val ctors = RtmpCamera1::class.java.constructors.filter { it.parameterTypes.size == 2 }
-            for (ctor in ctors) {
-                try {
-                    val checkerClass = ctor.parameterTypes[1]
-                    val checker = Proxy.newProxyInstance(
-                        checkerClass.classLoader,
-                        arrayOf(checkerClass)
-                    ) { _: Any, method: Method, args: Array<Any?>? ->
-                        when (method.name) {
-                            "onConnectionSuccess", "onConnectionSuccessRtmp" -> runOnUiThread { statusText.text = "CONNECTED - YOU ARE LIVE FOR REAL!" }
-                            "onConnectionFailed", "onConnectionFailedRtmp" -> runOnUiThread { statusText.text = "FAILED: ${args?.getOrNull(0)}\nCheck Stream Key + Internet" }
-                            "onDisconnect", "onDisconnectRtmp" -> runOnUiThread { statusText.text = "Disconnected" }
-                            "onAuthError", "onAuthErrorRtmp" -> runOnUiThread { statusText.text = "AUTH ERROR - Wrong Stream Key" }
-                            "onAuthSuccess", "onAuthSuccessRtmp" -> runOnUiThread { statusText.text = "Auth OK - LIVE!" }
-                            "onNewBitrate", "onNewBitrateRtmp" -> { }
-                        }
-                        // Return correct default for non-void methods
-                        if (method.returnType == Boolean::class.javaPrimitiveType) false else null
-                    }
-                    // First arg can be OpenGlView, SurfaceView, TextureView, or Context
-                    // OpenGlView works for all view ones because it IS a SurfaceView
-                    val firstArg: Any = if (ctor.parameterTypes[0].isAssignableFrom(openGlView.javaClass)) openGlView else this
-                    rtmpCamera = ctor.newInstance(firstArg, checker)
-                    if (rtmpCamera != null) break
-                } catch (e: Exception) {
-                    lastError = "${e.javaClass.simpleName}: ${e.cause ?: e.message}"
-                }
-            }
-            if (rtmpCamera == null) statusText.text = "ERROR creating streamer:\n$lastError"
-        } catch (e: Exception) {
-            statusText.text = "ERROR creating streamer:\n${e.javaClass.simpleName}: ${e.cause ?: e.message}"
+        if (tryCreate()) {
+            statusText.text = "Streamer ready - Destination: $dest\nPress START REAL LIVE"
+        } else {
+            statusText.text = "ERROR creating streamer:\n$lastError"
         }
 
         startBtn.setOnClickListener {
             if (rtmpCamera == null) {
-                statusText.text = "Streamer not created, cannot start. Reopen screen."
-                return@setOnClickListener
+                // Retry creation on press, don't hide error
+                if (tryCreate()) {
+                    statusText.text = "Retry OK - Streamer ready, press START again"
+                    return@setOnClickListener
+                } else {
+                    statusText.text = "Still failed:\n$lastError"
+                    return@setOnClickListener
+                }
             }
             if (key.isEmpty()) {
-                statusText.text = "ERROR: No Stream Key. Go back to Live Setup and paste your YouTube/Facebook Stream Key."
+                statusText.text = "ERROR: No Stream Key. Go back to Live Setup."
                 return@setOnClickListener
             }
             if (!callBool("isStreaming")) {
                 call("startPreview")
                 call("startStream", rtmpUrl)
-                statusText.text = "LIVE NOW - Streaming to $dest\nCheck YouTube/Facebook to confirm"
+                statusText.text = "STREAMING to $dest - Check YouTube/Facebook to confirm\nIf null-checker mode, no Auth popup will show, check YouTube directly"
             }
         }
         stopBtn.setOnClickListener {
