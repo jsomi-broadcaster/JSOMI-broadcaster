@@ -271,6 +271,6 @@ class DestinationActivity : AppCompatActivity() {
         }
         prefs.apply()
         Toast.makeText(this, "Keys Correct - Going to Broadcasting", Toast.LENGTH_SHORT).show()
-        startActivity(Intent(this, BroadcastActivity::class.java))
+        startActivity(Intent(this, RealStreamActivity::class.java))
     }
 }
