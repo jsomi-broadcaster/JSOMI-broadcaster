@@ -6,8 +6,8 @@ pluginManagement {
         maven {
             url 'https://jitpack.io'
             credentials {
-                username = "jitpack"
-                password = System.getenv("JITPACK_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+    username = System.getenv("JITPACK_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+    password = "."
             }
         }
     }
@@ -20,8 +20,8 @@ dependencyResolutionManagement {
         maven {
             url 'https://jitpack.io'
             credentials {
-                username = "jitpack"
-                password = System.getenv("JITPACK_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+    username = System.getenv("JITPACK_TOKEN") ?: System.getenv("GITHUB_TOKEN") ?: ""
+    password = "."
             }
         }
     }
