@@ -1,9 +1,12 @@
 package com.jsomi.broadcaster
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.pedro.library.rtmp.RtmpCamera1
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.pedro.library.view.OpenGlView
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -11,10 +14,12 @@ import java.lang.reflect.Proxy
 class RealStreamActivity : AppCompatActivity() {
 
     private var rtmpCamera: Any? = null
+    private var rtmpCameraClass: Class<*>? = null
     private lateinit var openGlView: OpenGlView
     private lateinit var statusText: TextView
     private var rtmpUrl = ""
-    private var lastError = "not tried yet"
+    private var dest = "YouTube"
+    private var lastError = ""
 
     private fun call(name: String, vararg args: Any?) {
         val c = rtmpCamera ?: return
@@ -28,10 +33,7 @@ class RealStreamActivity : AppCompatActivity() {
     }
 
     private fun makeChecker(checkerClass: Class<*>): Any {
-        return Proxy.newProxyInstance(
-            checkerClass.classLoader,
-            arrayOf(checkerClass)
-        ) { _: Any, method: Method, args: Array<Any?>? ->
+        return Proxy.newProxyInstance(checkerClass.classLoader, arrayOf(checkerClass)) { _: Any, method: Method, args: Array<Any?>? ->
             when (method.name) {
                 "onConnectionSuccess", "onConnectionSuccessRtmp" -> runOnUiThread { statusText.text = "CONNECTED - YOU ARE LIVE FOR REAL!" }
                 "onConnectionFailed", "onConnectionFailedRtmp" -> runOnUiThread { statusText.text = "FAILED: ${args?.getOrNull(0)}" }
@@ -44,38 +46,51 @@ class RealStreamActivity : AppCompatActivity() {
         }
     }
 
-    private fun tryCreate(): Boolean {
-        lastError = ""
+    private fun tryCreateWith(clazz: Class<*>): Boolean {
         try {
-            val ctors = RtmpCamera1::class.java.constructors.filter { it.parameterTypes.size == 2 }
-            // 1st try: with Proxy checker
+            val ctors = clazz.constructors.filter { it.parameterTypes.size == 2 }
             for (ctor in ctors) {
                 try {
+                    // Only try OpenGlView / SurfaceView constructors, skip TextureView/Context - they need different view
+                    if (!ctor.parameterTypes[0].isAssignableFrom(openGlView.javaClass)) continue
                     val checker = makeChecker(ctor.parameterTypes[1])
-                    val firstArg: Any = if (ctor.parameterTypes[0].isAssignableFrom(openGlView.javaClass)) openGlView else this
-                    rtmpCamera = ctor.newInstance(firstArg, checker)
-                    if (rtmpCamera != null) return true
-                } catch (e: Exception) {
-                    lastError += "Proxy try ${ctor.parameterTypes[0].simpleName}: ${e.cause ?: e.message}\n"
-                }
-            }
-            // 2nd try: with NULL checker - streaming still works, just no callbacks
-            for (ctor in ctors) {
-                try {
-                    val firstArg: Any = if (ctor.parameterTypes[0].isAssignableFrom(openGlView.javaClass)) openGlView else this
-                    rtmpCamera = ctor.newInstance(firstArg, null)
+                    rtmpCamera = ctor.newInstance(openGlView, checker)
                     if (rtmpCamera != null) {
-                        lastError = "Created with null checker - will stream but no status callbacks"
+                        rtmpCameraClass = clazz
                         return true
                     }
                 } catch (e: Exception) {
-                    lastError += "Null try ${ctor.parameterTypes[0].simpleName}: ${e.cause ?: e.message}\n"
+                    lastError += "${clazz.simpleName} ${ctor.parameterTypes[0].simpleName}: ${e.cause ?: e.message}\n"
                 }
             }
         } catch (e: Exception) {
-            lastError = "${e.javaClass.simpleName}: ${e.cause ?: e.message}"
+            lastError += "${clazz.simpleName}: ${e.cause ?: e.message}\n"
         }
         return false
+    }
+
+    private fun tryCreate(): Boolean {
+        lastError = ""
+        rtmpCamera = null
+        // Try Camera1 first, then Camera2 - Camera2 works on most modern phones when Camera1 fails
+        if (tryCreateWith(Class.forName("com.pedro.library.rtmp.RtmpCamera1"))) return true
+        if (tryCreateWith(Class.forName("com.pedro.library.rtmp.RtmpCamera2"))) return true
+        return false
+    }
+
+    private fun hasPermissions(): Boolean {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (hasPermissions()) {
+            if (tryCreate()) statusText.text = "Permissions OK - Streamer ready - Press START"
+            else statusText.text = "Permissions OK but still failed:\n$lastError"
+        } else {
+            statusText.text = "PERMISSION DENIED - Go to Settings > Apps > JSOMI > Permissions > Allow Camera + Mic, then reopen"
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,17 +101,16 @@ class RealStreamActivity : AppCompatActivity() {
         val fbUrl = prefs.getString("fb_full_url", "") ?: ""
         val ytUrl = prefs.getString("yt_full_url", "") ?: ""
         val ttUrl = prefs.getString("tt_full_url", "") ?: ""
-        val dest = when {
+        dest = when {
             channels.contains("FACEBOOK") -> "Facebook"
             channels.contains("TIKTOK") -> "TikTok"
             else -> "YouTube"
         }
-        val key = when (dest) {
+        rtmpUrl = when (dest) {
             "Facebook" -> fbUrl
             "TikTok" -> ttUrl
             else -> ytUrl
         }
-        rtmpUrl = key
 
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -104,7 +118,7 @@ class RealStreamActivity : AppCompatActivity() {
         }
         openGlView = OpenGlView(this)
         statusText = TextView(this).apply {
-            text = "Destination: $dest\nReady - Press START to go REAL LIVE"
+            text = "Destination: $dest\nChecking permissions..."
             setTextColor(android.graphics.Color.WHITE)
             textSize = 14f
             setPadding(20, 20, 20, 20)
@@ -116,31 +130,37 @@ class RealStreamActivity : AppCompatActivity() {
         }
         val stopBtn = Button(this).apply { text = "STOP LIVE" }
 
-        if (tryCreate()) {
-            statusText.text = "Streamer ready - Destination: $dest\nPress START REAL LIVE"
+        if (!hasPermissions()) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 100)
+            statusText.text = "Please Allow Camera + Microphone when asked"
         } else {
-            statusText.text = "ERROR creating streamer:\n$lastError"
+            if (tryCreate()) statusText.text = "Streamer ready - Destination: $dest\nPress START REAL LIVE"
+            else statusText.text = "ERROR creating streamer:\n$lastError\n\nClose all other camera apps and reopen"
         }
 
         startBtn.setOnClickListener {
+            if (!hasPermissions()) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO), 100)
+                statusText.text = "Need Camera + Mic permission - allow and press START again"
+                return@setOnClickListener
+            }
             if (rtmpCamera == null) {
-                // Retry creation on press, don't hide error
                 if (tryCreate()) {
-                    statusText.text = "Retry OK - Streamer ready, press START again"
+                    statusText.text = "Retry OK - press START again"
                     return@setOnClickListener
                 } else {
-                    statusText.text = "Still failed:\n$lastError"
+                    statusText.text = "Still failed:\n$lastError\n\nClose Camera app, allow permissions in Settings"
                     return@setOnClickListener
                 }
             }
-            if (key.isEmpty()) {
+            if (rtmpUrl.isEmpty()) {
                 statusText.text = "ERROR: No Stream Key. Go back to Live Setup."
                 return@setOnClickListener
             }
             if (!callBool("isStreaming")) {
                 call("startPreview")
                 call("startStream", rtmpUrl)
-                statusText.text = "STREAMING to $dest - Check YouTube/Facebook to confirm\nIf null-checker mode, no Auth popup will show, check YouTube directly"
+                statusText.text = "STREAMING to $dest - Check YouTube/Facebook to confirm"
             }
         }
         stopBtn.setOnClickListener {
