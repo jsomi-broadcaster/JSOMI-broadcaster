@@ -24,6 +24,8 @@ jobs:
           ./gradle-8.9/bin/gradle --version
 
       - name: Build APK
+        env:
+          JITPACK_TOKEN: ${{ secrets.JITPACK_TOKEN }}
         run: ./gradle-8.9/bin/gradle assembleDebug --stacktrace
 
       - name: Upload APK
