@@ -4,10 +4,10 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.pedro.library.rtmp.RtmpCamera1
-import com.pedro.library.base.ConnectCheckerRtmp
+import com.pedro.library.utils.ConnectChecker
 import com.pedro.library.view.OpenGlView
 
-class RealStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
+class RealStreamActivity : AppCompatActivity(), ConnectChecker {
 
     private lateinit var rtmpCamera: RtmpCamera1
     private lateinit var openGlView: OpenGlView
@@ -78,20 +78,20 @@ class RealStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
         setContentView(layout)
     }
 
-    override fun onConnectionSuccessRtmp() {
+    override fun onConnectionSuccess() {
         runOnUiThread { statusText.text = "CONNECTED - YOU ARE LIVE FOR REAL!" }
     }
-    override fun onConnectionFailedRtmp(reason: String) {
+    override fun onConnectionFailed(reason: String) {
         runOnUiThread { statusText.text = "FAILED: $reason\nCheck Stream Key + Internet" }
     }
-    override fun onNewBitrateRtmp(bitrate: Long) {}
-    override fun onDisconnectRtmp() {
+    override fun onNewBitrate(bitrate: Long) {}
+    override fun onDisconnect() {
         runOnUiThread { statusText.text = "Disconnected" }
     }
-    override fun onAuthErrorRtmp() {
+    override fun onAuthError() {
         runOnUiThread { statusText.text = "AUTH ERROR - Wrong Stream Key" }
     }
-    override fun onAuthSuccessRtmp() {
+    override fun onAuthSuccess() {
         runOnUiThread { statusText.text = "Auth OK - LIVE!" }
     }
     override fun onDestroy() {
