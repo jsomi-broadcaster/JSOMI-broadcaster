@@ -3,14 +3,14 @@ package com.jsomi.broadcaster
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-import com.pedro.library.rtmp.RtmpCamera
-import com.pedro.library.base.ConnectChecker
-import android.view.SurfaceView
+import com.pedro.library.rtmp.RtmpCamera1
+import com.pedro.library.base.ConnectCheckerRtmp
+import com.pedro.library.view.OpenGlView
 
-class RealStreamActivity : AppCompatActivity(), ConnectChecker {
+class RealStreamActivity : AppCompatActivity(), ConnectCheckerRtmp {
 
-    private lateinit var rtmpCamera: RtmpCamera
-    private lateinit var surfaceView: SurfaceView
+    private lateinit var rtmpCamera: RtmpCamera1
+    private lateinit var openGlView: OpenGlView
     private lateinit var statusText: TextView
     private var rtmpUrl = ""
 
@@ -38,7 +38,7 @@ class RealStreamActivity : AppCompatActivity(), ConnectChecker {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(android.graphics.Color.BLACK)
         }
-        surfaceView = SurfaceView(this)
+        openGlView = OpenGlView(this)
         statusText = TextView(this).apply {
             text = "Destination: $dest\nReady - Press START to go REAL LIVE"
             setTextColor(android.graphics.Color.WHITE)
@@ -52,7 +52,7 @@ class RealStreamActivity : AppCompatActivity(), ConnectChecker {
         }
         val stopBtn = Button(this).apply { text = "STOP LIVE" }
 
-        rtmpCamera = RtmpCamera(surfaceView, this)
+        rtmpCamera = RtmpCamera1(openGlView, this)
 
         startBtn.setOnClickListener {
             if (key.isEmpty()) {
@@ -71,27 +71,27 @@ class RealStreamActivity : AppCompatActivity(), ConnectChecker {
             statusText.text = "Stopped"
         }
 
-        layout.addView(surfaceView, LinearLayout.LayoutParams(-1, 0, 1f))
+        layout.addView(openGlView, LinearLayout.LayoutParams(-1, 0, 1f))
         layout.addView(statusText)
         layout.addView(startBtn)
         layout.addView(stopBtn)
         setContentView(layout)
     }
 
-    override fun onConnectionSuccess() {
+    override fun onConnectionSuccessRtmp() {
         runOnUiThread { statusText.text = "CONNECTED - YOU ARE LIVE FOR REAL!" }
     }
-    override fun onConnectionFailed(reason: String) {
+    override fun onConnectionFailedRtmp(reason: String) {
         runOnUiThread { statusText.text = "FAILED: $reason\nCheck Stream Key + Internet" }
     }
-    override fun onNewBitrate(bitrate: Long) {}
-    override fun onDisconnect() {
+    override fun onNewBitrateRtmp(bitrate: Long) {}
+    override fun onDisconnectRtmp() {
         runOnUiThread { statusText.text = "Disconnected" }
     }
-    override fun onAuthError() {
+    override fun onAuthErrorRtmp() {
         runOnUiThread { statusText.text = "AUTH ERROR - Wrong Stream Key" }
     }
-    override fun onAuthSuccess() {
+    override fun onAuthSuccessRtmp() {
         runOnUiThread { statusText.text = "Auth OK - LIVE!" }
     }
     override fun onDestroy() {
